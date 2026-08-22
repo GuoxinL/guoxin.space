@@ -419,6 +419,90 @@ T('skMdTabsShow(false) 隐藏 tabs', el('drTabs').style.display==='none');
 ctx.skMdTabsShow(true);
 T('skMdTabsShow(true) 显示 tabs', el('drTabs').style.display==='flex');
 
+/* ========== 11. 运动数据（rk）：数据层与算法对齐 running_page ========== */
+console.log('== 11. 运动数据 rk ==');
+// rkParse 字段规整 + 过滤
+var rkRaw = [
+  { run_id:101, name:'晨跑', distance:'5200', moving_time:'30:00', type:'Run', start_date_local:'2024-01-01T08:00:00Z', location_country:'中国', summary_polyline:'p'.repeat(25), average_heartrate:'145', average_speed:3.12, elevation_gain:'50' },
+  { run_id:102, distance:0 }
+];
+var rkP = ctx.rkParse(rkRaw);
+T('rkParse 规整字段', rkP.length===1 && rkP[0].id===101 && rkP[0].dist===5200 && rkP[0].mt==='30:00' && rkP[0].type==='Run' && rkP[0].date==='2024-01-01T08:00:00Z' && rkP[0].hr===145 && rkP[0].spd===3.12 && rkP[0].elev===50, JSON.stringify(rkP));
+T('rkParse 过滤无距离无日期记录', rkP.length===1);
+// rkMovingSec 3 段 / 2 段 / 天 + 时分秒
+T('rkMovingSec 3 段', ctx.rkMovingSec('12:34:56')===45296);
+T('rkMovingSec 2 段', ctx.rkMovingSec('34:56')===2096);
+T('rkMovingSec 天+时分秒', ctx.rkMovingSec('2 days, 12:34:56')===218096);
+T('rkMovingSec 空返回 0', ctx.rkMovingSec('')===0);
+// 格式化
+T('rkFmtDist 四舍五入 km', ctx.rkFmtDist(5820)==='6' && ctx.rkFmtDist(4800)==='5');
+T('rkPace 配速 m:ss', ctx.rkPace(3.12)==='5:21', ctx.rkPace(3.12));
+T('rkPace 空返回 --', ctx.rkPace(0)==='--');
+T('rkFmtDur 时长', ctx.rkFmtDur(19920)==='5h 32m' && ctx.rkFmtDur(120)==='2m');
+T('rkFmtClock 时钟', ctx.rkFmtClock(4205)==='1:10:05' && ctx.rkFmtClock(65)==='1:05');
+// rkSortDate / rkYears
+var rkActsT = [
+  { date:'2022-03-01T08:00:00Z', dist:5000, mt:'30:00', type:'Run' },
+  { date:'2024-01-02T08:00:00Z', dist:8000, mt:'40:00', type:'Ride' },
+  { date:'2023-07-01T08:00:00Z', dist:3000, mt:'20:00', type:'Run' }
+];
+T('rkYears 倒序去重', JSON.stringify(ctx.rkYears(rkActsT))===JSON.stringify(['2024','2023','2022']), JSON.stringify(ctx.rkYears(rkActsT)));
+var rkSorted = rkActsT.slice().sort(ctx.rkSortDate);
+T('rkSortDate 日期倒序', rkSorted[0].date.slice(0,10)==='2024-01-02' && rkSorted[2].date.slice(0,10)==='2022-03-01');
+// rkStats 全量统计
+var rkS = ctx.rkStats(rkActsT);
+T('rkStats 汇总', rkS.dist===16000 && rkS.sec===5400 && rkS.count===3 && rkS.days===3 && rkS.runDist===8000 && rkS.runN===2 && rkS.pace===8000/3000, JSON.stringify(rkS));
+// rkHeatYear 网格
+var rkH = ctx.rkHeatYear([
+  { date:'2024-01-01T08:00:00Z', dist:5000, mt:'30:00', type:'Run' },
+  { date:'2024-01-02T08:00:00Z', dist:8000, mt:'40:00', type:'Ride' },
+  { date:'2023-12-31T08:00:00Z', dist:3000, mt:'20:00', type:'Run' }
+], '2024');
+T('rkHeatYear 当年过滤与汇总', rkH.count===2 && rkH.dist===13000 && rkH.max===8000 && rkH.grid.length===53, 'count='+rkH.count+' max='+rkH.max+' weeks='+rkH.grid.length);
+T('rkHeatYear 首格 1/1', rkH.grid[0][0].date==='2024-01-01' && rkH.grid[0][0].dist===5000 && rkH.grid[0][0].n===1, JSON.stringify(rkH.grid[0][0]));
+T('rkHeatYear 月份标签 12 个', rkH.months.length===12 && rkH.months[0].m===1);
+// rkHeatColor 4 级色阶边界
+T('rkHeatColor 0 无色', ctx.rkHeatColor(0, 100) === '');
+T('rkHeatColor L1 边界 25', ctx.rkHeatColor(25, 100) === '#fed7aa');
+T('rkHeatColor L2 边界 50', ctx.rkHeatColor(50, 100) === '#fb923c');
+T('rkHeatColor L3 边界 75', ctx.rkHeatColor(75, 100) === '#f97316');
+T('rkHeatColor L4 满量程', ctx.rkHeatColor(100, 100) === '#ea580c');
+T('rkHeatColor 溢出进下一级', ctx.rkHeatColor(25.1, 100) === '#fb923c');
+// rkPbs 窗口 + 配速过滤（对齐 PersonalBest：窗口 4.8-5.5 / 9.5-11 / 20-22.5 / 41-44，配速 180-480 s/km）
+var rkPbsActs = [
+  { type:'Run', poly:'p'.repeat(30), dist:5000, mt:'18:00', date:'2024-01-01T08:00:00Z' },
+  { type:'Run', poly:'p'.repeat(30), dist:10000, mt:'50:00', date:'2024-01-02T08:00:00Z' },
+  { type:'Run', poly:'p'.repeat(30), dist:21000, mt:'1:45:00', date:'2024-01-03T08:00:00Z' },
+  { type:'Run', poly:'p'.repeat(30), dist:42000, mt:'3:30:00', date:'2024-01-04T08:00:00Z' },
+  { type:'Run', poly:'p'.repeat(30), dist:5000, mt:'5:00', date:'2024-01-05T08:00:00Z' },
+  { type:'Run', poly:'p'.repeat(30), dist:8000, mt:'40:00', date:'2024-01-06T08:00:00Z' }
+];
+var rkPbsRes = ctx.rkPbs(rkPbsActs);
+T('rkPbs 5K 取最快并过滤超快配速', rkPbsRes[0].key==='5K' && rkPbsRes[0].time===1080 && rkPbsRes[0].act.date.slice(0,10)==='2024-01-01', JSON.stringify(rkPbsRes[0]));
+T('rkPbs 10K', rkPbsRes[1].time===3000);
+T('rkPbs Half', rkPbsRes[2].time===6300);
+T('rkPbs Full', rkPbsRes[3].time===12600);
+// rkDecodePolyline 已知样例（Google 官方示例）
+var rkDc = ctx.rkDecodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@');
+T('rkDecodePolyline 3 点', rkDc.length===3, 'len='+rkDc.length);
+T('rkDecodePolyline 首点 38.5,-120.2', rkDc[0][0].toFixed(1)==='38.5' && rkDc[0][1].toFixed(1)==='-120.2', JSON.stringify(rkDc[0]));
+T('rkDecodePolyline 次点 40.7,-120.95', rkDc[1][0].toFixed(1)==='40.7' && rkDc[1][1].toFixed(2)==='-120.95', JSON.stringify(rkDc[1]));
+T('rkDecodePolyline 空串返回空数组', ctx.rkDecodePolyline('').length===0);
+// rkTitleFor 时段标题（对齐 classic RUN_TITLES）
+T('rkTitleFor 半马/全马', ctx.rkTitleFor({dist:21000,date:'2024-01-01T08:00:00Z'})==='半程马拉松' && ctx.rkTitleFor({dist:42000,date:'2024-01-01T08:00:00Z'})==='全程马拉松');
+T('rkTitleFor 时段', ctx.rkTitleFor({dist:5000,date:'2024-01-01T06:00:00Z'})==='清晨跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T12:00:00Z'})==='午间跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T16:00:00Z'})==='午后跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T19:00:00Z'})==='傍晚跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T22:00:00Z'})==='夜晚跑步');
+T('rkTitleFor 无日期兜底', ctx.rkTitleFor({dist:5000})==='运动');
+// rkMonthDist / rkYearDist
+var rkMD = ctx.rkMonthDist(rkActsT, '2024');
+T('rkMonthDist 1 月汇总', rkMD.dist[0]===8000 && rkMD.count[0]===1);
+var rkYD = ctx.rkYearDist(rkActsT);
+T('rkYearDist 历年汇总', rkYD['2024']===8000 && rkYD['2022']===5000);
+// rkComma 千分位
+T('rkComma 千分位', ctx.rkComma(1234567)==='1,234,567');
+// rkTrendSVG 内联 SVG 柱状
+var rkSVG = ctx.rkTrendSVG([10,20,30], [1,2,3], null, '测试');
+T('rkTrendSVG SVG 柱状与悬浮提示', rkSVG.indexOf('<svg')===0 && rkSVG.indexOf('<rect')>=0 && rkSVG.indexOf('10 km')>=0 && rkSVG.indexOf('</svg>')>=0, rkSVG.slice(0,80));
+
 /* ========== 结果 ========== */
 console.log('\n========================================');
 console.log('通过 ' + pass + ' / ' + (pass + fail));

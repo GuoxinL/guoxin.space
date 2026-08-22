@@ -8,7 +8,18 @@
 | `worker.js` | Cloudflare Worker 写通道：`/api/health`、`/api/collect`（proxy/mirror）、`/api/remove`、`/api/sync`；页面零凭证，token 仅存 Worker Secret |
 | `DEPLOY-WORKER.md` | 部署指引：细粒度 PAT 创建、Worker 部署、环境变量、页面接入、验证清单、安全说明 |
 | `test-worker.mjs` | Worker mock 单测 60 条（自动同步 worker.js，改后直接重跑） |
-| `verify.js` | 页面回归 144 条（原 83 + flashStatus 回退 3 + skTest 输入框优先 2 + 默认值预填 3 + Skills 镜像元信息/文件树 11 + 详情独立页/文件树抽屉 18 + MD 渲染/Preview-Code 切换 19 + 标题锚点 5） |
+| `verify.js` | 页面回归 182 条（原 144 + 运动数据 rk 数据层/算法对齐 38：rkParse 规整/过滤、rkMovingSec 3 段/2 段/天、rkFmtDist/rkPace/rkFmtDur/rkFmtClock、rkYears/rkSortDate、rkStats、rkHeatYear 网格/月份、rkHeatColor 4 级色阶边界、rkPbs 窗口+配速过滤、rkDecodePolyline、rkTitleFor 时段、rkMonthDist/rkYearDist、rkComma、rkTrendSVG） |
+
+## 2026-08-22 迭代五：运动数据页（直连 running_page，原生集成）
+
+- **需求**：工作台内**原生完整实现** running 页面（不做 iframe/跳转），数据直连 running_page 仓库的 `activities.json`；选择 Mapbox（需 token）+ 核心全套功能（统计卡、年度热力图、活动列表、个人最佳、月/年趋势图、轨迹地图）。
+- **路由与入口**：`#/run` 路由（navigate 白名单 + 尾部 `if(h==="run") rkLoad()`）；侧边栏「运动数据」导航项 + 底部 tab「运动」+ 首页快捷卡片「运动数据」（跑表 SVG 图标，`data-nav`/`data-tabpage="run"`）；页面骨架 `#page-run`（头部 + 状态条 `#rkBar` + 统计卡 + 热力图 sec + 趋势 sec + PB sec + 活动列表 sec + 轨迹地图 sec 初始隐藏）。
+- **数据流（本地零存储）**：`rkFetch` 优先 `caches.open('wb_rk_acts_v1')` 缓存 3.4MB activities.json，miss 则直连 `raw.githubusercontent.com/GuoxinL/running_page/master/src/static/activities.json` 并写入缓存；无 Cache API 时直接 fetch；失败显示错误态 + 「刷新数据」重试。真实浏览器实测加载 **3,600 条记录**成功。
+- **算法与 running_page 源码逐项对齐**（避免凭记忆偏差）：`formatDistance=Math.round(m/1000)`；`formatPace=1000/60/speedMs→m:ss`；`rkMovingSec` 支持 `'12:34:56'` / `'34:56'` / `'2 days, 12:34:56'`；热力图 4 级色阶 `level=ceil(min(dist/max,1)*4)`，Run 色板 `['#fed7aa','#fb923c','#f97316','#ea580c']`（Ride 蓝系/All 紫系），日格 `dist>0?dist:1`、`12×12px`、月标签按周宽、星期列 `['','一','','三','','五','']`；PB 窗口 `5K:4.8-5.5 / 10K:9.5-11 / Half:20-22.5 / Full:41-44` + 配速 180-480 s/km 过滤 + 取最快 moving_time（需 `type==='Run'` 且 poly>20 字符）；时段标题 `20-40km 半马 / ≥40km 全马 / 0-10 晨 / 10-14 午间 / 14-18 午后 / 18-21 傍晚 / 其余夜跑`。
+- **趋势图**：纯内联 SVG（720×220、4 条网格线、柱状 + `<title>` 悬浮提示、月度=当年 12 月 / 年度=历年，>15 数据点隔行显示 label），不引图表库。
+- **轨迹地图（Mapbox 懒加载 + 无 token 降级）**：token 存 `localStorage['wb_run_mapbox_token']`，`rkTokenCfg` 用 prompt 输入/清除；有 token 才动态注入 `mapbox-gl@v3.4.0` js+css，`rkDecodePolyline`（precision 5）解码后 addSource/addLayer 橙色线 + fitBounds padding 48；无 token 显示「未配置 Mapbox Token」降级提示并指引 `account.mapbox.com`；无 poly 显示「该记录无轨迹数据」。
+- **全局挂载**：init() 末尾沿袭 `window.skXxx` 模式追加 `window.rkLoad/rkFetch/rkRefresh/rkRenderAll/rkTokenCfg/rkHeatSel/rkTrendMode/rkListSel/rkMore/rkShowMap`（否则内联 onclick 报 `rkXxx is not defined`）。
+- **修复的 bug**：`rkPbs` 窗口对象字段定义用 `k:"5K"` 但返回时误写 `w.key`（undefined）→ 改为 `w.k`（否则 PB 卡片 key 渲染为空）。
 
 ## 2026-08-22 迭代四：自然滚动 + 标题栏吸顶 + 标题锚点
 
@@ -59,11 +70,13 @@
 ## 验证结果
 
 - Worker mock 单测：**60/60 通过**（含空仓库自动初始化 5 条：非空直通、四步 init、409→init→重试、非空失败不 init、health empty 标记；injectMirrorMeta 5 条：无 metadata 注入、已有 metadata 追加覆盖、无 frontmatter、空输入、注入后 frontmatter 可解析）
-- 页面回归：**144/144 通过**（修复 flashStatus 引用已移除元素的遗留 bug，回退到当前激活侧校验条；SK_DEFAULTS 默认值固化 guoxinl/skill-collection / main / skillboard-collect.lgx31.workers.dev；新增 Skills 断言：sourceOwner 解析、source URL 提取 owner、escAttr 转义、文件树可点击/层级缩进/跨目录过滤/当前文件高亮；新增 10d 详情独立页/文件树抽屉 18 条：skHashDir 路由解析、skRoute 视图切换、详情字段填充、抽屉自动展开与「有且仅有文件树」、列表页收起提示、列表页点文件树自动进详情、skPendingFile 消费、抽拉切换、skBack/skGoto hash、离开 skills 页自动收起抽屉；新增 10e MD 渲染/Preview-Code 切换 19 条：skMdIsMarkdown 识别/排除、frontmatter 剥离、多级标题、行内格式（bold/italic/code/del）、链接（含 target="_blank"）、代码块、无序/有序列表、任务列表、表格、引用、HTML 转义、skMdApply preview 渲染、skMdMode(code/preview) 切换、非 md 退回 code、skMdTabsShow 显隐；新增 10f 标题锚点 5 条：中文标题锚点 slug、英文小写连字符、重复标题去重 -1、slug 剥离行内标记、slug 移除标点）
+- 页面回归：**182/182 通过**（144 条存量全绿 + 迭代五新增运动数据 rk 段 38 条：rkParse 字段规整与过滤、rkMovingSec 3 段/2 段/天+时分秒、rkFmtDist/rkPace/rkFmtDur/rkFmtClock、rkYears 倒序/rkSortDate、rkStats 全量统计、rkHeatYear 当年过滤/53 周网格/首格 1-1/12 个月份标签、rkHeatColor 4 级色阶六边界、rkPbs 5K 取最快+过滤超快配速/10K/Half/Full 窗口、rkDecodePolyline Google 官方样例 3 点、rkTitleFor 半马/全马/六时段/无日期兜底、rkMonthDist/rkYearDist、rkComma 千分位、rkTrendSVG SVG 柱状与悬浮提示；顺带修复 rkPbs 窗口字段 `w.key`→`w.k` 的 key 丢失 bug）
 - 浏览器预检（agent-browser/Chromium）：Skills 页渲染、路由、通道设置/收藏弹窗、12 个 sk 全局函数挂载、未配置拦截提示全部正常，无 JS 运行时错误；本轮迭代四另用 puppeteer-core + 系统 Chrome 做真实滚动验证（sticky 吸顶 top=0、去固定框、锚点 16/16 + 平滑滚回 + 复制 toast，全 PASS）
+- 迭代五真实浏览器验证（puppeteer-core + 系统 Chrome，`#/run`）：**真实拉取 activities.json 成功，3,600 条记录**，状态条 ok；统计卡 5 项渲染（总距离 13,381 km / 1236h 31m / 3,600 次 / 3,104 天 / 爬升 5,320m）；热力图年份 tabs 2012-2026 共 15 个；趋势图显示；PB 5K 20:33 / 10K 43:54 / 半马 1:34:43；活动列表 30 行 + 年份下拉；点击活动行 → 「未配置 Mapbox Token」降级提示（无 token 路径符合预期）；侧边栏/底部 tab/快捷卡片/`window.rk*` 全局挂载全部生效；无 JS 运行时错误（唯一 404 为 favicon.ico，无害）
 
 ## 待办
 
+- **Mapbox public token**：轨迹地图真实渲染需用户提供 token（`account.mapbox.com → Access tokens → Create a token`，Public，可限制 URL 到工作台分享域 `*.app.workbuddy.link`）；拿到后在运动数据页点「地图 Token」粘贴（存 localStorage，本地零上传）。无 token 时页面已显示降级提示，其余功能不受影响。
 - Worker 已部署 `skillboard-collect.lgx31.workers.dev`（健康检查 200）；收藏仓库为空时现在可**直接收藏首个 Skill，Worker 会自动初始化**，无需手工建 README
 - **⚠️ worker.js 本次新增 mirror 元信息注入，需重新部署 Worker 后新的镜像收藏才会写入 source/sourceOwner**（旧镜像收藏页面端已通过 `_collect.json` 兼容）
 - workers.dev 域名国内直连需代理；后续可考虑绑自定义域名（方案 B）或适配腾讯云 SCF/阿里云 FC（方案 C）
