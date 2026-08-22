@@ -59,6 +59,16 @@
 - **镜像 SKILL.md 注入来源**：`injectMirrorMeta` 在 mirror 收藏时给原 SKILL.md frontmatter 追加 `metadata.source / sourceOwner / mode: mirror`（保留原字段正文），`_collect.json` 同步补 `sourceOwner`；页面 `skParseFrontmatter` 新增 sourceOwner 解析。
 - **图标改为目标仓库**：目录内无图标时，fallback 从 `sourceOwner`（或 source URL 提取）取目标仓库 owner 头像，不再用收藏仓库 owner 头像；旧镜像收藏自动读 `_collect.json` 补来源兼容。
 
+## 2026-08-22 迭代五续：轨迹地图 Mapbox → MapCN（免费，无需 token）
+
+用户确认改用 **MapCN 地图服务**（即 running_page 官方默认 `MAP_TILE_VENDOR='mapcn'`，底层 CARTO Basemaps + OSM 数据，免费、无需 token）。因工作台铁律「全内联零外链」，**不引 MapLibre/Leaflet CDN**，改为手写 DOM 瓦片渲染器（约 200 行）：
+
+- **三档底图样式**（对齐 running_page mapcn 的 gl style 对应栅格版）：voyager 明亮（默认）/ light_all 浅色 / dark_all 暗色；`localStorage('wb_run_map_style')` 记忆，页面按钮「底图样式」循环切换（`rkMapStyle`）
+- **投影**：`rkMerc/rkMercInv` Web Mercator 经纬度 ↔ 世界像素（verify 可测，北京点往返还原）
+- **渲染**：`rkMapInit` 视口内瓦片 div（`basemaps.cartocdn.com` a-d 子域轮换、世界 x 取模）+ SVG polyline 轨迹叠加（起点绿/终点红标记）+ 右下角 CARTO/OSM attribution
+- **交互**：鼠标拖拽（document 级成对监听，松手清理无泄漏）、滚轮锚点缩放、双击放大、右上角 +/−/⤢（适应轨迹）按钮、触摸单指拖动（移动端）
+- **移除**：Mapbox token 全套（RK_TOKEN_KEY/rkMapToken/rkTokenCfg/rkLoadMapbox/动态脚本注入），页面按钮由「地图 Token」改为「底图样式」；全局挂载同步换 `rkMapStyle`
+
 ## 关键决策
 
 - **写通道安全模型**：GH_TOKEN（细粒度 PAT，仅授权 skill-collection 单仓库 Contents 读写）只存 Worker Secret；页面 fetch 不带任何凭证，跨域由 Worker CORS 放行（`*`）。
@@ -70,13 +80,13 @@
 ## 验证结果
 
 - Worker mock 单测：**60/60 通过**（含空仓库自动初始化 5 条：非空直通、四步 init、409→init→重试、非空失败不 init、health empty 标记；injectMirrorMeta 5 条：无 metadata 注入、已有 metadata 追加覆盖、无 frontmatter、空输入、注入后 frontmatter 可解析）
-- 页面回归：**182/182 通过**（144 条存量全绿 + 迭代五新增运动数据 rk 段 38 条：rkParse 字段规整与过滤、rkMovingSec 3 段/2 段/天+时分秒、rkFmtDist/rkPace/rkFmtDur/rkFmtClock、rkYears 倒序/rkSortDate、rkStats 全量统计、rkHeatYear 当年过滤/53 周网格/首格 1-1/12 个月份标签、rkHeatColor 4 级色阶六边界、rkPbs 5K 取最快+过滤超快配速/10K/Half/Full 窗口、rkDecodePolyline Google 官方样例 3 点、rkTitleFor 半马/全马/六时段/无日期兜底、rkMonthDist/rkYearDist、rkComma 千分位、rkTrendSVG SVG 柱状与悬浮提示；顺带修复 rkPbs 窗口字段 `w.key`→`w.k` 的 key 丢失 bug）
+- 页面回归：**187/187 通过**（144 条存量全绿 + 运动数据 rk 段 43 条：原 38 条 + MapCN 投影 5 条 rkMerc 北京点范围/rkMercInv 往返还原/rkMapStyleIdx 默认 0/南半球 y 方向；顺带修复 rkPbs 窗口字段 `w.key`→`w.k` 的 key 丢失 bug）
 - 浏览器预检（agent-browser/Chromium）：Skills 页渲染、路由、通道设置/收藏弹窗、12 个 sk 全局函数挂载、未配置拦截提示全部正常，无 JS 运行时错误；本轮迭代四另用 puppeteer-core + 系统 Chrome 做真实滚动验证（sticky 吸顶 top=0、去固定框、锚点 16/16 + 平滑滚回 + 复制 toast，全 PASS）
-- 迭代五真实浏览器验证（puppeteer-core + 系统 Chrome，`#/run`）：**真实拉取 activities.json 成功，3,600 条记录**，状态条 ok；统计卡 5 项渲染（总距离 13,381 km / 1236h 31m / 3,600 次 / 3,104 天 / 爬升 5,320m）；热力图年份 tabs 2012-2026 共 15 个；趋势图显示；PB 5K 20:33 / 10K 43:54 / 半马 1:34:43；活动列表 30 行 + 年份下拉；点击活动行 → 「未配置 Mapbox Token」降级提示（无 token 路径符合预期）；侧边栏/底部 tab/快捷卡片/`window.rk*` 全局挂载全部生效；无 JS 运行时错误（唯一 404 为 favicon.ico，无害）
+- 迭代五真实浏览器验证（puppeteer-core + 系统 Chrome，`#/run`）：**真实拉取 activities.json 成功，3,600 条记录**，状态条 ok；统计卡 5 项渲染（总距离 13,381 km / 1236h 31m / 3,600 次 / 3,104 天 / 爬升 5,320m）；热力图年份 tabs 2012-2026 共 15 个；趋势图显示；PB 5K 20:33 / 10K 43:54 / 半马 1:34:43；活动列表 30 行 + 年份下拉；侧边栏/底部 tab/快捷卡片/`window.rk*` 全局挂载全部生效；无 JS 运行时错误（唯一 404 为 favicon.ico，无害）
+- **MapCN 切换真实浏览器验证**（puppeteer-core，`#/run` 点击活动行）：地图区显示、9 个 voyager 瓦片加载成功（`b.basemaps.cartocdn.com/rastertiles/voyager/14/...`，a-d 子域轮换、无瓦片 404）；93 点 SVG 轨迹 polyline + 起终点标记；标题「2026-04-21 · 傍晚跑步 · 2.12 km」；attribution「Map tiles © CARTO · Map data © OpenStreetMap contributors」；交互实测：放大按钮 z14→z15、滚轮 z15→z16、拖拽 transform 位移精确匹配（-100,-50）、底图样式切换 voyager→light_all 生效（瓦片 URL 随之变化）；零 JS 错误、零瓦片请求失败
 
 ## 待办
 
-- **Mapbox public token**：轨迹地图真实渲染需用户提供 token（`account.mapbox.com → Access tokens → Create a token`，Public，可限制 URL 到工作台分享域 `*.app.workbuddy.link`）；拿到后在运动数据页点「地图 Token」粘贴（存 localStorage，本地零上传）。无 token 时页面已显示降级提示，其余功能不受影响。
 - Worker 已部署 `skillboard-collect.lgx31.workers.dev`（健康检查 200）；收藏仓库为空时现在可**直接收藏首个 Skill，Worker 会自动初始化**，无需手工建 README
 - **⚠️ worker.js 本次新增 mirror 元信息注入，需重新部署 Worker 后新的镜像收藏才会写入 source/sourceOwner**（旧镜像收藏页面端已通过 `_collect.json` 兼容）
 - workers.dev 域名国内直连需代理；后续可考虑绑自定义域名（方案 B）或适配腾讯云 SCF/阿里云 FC（方案 C）

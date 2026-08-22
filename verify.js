@@ -488,6 +488,14 @@ T('rkDecodePolyline 3 点', rkDc.length===3, 'len='+rkDc.length);
 T('rkDecodePolyline 首点 38.5,-120.2', rkDc[0][0].toFixed(1)==='38.5' && rkDc[0][1].toFixed(1)==='-120.2', JSON.stringify(rkDc[0]));
 T('rkDecodePolyline 次点 40.7,-120.95', rkDc[1][0].toFixed(1)==='40.7' && rkDc[1][1].toFixed(2)==='-120.95', JSON.stringify(rkDc[1]));
 T('rkDecodePolyline 空串返回空数组', ctx.rkDecodePolyline('').length===0);
+// rkMerc / rkMercInv（MapCN 瓦片 Web Mercator 投影，北京 116.3913,39.9075 @ z12）
+var rkM = ctx.rkMerc(116.3913, 39.9075, 12);
+T('rkMerc 北京 x 范围', rkM[0] > 863200 && rkM[0] < 863400, 'x='+rkM[0].toFixed(1));
+T('rkMerc 北京 y 范围', rkM[1] > 397200 && rkM[1] < 397450, 'y='+rkM[1].toFixed(1));
+var rkMi = ctx.rkMercInv(rkM[0], rkM[1], 12);
+T('rkMercInv 往返还原', rkMi[0].toFixed(3)==='39.907' && rkMi[1].toFixed(3)==='116.391', JSON.stringify(rkMi.map(function(v){return v.toFixed(4)})));
+T('rkMapStyleIdx 默认 0（无 token 依赖）', ctx.rkMapStyleIdx()===0, 'idx='+ctx.rkMapStyleIdx());
+T('rkMerc 高纬负值（南半球 y>n/2）', ctx.rkMerc(0, -30, 10)[1] > ctx.rkMerc(0, 30, 10)[1]);
 // rkTitleFor 时段标题（对齐 classic RUN_TITLES）
 T('rkTitleFor 半马/全马', ctx.rkTitleFor({dist:21000,date:'2024-01-01T08:00:00Z'})==='半程马拉松' && ctx.rkTitleFor({dist:42000,date:'2024-01-01T08:00:00Z'})==='全程马拉松');
 T('rkTitleFor 时段', ctx.rkTitleFor({dist:5000,date:'2024-01-01T06:00:00Z'})==='清晨跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T12:00:00Z'})==='午间跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T16:00:00Z'})==='午后跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T19:00:00Z'})==='傍晚跑步' && ctx.rkTitleFor({dist:5000,date:'2024-01-01T22:00:00Z'})==='夜晚跑步');

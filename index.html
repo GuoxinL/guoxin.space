@@ -332,6 +332,16 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-map-hint{padding:26px 20px;text-align:center;color:var(--text2);font-size:13px}
 .rk-map-hint .rk-mh-t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
 .rk-map-hint code{background:var(--surface);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
+.rk-tilemap{position:relative;height:420px;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
+.rk-tm-tiles{position:absolute;left:0;top:0;will-change:transform}
+.rk-tm-tile{position:absolute;width:256px;height:256px;background-size:cover;background-color:#dfe5ea}
+.rk-tm-svg{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
+.rk-tm-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;z-index:3}
+.rk-tm-ctrl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.rk-tm-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:17px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.rk-tm-btn:hover{background:var(--hover);border-color:var(--primary)}
+.rk-tm-zoom{position:absolute;left:10px;bottom:8px;font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:10px;z-index:4}
+.rk-tm-attr{position:absolute;left:0;right:0;bottom:0;padding:3px 8px;font-size:10px;color:#666;background:rgba(255,255,255,.78);text-align:right;z-index:4;border-top:1px solid rgba(0,0,0,.05)}
 .rk-empty{padding:30px 0;text-align:center;color:var(--text3);font-size:13px}
 @media (max-width:768px){
   .rk-cards{grid-template-columns:repeat(2,1fr)}
@@ -671,9 +681,9 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
           刷新数据
         </button>
-        <button class="btn" onclick="rkTokenCfg()" title="配置 Mapbox 地图 Token（轨迹地图需要）">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          地图 Token
+        <button class="btn" onclick="rkMapStyle()" title="切换底图样式（MapCN / CARTO 免费瓦片，无需 token）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>
+          底图样式
         </button>
       </div>
     </div>
@@ -2132,7 +2142,7 @@ function init(){
   }
   skLoad();
   window.rkLoad = rkLoad; window.rkFetch = rkFetch; window.rkRefresh = rkRefresh;
-  window.rkRenderAll = rkRenderAll; window.rkTokenCfg = rkTokenCfg;
+  window.rkRenderAll = rkRenderAll; window.rkMapStyle = rkMapStyle;
   window.rkHeatSel = rkHeatSel; window.rkTrendMode = rkTrendMode;
   window.rkListSel = rkListSel; window.rkMore = rkMore; window.rkShowMap = rkShowMap;
 }
@@ -2141,7 +2151,14 @@ document.addEventListener("DOMContentLoaded", init);
 /* ================= 运动数据 (run)：数据源 = running_page 仓库直连 ================= */
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running_page/master/src/static/activities.json";
 var RK_CACHE = "wb_rk_acts_v1";
-var RK_TOKEN_KEY = "wb_run_mapbox_token";
+/* MapCN（CARTO Basemaps）免费瓦片，无需 token；对齐 running_page MAP_TILE_VENDOR='mapcn' 的三档样式 */
+var RK_STYLES = [
+  { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
+  { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
+  { k:"dark",    n:"暗色", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" }
+];
+var RK_STYLE_KEY = "wb_run_map_style";
+var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
 var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_page TYPE_PALETTES.Run */
 var RK_RIDE_PAL = ["#bfdbfe","#60a5fa","#3b82f6","#2563eb"];
 var RK_ALL_PAL = ["#e9d5ff","#c084fc","#a855f7","#7c3aed"];
@@ -2149,7 +2166,12 @@ var rkActs = null;               /* 规整后的活动数组 */
 var rkState = { year:"all", trend:"m", listYear:"all", listN:30, selId:0 };
 
 function rkEl(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
-function rkMapToken(){ try{ return localStorage.getItem(RK_TOKEN_KEY) || ""; }catch(e){ return ""; } }
+function rkMapStyleIdx(){
+  try{
+    var i = parseInt(localStorage.getItem(RK_STYLE_KEY), 10);
+    return (i >= 0 && i < RK_STYLES.length) ? i : 0;
+  }catch(e){ return 0; }
+}
 
 /* ---- 数据解析（verify 可测）---- */
 function rkParse(json){
@@ -2546,17 +2568,11 @@ function rkRenderList(){
 }
 function rkMore(){ rkState.listN += 30; rkRenderList(); }
 
-/* ---- 轨迹地图（Mapbox，懒加载） ---- */
-function rkTokenCfg(){
-  var cur = rkMapToken();
-  var t = prompt("输入 Mapbox public token（pk. 开头）\n留空并确定可清除。\n获取：account.mapbox.com → Account → Access tokens → Create a token（Public，可限制 URL 到本工作台域名）。", cur);
-  if(t === null) return;
-  try{
-    if(t.trim()) localStorage.setItem(RK_TOKEN_KEY, t.trim());
-    else localStorage.removeItem(RK_TOKEN_KEY);
-  }catch(e){}
+/* ---- 轨迹地图（MapCN / CARTO 免费瓦片，零外链手写渲染，无需 token） ---- */
+function rkMapStyle(){
+  var i = (rkMapStyleIdx() + 1) % RK_STYLES.length;
+  try{ localStorage.setItem(RK_STYLE_KEY, String(i)); }catch(e){}
   if(rkState.selId) rkShowMap(rkState.selId);
-  else if(rkMapToken()){ var s = rkEl("rkMapSec"); if(s) s.style.display = "block"; }
 }
 function rkShowMap(id){
   var a = null;
@@ -2571,54 +2587,191 @@ function rkShowMap(id){
     return;
   }
   ti.textContent = ((a.date||"").slice(0,10) + " · ") + (a.name || rkTitleFor(a)) + " · " + (a.dist/1000).toFixed(2) + " km";
-  var token = rkMapToken();
-  if(!token){
-    box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">未配置 Mapbox Token</div><div>点击页面右上角「地图 Token」粘贴你的 Mapbox public token 即可绘制轨迹。<br>生成地址：<code>account.mapbox.com</code> → Access tokens → Create a token（Public，可限制 URL）。</div></div>";
+  var coords = rkDecodePolyline(a.poly);
+  if(!coords.length){
+    box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">轨迹解码失败</div></div>";
     return;
   }
-  box.innerHTML = "<div style=\"height:420px\" id=\"rkMapCanvas\"></div>";
-  rkLoadMapbox(function(){
-    var coords = rkDecodePolyline(a.poly);
-    if(!coords.length){ box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">轨迹解码失败</div></div>"; return; }
-    if(!window.mapboxgl){ box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">Mapbox 未加载</div></div>"; return; }
-    var map = new mapboxgl.Map({ container:"rkMapCanvas", style:"mapbox://styles/mapbox/streets-v12", center:[coords[0][1], coords[0][0]], zoom:12, accessToken:token });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass:false }));
-    map.on("load", function(){
-      try{
-        map.addSource("route", { type:"geojson", data:{ type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates: coords.map(function(c){ return [c[1], c[0]]; }) } } });
-        map.addLayer({ id:"route", type:"line", source:"route", layout:{ "line-join":"round", "line-cap":"round" }, paint:{ "line-color":"#f97316", "line-width":4, "line-opacity":0.9 } });
-        var b = coords.reduce(function(bb, c){
-          bb[0] = Math.min(bb[0], c[1]); bb[1] = Math.min(bb[1], c[0]);
-          bb[2] = Math.max(bb[2], c[1]); bb[3] = Math.max(bb[3], c[0]);
-          return bb;
-        }, [Infinity, Infinity, -Infinity, -Infinity]);
-        if(b[0] !== Infinity) map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding:48 });
-      }catch(err){
-        box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">地图渲染失败</div><div>" + esc(err && err.message ? err.message : err) + "</div></div>";
-      }
-    });
-  }, box);
+  box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\"><div class=\"rk-tm-loading\">底图加载中（MapCN · 免费无需 token）…</div></div>";
+  rkMapInit(rkEl("rkMapCanvas"), coords, rkMapStyleIdx());
 }
-function rkLoadMapbox(cb, box){
-  if(window.mapboxgl){ cb(); return; }
-  var s = document.createElement("script");
-  s.src = "https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js";
-  s.onload = function(){
-    if(!window.mapboxgl){
-      if(box) box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">Mapbox 加载失败</div></div>";
-      return;
-    }
-    if(!document.querySelector('link[href*="mapbox-gl.css"]')){
-      var c = document.createElement("link");
-      c.rel = "stylesheet"; c.href = "https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css";
-      document.head.appendChild(c);
-    }
-    cb();
+/* Web Mercator 投影（verify 可测）：经纬度 <-> 世界像素（256*2^z 见方） */
+function rkMerc(lng, lat, z){
+  var n = RK_TILE * Math.pow(2, z);
+  var x = (lng + 180) / 360 * n;
+  var s = Math.sin(lat * Math.PI / 180);
+  var y = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n;
+  return [x, y];
+}
+function rkMercInv(x, y, z){
+  var n = RK_TILE * Math.pow(2, z);
+  var lng = x / n * 360 - 180;
+  var lat = 180 / Math.PI * (2 * Math.atan(Math.exp((0.5 - y / n) * 2 * Math.PI)) - Math.PI / 2);
+  return [lat, lng];
+}
+function rkMapInit(container, coords, styleIdx){
+  if(!container || !coords || !coords.length) return;
+  var S = {
+    z: 14, cx: 0, cy: 0, pts: [],
+    style: RK_STYLES[styleIdx] || RK_STYLES[0],
+    container: container, W: 640, H: 420,
+    ox0: 0, oy0: 0
   };
-  s.onerror = function(){
-    if(box) box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">Mapbox CDN 加载失败</div><div>请检查网络后重试。</div></div>";
-  };
-  document.head.appendChild(s);
+  function rect(){
+    try{
+      var r = container.getBoundingClientRect();
+      S.W = r.width || 640; S.H = r.height || 420;
+    }catch(e){}
+  }
+  function setZoom(nz){
+    S.z = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, nz));
+    S.pts = coords.map(function(c){ var p = rkMerc(c[1], c[0], S.z); return [p[0], p[1]]; });
+  }
+  function bbox(){
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    S.pts.forEach(function(p){
+      if(p[0] < x0) x0 = p[0]; if(p[1] < y0) y0 = p[1];
+      if(p[0] > x1) x1 = p[0]; if(p[1] > y1) y1 = p[1];
+    });
+    return [x0, y0, x1, y1];
+  }
+  function tileUrl(tx, ty){
+    var n = Math.pow(2, S.z);
+    var wx = ((tx % n) + n) % n;
+    var sub = "abcd"[(wx + ty + S.z) % 4];
+    return S.style.url.replace("{s}", sub).replace("{z}", S.z).replace("{x}", wx).replace("{y}", ty);
+  }
+  function render(){
+    rect();
+    var x0 = Math.floor((S.cx - S.W/2) / RK_TILE), x1 = Math.floor((S.cx + S.W/2) / RK_TILE);
+    var y0 = Math.floor((S.cy - S.H/2) / RK_TILE), y1 = Math.floor((S.cy + S.H/2) / RK_TILE);
+    S.ox0 = (S.cx - S.W/2) - x0 * RK_TILE;
+    S.oy0 = (S.cy - S.H/2) - y0 * RK_TILE;
+    var html = '<div class="rk-tm-tiles" style="transform:translate(' + (-S.ox0).toFixed(1) + 'px,' + (-S.oy0).toFixed(1) + 'px)">';
+    for(var ty = y0; ty <= y1; ty++){
+      for(var tx = x0; tx <= x1; tx++){
+        html += '<div class="rk-tm-tile" style="left:' + ((tx - x0) * RK_TILE) + 'px;top:' + ((ty - y0) * RK_TILE) + 'px;background-image:url(' + tileUrl(tx, ty) + ')"></div>';
+      }
+    }
+    html += '</div>';
+    var sx = S.cx - S.W/2, sy = S.cy - S.H/2;
+    var pl = S.pts.map(function(p){ return (p[0]-sx).toFixed(1) + ',' + (p[1]-sy).toFixed(1); }).join(' ');
+    html += '<svg class="rk-tm-svg" width="' + S.W + '" height="' + S.H + '" viewBox="0 0 ' + S.W + ' ' + S.H + '">';
+    html += '<polyline points="' + pl + '" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>';
+    if(S.pts.length){
+      var s0 = S.pts[0], s1 = S.pts[S.pts.length - 1];
+      html += '<circle cx="' + (s0[0]-sx).toFixed(1) + '" cy="' + (s0[1]-sy).toFixed(1) + '" r="5" fill="#22c55e" stroke="#fff" stroke-width="1.5"/>';
+      html += '<circle cx="' + (s1[0]-sx).toFixed(1) + '" cy="' + (s1[1]-sy).toFixed(1) + '" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>';
+    }
+    html += '</svg>';
+    html += '<div class="rk-tm-ctrl">'
+      + '<button class="rk-tm-btn" title="放大">+</button>'
+      + '<button class="rk-tm-btn" title="缩小">−</button>'
+      + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
+      + '</div>';
+    html += '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + S.style.n + '</div>';
+    html += '<div class="rk-tm-attr">Map tiles © CARTO · Map data © OpenStreetMap contributors</div>';
+    container.innerHTML = html;
+    container.style.cursor = "grab";
+  }
+  function zoomBy(d, mx, my){
+    var nz = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, S.z + d));
+    if(nz === S.z) return;
+    if(mx == null){ mx = S.W/2; my = S.H/2; }
+    var ll = rkMercInv(S.cx + mx - S.W/2, S.cy + my - S.H/2, S.z);
+    setZoom(nz);
+    var p = rkMerc(ll[1], ll[0], nz);
+    S.cx = p[0] - (mx - S.W/2);
+    S.cy = p[1] - (my - S.H/2);
+    render();
+  }
+  function fit(){
+    rect();
+    setZoom(14);
+    var b = bbox(), w = b[2]-b[0], h = b[3]-b[1], pad = 70;
+    while(S.z > RK_Z_MIN && (w > S.W - 2*pad || h > S.H - 2*pad)){
+      S.z--; setZoom(S.z); b = bbox(); w = b[2]-b[0]; h = b[3]-b[1];
+    }
+    while(S.z < RK_Z_MAX && w < (S.W - 2*pad) * 0.55 && h < (S.H - 2*pad) * 0.55){
+      S.z++; setZoom(S.z); b = bbox(); w = b[2]-b[0]; h = b[3]-b[1];
+    }
+    S.cx = (b[0]+b[2])/2; S.cy = (b[1]+b[3])/2;
+    render();
+  }
+  /* 拖拽平移（document 级成对监听，松手即清理，无泄漏） */
+  var drag = null;
+  function onMove(e){
+    if(!drag) return;
+    var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    S.cx = drag.cx - dx; S.cy = drag.cy - dy;
+    var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
+    if(tiles && svg){
+      var nx = S.ox0 - dx, ny = S.oy0 - dy;
+      tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";
+      svg.style.transform = "translate(" + (-dx).toFixed(1) + "px," + (-dy).toFixed(1) + "px)";
+    }
+  }
+  function onUp(){
+    if(!drag) return;
+    drag = null;
+    container.style.cursor = "grab";
+    render();
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup", onUp);
+  }
+  container.addEventListener("mousedown", function(e){
+    if(e.target && e.target.className === "rk-tm-btn") return;
+    drag = { sx:e.clientX, sy:e.clientY, cx:S.cx, cy:S.cy };
+    container.style.cursor = "grabbing";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    e.preventDefault();
+  });
+  /* 触摸：单指拖动（移动端） */
+  container.addEventListener("touchstart", function(e){
+    if(e.touches.length === 1 && !(e.target && e.target.className === "rk-tm-btn")){
+      var t = e.touches[0];
+      drag = { sx:t.clientX, sy:t.clientY, cx:S.cx, cy:S.cy };
+      e.preventDefault();
+    }
+  }, { passive:false });
+  container.addEventListener("touchmove", function(e){
+    if(!drag || e.touches.length !== 1) return;
+    var t = e.touches[0];
+    var dx = t.clientX - drag.sx, dy = t.clientY - drag.sy;
+    S.cx = drag.cx - dx; S.cy = drag.cy - dy;
+    var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
+    if(tiles && svg){
+      tiles.style.transform = "translate(" + (-(S.ox0 - dx)).toFixed(1) + "px," + (-(S.oy0 - dy)).toFixed(1) + "px)";
+      svg.style.transform = "translate(" + (-dx).toFixed(1) + "px," + (-dy).toFixed(1) + "px)";
+    }
+    e.preventDefault();
+  }, { passive:false });
+  container.addEventListener("touchend", function(){
+    if(!drag) return;
+    drag = null;
+    render();
+  });
+  /* 滚轮 / 双击 / 控制按钮 */
+  container.addEventListener("wheel", function(e){
+    e.preventDefault();
+    var r = container.getBoundingClientRect();
+    zoomBy(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+  }, { passive:false });
+  container.addEventListener("dblclick", function(e){
+    var r = container.getBoundingClientRect();
+    zoomBy(1, e.clientX - r.left, e.clientY - r.top);
+  });
+  container.addEventListener("click", function(e){
+    var btn = e.target;
+    if(!btn || btn.className !== "rk-tm-btn") return;
+    var c = container.querySelectorAll(".rk-tm-btn");
+    var idx = Array.prototype.indexOf.call(c, btn);
+    if(idx === 0) zoomBy(1);
+    else if(idx === 1) zoomBy(-1);
+    else if(idx === 2) fit();
+  });
+  fit();
 }
 
 /* ---- 数据加载 ---- */
