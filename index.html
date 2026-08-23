@@ -2429,7 +2429,7 @@ function rkHeatSel(y){
 function rkRenderHeatTabs(){
   var ys = rkYears(rkActs), e = rkEl("rkHeatTabs");
   if(!e) return;
-  var h = "<button class=\"rk-tab" + (rkState.year==="all" ? " active" : "") + "\" onclick=\"rkHeatSel('all')\">全部</button>";
+  var h = "";
   ys.forEach(function(v){
     h += "<button class=\"rk-tab" + (rkState.year===v ? " active" : "") + "\" onclick=\"rkHeatSel('" + v + "')\">" + v + "</button>";
   });
@@ -2439,13 +2439,7 @@ function rkRenderHeatTabs(){
 function rkRenderHeat(){
   var out = rkEl("rkHeatOut");
   if(!out) return;
-  var h = "";
-  if(rkState.year === "all"){
-    rkYears(rkActs).forEach(function(yr){ h += rkHeatYearHTML(yr); });
-  } else {
-    h = rkHeatYearHTML(rkState.year);
-  }
-  out.innerHTML = h;
+  out.innerHTML = rkHeatYearHTML(rkState.year);
 }
 function rkHeatYearHTML(yr){
   var g = rkHeatYear(rkActs, yr);
@@ -2495,7 +2489,7 @@ function rkRenderTrend(){
   var out = rkEl("rkTrendOut");
   if(!out) return;
   if(rkState.trend === "m"){
-    var yr = rkState.year === "all" ? new Date().getFullYear() : Number(rkState.year);
+    var yr = Number(rkState.year);
     var md = rkMonthDist(rkActs, yr);
     out.innerHTML = rkTrendSVG(md.dist, md.count, null, yr + " 年各月跑量（km）");
   } else {
@@ -2936,7 +2930,8 @@ function rkOnData(text){
     window.rkActs = rkActs; /* 挂全局便于控制台调试与外部脚本访问 */
     if(!rkActs.length) throw new Error("数据为空");
     rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running_page 仓库，本地零存储）", "ok");
-    rkState.year = rkYears(rkActs)[0] || String(new Date().getFullYear()); // 默认当前年份（数据最新年份）
+    var curYr = String(new Date().getFullYear());
+    rkState.year = rkYears(rkActs).indexOf(curYr) >= 0 ? curYr : (rkYears(rkActs)[0] || curYr); // 默认当年（2026）；数据无当年则回退最新年份
     rkState.listYear = "all"; rkState.listN = 30;
     rkRenderAll();
   }catch(e){ rkOnErr(e); }

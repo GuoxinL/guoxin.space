@@ -579,10 +579,17 @@ T('rkBody 顺序 统计<地图<个人最佳<热力图<趋势<活动列表',
   riStats >= 0 && riStats < riMap && riMap < riPbs && riPbs < riHeat && riHeat < riTrend && riTrend < riList,
   [riStats, riMap, riPbs, riHeat, riTrend, riList].join(' < '));
 
-// 热力图默认年份：rkOnData 中取数据最新年份（非 "all"），初始状态取系统当前年份
-T('rkHeat 默认当前年份（非全部）',
-  /rkState\.year = rkYears\(rkActs\)\[0\]/.test(html) && /year:String\(new Date\(\)\.getFullYear\(\)\)/.test(html),
-  '默认年份 = 数据最新年份');
+// 热力图默认年份：rkOnData 中优先当前公历年（2026），数据无当年则回退最新年份；去掉「全部」聚合 tab
+T('rkHeat 默认当年优先（2026），无当年回退最新',
+  /var curYr = String\(new Date\(\)\.getFullYear\(\)\)/.test(html)
+  && /rkState\.year = rkYears\(rkActs\)\.indexOf\(curYr\) >= 0 \? curYr : \(rkYears\(rkActs\)\[0\] \|\| curYr\)/.test(html)
+  && /year:String\(new Date\(\)\.getFullYear\(\)\)/.test(html),
+  '默认年份 = 当年优先');
+T('热力图无「全部」tab、无 all 分支残留',
+  html.indexOf("rkHeatSel('all')") < 0
+  && html.indexOf('rkState.year === "all"') < 0
+  && html.indexOf('if(rkState.year === "all")') < 0,
+  '去除全部聚合视图');
 
 // 路由：#/run → #/running（侧边栏 / 快捷卡 / 底部 tab / 页面 id / 白名单 / rkLoad 触发）
 T('路由 #/running 全量生效（无 #/run 残留）',
