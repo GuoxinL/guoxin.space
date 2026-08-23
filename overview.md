@@ -181,3 +181,16 @@
 - **优化 2——缩放过渡动画**：`zoomBy` 改为对瓦片层 + SVG 层做 `transform: scale(f)` 绕锚点 + `transform-origin` 的 CSS transition（`0.2s ease-out`，`f = 2^(nz-oldZ)`）；因 `.rk-tm-svg`/`.rk-tm-tiles` 已声明 `will-change:transform`，动画走 **GPU 合成、期间不重光栅化**，丝滑。过渡结束 `settle()` 应用真实 viewBox + 重建瓦片（scale 归 1 与新 viewBox 数学等价，零跳变）。新增 `zoomAnimTimer` 防叠加：连续快速缩放先 `settle()` 结算到当前 zoom 再起新动画；`mousedown`/`touchstart` 前也先 `settle()` 避免拖拽与 scale 冲突。
 - **验证**：verify.js 新增 2 条断言（投影抽稀常量+选中全量 / 过渡动画+settle+连续防叠加），**235/235 全绿**；puppeteer `/tmp/rk_zoom.cjs` 本地 + 线上 **8/8 ALL PASS**（抽稀后 totalPoints=74323 / 过渡中 scale(2)+transition / settle 后 transform 清空+viewBox 更新+zoom+1 / 连续快速缩放 8 次 zoom 正确 / 零 JS 错误）；`/tmp/rk_fixed.cjs` 固定规格回归本地 + 线上 **7/7 ALL PASS**（比例/固定 z8/浅色不随明暗/按钮循环均未破坏）。
 - **部署**：personal-homepage `b4e4993..4ad4746` 已推送（running_page 无改动，PNG/meta 不变）；CloudStudio 重新部署，线上复验通过。
+
+## 2026-08-24 活动列表卡片化 + 弹窗轨迹回放（commit e67137e / 0eade67 / 82fdf44）
+
+- **需求**：把活动列表数据拆为多张卡片（主图 + 日期/地点/总公里/平均时速/时长），点开卡片弹窗（周围置灰），页面加载点位渲染为「视频窗口」进入即播放（轨迹回放动画），窗口下方显示完整骑行信息。
+- **关键澄清（用户选择）**：① 主图先用 `thumbnail` 行者 CDN 链接占位（后续改预生成图）；② 视频窗口 = canvas 轨迹回放动画（非真实视频）；③ 地点 = 轨迹起点坐标反解城市（构建期固化进数据）。
+- **地点反解**（running_page `scripts/geocode_locations.py`）：161 条轨迹起点按 3 位小数去重得 **96 个唯一起点**，Nominatim 镜像（`nominatim.articque.com/reverse`，免 key 中文）反解；组合「市级+区级」（如「北京市海淀区」）；zoom=14 只能到纯市级的边缘点用 zoom=16 自愈补齐。**修复** framework Python 3.13 缺 certifi 的 SSL 失败——`reverse()` 改用 curl 子进程复用系统 CA。产物 `locations.json` 96 项全含区级。
+- **数据扩展**（`prebuild_preview.py`）：KEEP 新增 `thumbnail`/`location_city`；循环内 `run_id` 转 str（47/161 超 `Number.MAX_SAFE_INTEGER`，规避前端精度丢失）、`location_city` 按起点坐标查 locations.json。产物 `activities.preview.json`：161 条、`run_id` 全 str 唯一、`thumbnail` 161/161、`location_city` 分布 海淀68/丰台63/朝阳25/西城2/天津河东1/顺义1/门头沟1、纯市级 0。
+- **前端改造**（personal-homepage `index.html`）：
+  - 卡片网格 `.rk-actlist`（`grid auto-fill minmax(230px,1fr)`）+ `.rk-actcard`（主图 16:9 + 标题 + 地点 + 日期 + 3 格统计「公里/km/h/时长」）；`rkParse` 内 `id:String(run_id)`、`city`、`thumb`。
+  - 弹窗 `.rk-act-modal`（复用 `.modal-mask`，`rgba(15,23,42,.45)` 遮罩置灰）；`.rk-act-video` 内 canvas 1280×720 等距投影轨迹回放（`RK_ACT_DUR=8s` 循环、已走轨迹高亮、起点绿点、当前标记白边圆点），`rkOpenAct` 进入自动 `requestAnimationFrame` 播放；`.rk-act-info` 6 格完整信息（距离/时长/平均时速/平均配速/累计爬升/平均心率），`average_speed` m/s→km/h（`spd*3.6`）。
+  - 顺手补内联 SVG favicon，消除 `/favicon.ico` 404 控制台报错。
+- **验证**：verify.js 新增第 12 节「活动列表卡片 + 弹窗回放」8 条断言 + rkParse 字段/字符串化断言，**247/247 全绿**；puppeteer 线上复验（`https://guoxin.space/#/running`）**ALL PASS**——30 张卡片 / 主图行者 CDN / 地点「北京市海淀区」/ 三格统计「10.1公里·19.8km/h·30m时长」/ 弹窗 show + 遮罩 rgba / canvas 1280×720 / 6 格信息 / 回放动画 diff 3225px / 关闭正常 / 零 JS 错误。
+- **部署**：personal-homepage 已推送 GitHub Pages（`guoxin.space`，remote 已迁移 `GuoxinL/guoxin.space`），404.html 同步 SPA fallback，线上复验通过。
