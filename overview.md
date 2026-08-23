@@ -85,6 +85,7 @@
 - 迭代五真实浏览器验证（puppeteer-core + 系统 Chrome，`#/run`）：**真实拉取 activities.json 成功，3,600 条记录**，状态条 ok；统计卡 5 项渲染（总距离 13,381 km / 1236h 31m / 3,600 次 / 3,104 天 / 爬升 5,320m）；热力图年份 tabs 2012-2026 共 15 个；趋势图显示；PB 5K 20:33 / 10K 43:54 / 半马 1:34:43；活动列表 30 行 + 年份下拉；侧边栏/底部 tab/快捷卡片/`window.rk*` 全局挂载全部生效；无 JS 运行时错误（唯一 404 为 favicon.ico，无害）
 - **MapCN 切换真实浏览器验证**（puppeteer-core，`#/run` 点击活动行）：地图区显示、9 个 voyager 瓦片加载成功（`b.basemaps.cartocdn.com/rastertiles/voyager/14/...`，a-d 子域轮换、无瓦片 404）；93 点 SVG 轨迹 polyline + 起终点标记；标题「2026-04-21 · 傍晚跑步 · 2.12 km」；attribution「Map tiles © CARTO · Map data © OpenStreetMap contributors」；交互实测：放大按钮 z14→z15、滚轮 z15→z16、拖拽 transform 位移精确匹配（-100,-50）、底图样式切换 voyager→light_all 生效（瓦片 URL 随之变化）；零 JS 错误、零瓦片请求失败
 - **迭代六·轨迹地图置顶**（用户要求「轨迹地图放在最上面」）：`#rkMapSec` 移至 `rkBody` 第一位（统计卡之上），移除初始 `display:none`，加载前显示占位提示；`rkRenderAll` 末尾新增自动选图逻辑——`rkState.selId` 为空时取日期最新且有 polyline 的活动自动渲染（2026-04-21 傍晚跑步 2.12km，z14 明亮底图、9 瓦片、93 点轨迹）；点击活动列表行仍可切换；verify.js 187/187 全绿，真实浏览器复验：rkBody 顺序 `[rkMapSec, rkStats, 年度热力图, 趋势, 个人最佳, 活动列表]`、地图可见、统计卡 5 张、列表 30 行、零 JS 错误
+- **迭代七·模块顺序微调**（用户要求「轨迹地图在年热力图上方，总距离/总时长等统计在下方」）：`rkStats` 从第二位移到热力图 section 之后，最终顺序 `[rkMapSec, 年度热力图, rkStats, 趋势, 个人最佳, 活动列表]`；verify.js 新增 1 条 HTML 源码顺序断言（`riMap < riHeat < riStats < riTrend < riPbs < riList`），188/188 全绿；puppeteer 真实浏览器复验 DOM 顺序与两条断言（地图在热力图上方 / 统计卡在热力图下方）全 PASS；git 提交 `a72f32f`（index.html）+ `8e438df`（verify.js），已推送，CloudStudio 重部署，线上 CDN 同步后确认 153,326 字节、无 token 残留、顺序正确
 
 ## 待办
 
