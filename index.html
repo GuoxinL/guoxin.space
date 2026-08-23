@@ -401,11 +401,11 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
     <div class="nav-group">模块</div>
     <a class="nav-item" href="#/skills" data-nav="skills">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 9V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v4a2 2 0 0 1 0 4v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4z"/><path d="M13 7.5 16.5 11 13 14.5M18 14h3M8 8l-3 3 3 3"/></svg>
-      Skills 技能夹
+      Skills
     </a>
     <a class="nav-item" href="#/run" data-nav="run">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-      运动数据
+      Running
     </a>
     <div class="nav-item" style="cursor:default;color:var(--text3)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14" stroke-dasharray="3 3"/></svg>
@@ -466,7 +466,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
         </button>
         <button class="qcard" onclick="location.hash='#/run'">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></div>
-          <div class="qt">运动数据</div>
+          <div class="qt">Running</div>
           <div class="qd">跑步 / 骑行统计 · 直连 running_page</div>
         </button>
         <div class="qcard dashed">+ 更多卡片<br>（待办 / 打卡 / 记账…）</div>
@@ -607,7 +607,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
       <div class="sk-head">
         <h2>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 9V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v4a2 2 0 0 1 0 4v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4z"/><path d="M13 7.5 16.5 11 13 14.5M18 14h3M8 8l-3 3 3 3"/></svg>
-          Skills 技能夹
+          Skills
         </h2>
         <div class="toolbar">
           <button class="btn" onclick="skOpenCfg()" title="配置收藏仓库与写通道">
@@ -673,8 +673,8 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
     <div class="rk-head">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-        运动数据
-        <span class="rk-sub">Running · Cycling · 直连 running_page</span>
+        Running
+        <span class="rk-sub">跑步 / 骑行 · 直连 running_page</span>
       </h2>
       <div class="toolbar">
         <button class="btn" onclick="rkRefresh()" title="重新拉取 running_page 仓库的 activities.json">
@@ -827,7 +827,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
   </a>
   <a class="tab-item" href="#/run" data-tabpage="run">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-    运动
+    Running
   </a>
 </nav>
 
@@ -1445,7 +1445,7 @@ function initEditor(){
   applyView("R");
 }
 
-/* ================= Skills 技能夹 ================= */
+/* ================= Skills ================= */
 var KEY_SK_SET = KEY_PREFIX + "sk_set";
 var SK_DEFAULTS = {repo:"guoxinl/skill-collection", branch:"main", worker:"https://skillboard-collect.lgx31.workers.dev"};
 function skCfg(){ try{ return JSON.parse(load(KEY_SK_SET)||"null") || {}; }catch(e){ return {}; } }
