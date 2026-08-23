@@ -3030,10 +3030,21 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     render();
   });
   /* 滚轮 / 双击 / 控制按钮 */
+  /* 滚轮缩放灵敏度：触控板/高精度滚轮一次手势会拆成大量小 deltaY 事件，
+     直接按事件缩放一次会跳 N 级（找不到位置）。累积 deltaY 到阈值 120
+     （标准一格）才缩放 1 级，手势间隔超 400ms 重置累积，单次手势限幅 3 级 */
+  var wheelAcc = 0, wheelAt = 0;
   container.addEventListener("wheel", function(e){
     e.preventDefault();
     var r = container.getBoundingClientRect();
-    zoomBy(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+    var now = Date.now();
+    if(now - wheelAt > 400) wheelAcc = 0;
+    wheelAt = now;
+    wheelAcc += e.deltaY;
+    var d = 0;
+    while(wheelAcc <= -120){ wheelAcc += 120; d++; }   /* 向上滚=放大 */
+    while(wheelAcc >= 120){ wheelAcc -= 120; d--; }    /* 向下滚=缩小 */
+    if(d) zoomBy(Math.max(-3, Math.min(3, d)), e.clientX - r.left, e.clientY - r.top);
   }, { passive:false });
   container.addEventListener("dblclick", function(e){
     var r = container.getBoundingClientRect();
