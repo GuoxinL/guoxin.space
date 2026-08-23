@@ -511,6 +511,17 @@ T('rkComma 千分位', ctx.rkComma(1234567)==='1,234,567');
 var rkSVG = ctx.rkTrendSVG([10,20,30], [1,2,3], null, '测试');
 T('rkTrendSVG SVG 柱状与悬浮提示', rkSVG.indexOf('<svg')===0 && rkSVG.indexOf('<rect')>=0 && rkSVG.indexOf('10 km')>=0 && rkSVG.indexOf('</svg>')>=0, rkSVG.slice(0,80));
 
+// rkBody 模块顺序（轨迹地图 → 年度热力图 → 统计卡 → 趋势 → 个人最佳 → 活动列表）
+var riMap = html.indexOf('id="rkMapSec"');
+var riHeat = html.indexOf('年度热力图');
+var riStats = html.indexOf('id="rkStats"');
+var riTrend = html.indexOf('id="rkTrendOut"');
+var riPbs = html.indexOf('id="rkPbs"');
+var riList = html.indexOf('id="rkList"');
+T('rkBody 顺序 地图<热力图<统计<趋势<个人最佳<活动列表',
+  riMap >= 0 && riMap < riHeat && riHeat < riStats && riStats < riTrend && riTrend < riPbs && riPbs < riList,
+  [riMap, riHeat, riStats, riTrend, riPbs, riList].join(' < '));
+
 /* ========== 结果 ========== */
 console.log('\n========================================');
 console.log('通过 ' + pass + ' / ' + (pass + fail));
