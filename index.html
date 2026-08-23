@@ -341,6 +341,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-tm-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:17px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.14)}
 .rk-tm-btn:hover{background:var(--hover);border-color:var(--primary)}
 .rk-tm-btn svg{width:18px;height:18px}
+.rk-tm-btn.rk-tm-style{margin-bottom:6px;color:var(--primary);border-color:var(--primary)}
 .rk-tm-zoom{position:absolute;left:10px;bottom:8px;font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:10px;z-index:4}
 .rk-tm-attr{position:absolute;left:0;right:0;bottom:0;padding:3px 8px;font-size:10px;color:#666;background:rgba(255,255,255,.78);text-align:right;z-index:4;border-top:1px solid rgba(0,0,0,.05)}
 .rk-empty{padding:30px 0;text-align:center;color:var(--text3);font-size:13px}
@@ -2789,7 +2790,7 @@ function rkMapInit(container, tracks, styleIdx, selId){
     }
     html += '</svg>';
     html += '<div class="rk-tm-ctrl">'
-      + '<button class="rk-tm-btn" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
+      + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'

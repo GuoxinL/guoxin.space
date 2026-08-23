@@ -552,6 +552,8 @@ var rkCanvasHtml = el('rkMapCanvas').innerHTML;
 T('rkShowMap(0) 渲染全部轨迹 polyline 数=2', (rkCanvasHtml.match(/<polyline/g)||[]).length===2, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length);
 T('rkShowMap(0) 无高亮粗线', (rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length===0, 'hl='+(rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length);
 T('rkShowMap(0) 标题显示全部轨迹', el('rkMapTitle').textContent.indexOf('全部 2 条轨迹')>=0, el('rkMapTitle').textContent);
+var rkCtrlHtml = rkCanvasHtml.slice(rkCanvasHtml.indexOf('rk-tm-ctrl'));
+T('底图样式按钮位于 +/- 上方且独立分组', rkCtrlHtml.indexOf('rkMapStyle()')>=0 && rkCtrlHtml.indexOf('rkMapStyle()')<rkCtrlHtml.indexOf('title="放大"') && rkCtrlHtml.indexOf('rk-tm-style')>=0, rkCtrlHtml.slice(0,100));
 ctx.rkShowMap(1);
 rkBoxHtml = el('rkMapBox').innerHTML;
 rkCanvasHtml = el('rkMapCanvas').innerHTML;
