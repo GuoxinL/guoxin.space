@@ -2219,6 +2219,10 @@ var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/
 /* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
    所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
 var RK_BASE_Z = 13;
+/* 投影抽稀上限：全量 345K 点在缩放时每次 viewBox 变化都触发整张 SVG 重光栅化，
+   中低端设备（核显/移动端）会明显掉帧。非选中轨迹抽稀到至多 RK_THIN_MAX 点
+   （视觉无差，光栅化成本降 ~4 倍），选中轨迹保留全量（单条放大查看精度不损） */
+var RK_THIN_MAX = 500;
 /* 解析实际生效的样式索引：默认浅色固定（三档无 auto，直接返回目标档） */
 function rkResolveStyle(idx){
   return RK_STYLES[idx] || RK_STYLES[0];
@@ -2797,10 +2801,13 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   S.tracks = tracks.map(function(t){
     return { id:t.id, type:t.type||"Run", sel:!!selId && t.id === selId, coords:t.coords, pts:[] };
   });
-  /* 固定基准投影：全部轨迹只在 RK_BASE_Z(13) 世界像素投影一次（345K 点 ~几十 ms），
-     缩放/平移仅改 viewBox 矩阵，零重投影 —— 消除旧架构「每次缩放全量重投影卡顿」 */
+  /* 固定基准投影：全部轨迹只在 RK_BASE_Z(13) 世界像素投影一次，缩放/平移仅改 viewBox
+     矩阵，零重投影 —— 消除旧架构「每次缩放全量重投影卡顿」。
+     另做投影抽稀：非选中轨迹抽稀到 RK_THIN_MAX 点（降 SVG 重光栅化成本），
+     选中轨迹保留全量（单条放大查看精度不损） */
   S.tracks.forEach(function(t){
-    t.pts = t.coords.map(function(c){ var p = rkMerc(c[1], c[0], RK_BASE_Z); return [p[0], p[1]]; });
+    var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX);
+    t.pts = coords.map(function(c){ var p = rkMerc(c[1], c[0], RK_BASE_Z); return [p[0], p[1]]; });
   });
   function rect(){
     try{
@@ -2940,10 +2947,37 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     }
     container.style.cursor = "grab";
   }
+  /* 缩放过渡动画：旧内容（瓦片 + SVG）整体 scale(f) 绕锚点（will-change:transform
+     走 GPU 合成，动画期间不重光栅化 345K 点，丝滑），过渡结束 settle() 应用真实
+     viewBox + 重建瓦片。scale 归 1 时与新 viewBox 渲染结果一致（数学等价），零跳变。
+     连续快速缩放时 zoomBy 先 settle 结算到当前 zoom，再从干净状态起新动画，
+     避免 transform 叠加错乱 */
+  var zoomAnimTimer = null;
+  function settle(){
+    if(zoomAnimTimer){ clearTimeout(zoomAnimTimer); zoomAnimTimer = null; }
+    if(S.svgEl){ S.svgEl.style.transition = "none"; S.svgEl.style.transform = ""; S.svgEl.style.transformOrigin = ""; }
+    if(S.tilesEl){ S.tilesEl.style.transition = "none"; S.tilesEl.style.transform = ""; S.tilesEl.style.transformOrigin = ""; }
+    refreshView();
+  }
+  function animateZoom(ox, oy, f){
+    if(!S.ready || !S.svgEl){ render(); return; }
+    var svg = S.svgEl, tiles = S.tilesEl;
+    svg.style.transition = "transform 0.2s ease-out";
+    svg.style.transformOrigin = ox + "px " + oy + "px";
+    svg.style.transform = "scale(" + f + ")";
+    if(tiles){
+      tiles.style.transition = "transform 0.2s ease-out";
+      tiles.style.transformOrigin = ox + "px " + oy + "px";
+      tiles.style.transform = "translate(" + (-S.ox0).toFixed(1) + "px," + (-S.oy0).toFixed(1) + "px) scale(" + f + ")";
+    }
+    zoomAnimTimer = setTimeout(settle, 210);
+  }
   function zoomBy(d, mx, my){
     var nz = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, S.z + d));
     if(nz === S.z) return;
     if(mx == null){ mx = S.W/2; my = S.H/2; }
+    if(zoomAnimTimer) settle();   /* 有未完成动画 → 先结算到当前 zoom，再起新动画 */
+    var oldZ = S.z;
     /* 锚点 = 鼠标位置的 z13 世界像素，缩放前后保持不变：
        要求 cx' - W/(2k') + mx/k' = wx → cx' = wx + (S.W/2 - mx)/k'
        旧实现 cx' = wx - mx/k' 漏了 +S.W/(2k')，锚点偏移约半屏，滚轮缩放"找不到位置" */
@@ -2952,7 +2986,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     setZoom(nz);
     S.cx = wx + (S.W/2 - mx) / S.k;
     S.cy = wy + (S.H/2 - my) / S.k;
-    render();
+    animateZoom(mx, my, Math.pow(2, nz - oldZ));
   }
   function fit(){
     rect();
@@ -2994,6 +3028,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   }
   container.addEventListener("mousedown", function(e){
     if(e.target && e.target.className === "rk-tm-btn") return;
+    if(zoomAnimTimer) settle();   /* 缩放动画未结束时按下 → 先结算，避免拖拽与 scale 叠加 */
     drag = { sx:e.clientX, sy:e.clientY, cx:S.cx, cy:S.cy };
     container.style.cursor = "grabbing";
     document.addEventListener("mousemove", onMove);
@@ -3003,6 +3038,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   /* 触摸：单指拖动（移动端） */
   container.addEventListener("touchstart", function(e){
     if(e.touches.length === 1 && !(e.target && e.target.className === "rk-tm-btn")){
+      if(zoomAnimTimer) settle();   /* 同上：先结算缩放动画 */
       var t = e.touches[0];
       drag = { sx:t.clientX, sy:t.clientY, cx:S.cx, cy:S.cy };
       e.preventDefault();
