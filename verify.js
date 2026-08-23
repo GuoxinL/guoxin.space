@@ -521,9 +521,9 @@ var riStats = html.indexOf('id="rkStats"');
 var riTrend = html.indexOf('id="rkTrendOut"');
 var riPbs = html.indexOf('id="rkPbs"');
 var riList = html.indexOf('id="rkList"');
-T('rkBody 顺序 地图<热力图<统计<趋势<个人最佳<活动列表',
-  riMap >= 0 && riMap < riHeat && riHeat < riStats && riStats < riTrend && riTrend < riPbs && riPbs < riList,
-  [riMap, riHeat, riStats, riTrend, riPbs, riList].join(' < '));
+T('rkBody 顺序 统计<地图<个人最佳<热力图<趋势<活动列表',
+  riStats >= 0 && riStats < riMap && riMap < riPbs && riPbs < riHeat && riHeat < riTrend && riTrend < riList,
+  [riStats, riMap, riPbs, riHeat, riTrend, riList].join(' < '));
 
 // 热力图默认年份：rkOnData 中取数据最新年份（非 "all"），初始状态取系统当前年份
 T('rkHeat 默认当前年份（非全部）',
