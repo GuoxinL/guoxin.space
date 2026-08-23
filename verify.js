@@ -643,12 +643,12 @@ T('路由 /running 全量生效（无 /run 残留）',
   && html.indexOf('h === "run"') >= 0,
   'running 路由 + 旧 run 兼容重定向');
 
-// 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮修复（idx=2，MapCN 4 档样式切换已恢复）
+// 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮（idx=3，MapCN 4 档样式切换已恢复）
 T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   html.indexOf('window.rkHotSpot = rkHotSpot') >= 0
   && html.indexOf('window.rkMercInv = rkMercInv') >= 0
   && html.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0
-  && html.indexOf('else if(idx === 2) fit()') >= 0
+  && html.indexOf('else if(idx === 3) fit()') >= 0
   && html.indexOf('已聚焦最热点区域') >= 0,
   'rkHotSpot/挂载/回退视角/⤢修复');
 
@@ -689,6 +689,17 @@ T('滚轮灵敏度：累积 deltaY 阈值 120 才缩放（防触控板/高精度
   && html.indexOf('Math.max(-3, Math.min(3, d))') >= 0
   && html.indexOf('zoomBy(e.deltaY < 0 ? 1 : -1') < 0,
   '累积阈值/手势超时/限幅3级');
+T('缩放锚点：滚轮围绕鼠标位置（zoomBy 重算中心含 +(S.W/2-mx)/k 修正项，防偏移半屏）',
+  html.indexOf('S.cx = wx + (S.W/2 - mx) / S.k;') >= 0
+  && html.indexOf('S.cy = wy + (S.H/2 - my) / S.k;') >= 0
+  && html.indexOf('S.cx = wx - mx / S.k;') < 0,
+  '锚点公式含视口中心修正');
+T('按钮缩放围绕图片中心：idx=1 放大 / idx=2 缩小 / idx=3 适应轨迹（样式按钮 idx=0 被拦截）',
+  html.indexOf('if(idx === 1) zoomBy(1);') >= 0
+  && html.indexOf('else if(idx === 2) zoomBy(-1);') >= 0
+  && html.indexOf('else if(idx === 3) fit();') >= 0
+  && html.indexOf('if(idx === 0) zoomBy(1)') < 0,
+  '按钮 idx 映射与顺序一致');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
