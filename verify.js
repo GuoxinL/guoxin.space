@@ -530,6 +530,21 @@ T('rkHeat 默认当前年份（非全部）',
   /rkState\.year = rkYears\(rkActs\)\[0\]/.test(html) && /year:String\(new Date\(\)\.getFullYear\(\)\)/.test(html),
   '默认年份 = 数据最新年份');
 
+// 路由：#/run → #/running（侧边栏 / 快捷卡 / 底部 tab / 页面 id / 白名单 / rkLoad 触发）
+T('路由 #/running 全量生效（无 #/run 残留）',
+  html.indexOf('href="#/running" data-nav="running"') >= 0
+  && html.indexOf('location.hash=\'#/running\'') >= 0
+  && html.indexOf('id="page-running"') >= 0
+  && html.indexOf('href="#/running" data-tabpage="running"') >= 0
+  && html.indexOf('["home","json","skills","running"]') >= 0
+  && html.indexOf('if(h === "running") rkLoad();') >= 0
+  && html.indexOf('#/run"') < 0
+  && html.indexOf('id="page-run"') < 0
+  && html.indexOf('data-nav="run"') < 0
+  && html.indexOf('data-tabpage="run"') < 0
+  && html.indexOf('h === "run"') >= 0,
+  'running 路由 + 旧 run 兼容重定向');
+
 /* ========== 结果 ========== */
 console.log('\n========================================');
 console.log('通过 ' + pass + ' / ' + (pass + fail));

@@ -404,7 +404,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 9V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v4a2 2 0 0 1 0 4v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4z"/><path d="M13 7.5 16.5 11 13 14.5M18 14h3M8 8l-3 3 3 3"/></svg>
       Skills
     </a>
-    <a class="nav-item" href="#/run" data-nav="run">
+    <a class="nav-item" href="#/running" data-nav="running">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
       Running
     </a>
@@ -465,7 +465,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <div class="qt">切换主题</div>
           <div class="qd">亮色 / 暗色一键切换</div>
         </button>
-        <button class="qcard" onclick="location.hash='#/run'">
+        <button class="qcard" onclick="location.hash='#/running'">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></div>
           <div class="qt">Running</div>
           <div class="qd">跑步 / 骑行统计 · 直连 running_page</div>
@@ -670,7 +670,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
   </section>
 
   <!-- 页面四：Running（running_page 数据直连） -->
-  <section class="page" id="page-run">
+  <section class="page" id="page-running">
     <div class="rk-head">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
@@ -822,7 +822,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 9V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v4a2 2 0 0 1 0 4v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4z"/><path d="M13 7.5 16.5 11 13 14.5M18 14h3M8 8l-3 3 3 3"/></svg>
     Skills
   </a>
-  <a class="tab-item" href="#/run" data-tabpage="run">
+  <a class="tab-item" href="#/running" data-tabpage="running">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
     Running
   </a>
@@ -902,7 +902,9 @@ function toggleTheme(){
 function navigate(){
   var raw = String(location.hash || "#/home").replace(/^#\//,"");
   var parts = raw.split("/"), h = parts[0] || "";
-  if(["home","json","skills","run"].indexOf(h) < 0) h = "home";
+  /* 兼容旧链接：#/run → #/running */
+  if(h === "run"){ location.replace("#/running" + (parts.length > 1 ? "/" + parts.slice(1).join("/") : "")); return; }
+  if(["home","json","skills","running"].indexOf(h) < 0) h = "home";
   var pages = document.querySelectorAll(".page");
   for(var i=0;i<pages.length;i++) pages[i].classList.toggle("active", pages[i].id === "page-"+h);
   var nvs = document.querySelectorAll("[data-nav]");
@@ -913,7 +915,7 @@ function navigate(){
   /* #/skills 下二级路由：/skills = 列表，#/skills/<dir> = 详情独立页；离开 skills 页收起文件树抽屉 */
   if(h === "skills") skRoute(decodeURIComponent(parts.slice(1).join("/") || ""));
   else skTreeClose();
-  if(h === "run") rkLoad();
+  if(h === "running") rkLoad();
 }
 window.addEventListener("hashchange", navigate);
 
