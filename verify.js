@@ -513,6 +513,42 @@ T('rkComma 千分位', ctx.rkComma(1234567)==='1,234,567');
 // rkTrendSVG 内联 SVG 柱状
 var rkSVG = ctx.rkTrendSVG([10,20,30], [1,2,3], null, '测试');
 T('rkTrendSVG SVG 柱状与悬浮提示', rkSVG.indexOf('<svg')===0 && rkSVG.indexOf('<rect')>=0 && rkSVG.indexOf('10 km')>=0 && rkSVG.indexOf('</svg>')>=0, rkSVG.slice(0,80));
+// 轨迹地图全量渲染（rkMapTracks / rkShowMap 多轨迹 + 高亮）
+// rkThin 抽稀
+var rkThinPts = [];
+for (var rki = 0; rki < 100; rki++) rkThinPts.push([rki, rki]);
+T('rkThin 未超上限原样返回', ctx.rkThin(rkThinPts, 200) === rkThinPts);
+var rkT1 = ctx.rkThin(rkThinPts, 10);
+T('rkThin 抽稀到 10 点且保留首尾', rkT1.length===10 && rkT1[0][0]===0 && rkT1[9][0]===99, 'n='+rkT1.length);
+T('rkThin 均匀采样', rkT1[1][0]===11 && rkT1[5][0]===55, JSON.stringify(rkT1.map(function(p){return p[0];})));
+T('rkThin 空/小数组', ctx.rkThin([], 10).length===0 && ctx.rkThin([[1,2],[3,4]], 10).length===2);
+ctx.rkActs = [
+  { id:1, type:'Run', date:'2024-01-01T08:00:00Z', name:'晨跑', dist:5200, poly:'p'.repeat(25) },
+  { id:2, type:'Ride', date:'2024-01-02T08:00:00Z', name:'骑行', dist:20000, poly:'p'.repeat(30) },
+  { id:3, type:'Run', date:'2024-01-03T08:00:00Z', name:'夜跑', dist:5000, poly:'' },
+  { id:4, type:'Run', date:'2024-01-04T08:00:00Z', name:'越野', dist:5000 }
+];
+var rkMT = ctx.rkMapTracks(ctx.rkActs);
+T('rkMapTracks 仅含可解码轨迹', rkMT.length===2 && rkMT[0].id===1 && rkMT[1].type==='Ride' && rkMT[0].coords.length>0, 'n='+rkMT.length);
+ctx.rkShowMap(0);
+var rkBoxHtml = el('rkMapBox').innerHTML;
+var rkCanvasHtml = el('rkMapCanvas').innerHTML;
+T('rkShowMap(0) 渲染全部轨迹 polyline 数=2', (rkCanvasHtml.match(/<polyline/g)||[]).length===2, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length);
+T('rkShowMap(0) 无高亮粗线', (rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length===0, 'hl='+(rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length);
+T('rkShowMap(0) 标题显示全部轨迹', el('rkMapTitle').textContent.indexOf('全部 2 条轨迹')>=0, el('rkMapTitle').textContent);
+ctx.rkShowMap(1);
+rkBoxHtml = el('rkMapBox').innerHTML;
+rkCanvasHtml = el('rkMapCanvas').innerHTML;
+T('rkShowMap(1) 高亮选中且其余轨迹保留', (rkCanvasHtml.match(/<polyline/g)||[]).length===2 && (rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length===1, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length+' hl='+(rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length);
+T('rkShowMap(1) 标题含选中活动与轨迹总数', el('rkMapTitle').textContent.indexOf('晨跑')>=0 && el('rkMapTitle').textContent.indexOf('共 2 条轨迹')>=0, el('rkMapTitle').textContent);
+ctx.rkShowMap(3);
+rkBoxHtml = el('rkMapBox').innerHTML;
+rkCanvasHtml = el('rkMapCanvas').innerHTML;
+T('rkShowMap(3) 无轨迹活动点击仍渲染全部', (rkCanvasHtml.match(/<polyline/g)||[]).length===2 && el('rkMapTitle').textContent.indexOf('夜跑')>=0, el('rkMapTitle').textContent);
+ctx.rkActs = [{ id:9, type:'Run', date:'2024-01-01T08:00:00Z', name:'x', dist:1 }];
+ctx.rkShowMap(0);
+T('rkShowMap(0) 无轨迹显示提示', el('rkMapBox').innerHTML.indexOf('暂无轨迹数据')>=0, el('rkMapBox').innerHTML.slice(0,60));
+ctx.rkActs = null;
 
 // rkBody 模块顺序（轨迹地图 → 年度热力图 → 统计卡 → 趋势 → 个人最佳 → 活动列表）
 var riMap = html.indexOf('id="rkMapSec"');

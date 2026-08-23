@@ -692,7 +692,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>轨迹地图</h3>
           <span id="rkMapTitle" style="font-size:12px;color:var(--text3)"></span>
         </div>
-        <div class="rk-map" id="rkMapBox"><div class="rk-map-hint"><div class="rk-mh-t">轨迹地图</div><div>数据加载完成后自动显示最近一次活动轨迹，点击活动列表中的记录可切换。</div></div></div>
+        <div class="rk-map" id="rkMapBox"><div class="rk-map-hint"><div class="rk-mh-t">轨迹地图</div><div>数据加载完成后自动渲染全部活动轨迹；点击活动列表中的记录可高亮该条路线。</div></div></div>
       </div>
       <div class="rk-sec">
         <div class="rk-sec-h">
@@ -889,7 +889,7 @@ function applyTheme(t){
   if(label) label.textContent = (t==="dark" ? "亮色模式" : "暗色模式");
   /* 地图 auto 样式跟随明暗模式：已渲染且处于自动档时重绘底图 */
   try{
-    if(rkMapStyleIdx && rkMapStyleIdx() === 0 && rkState && rkState.selId && rkShowMap){
+    if(rkMapStyleIdx && rkMapStyleIdx() === 0 && rkShowMap && rkEl("rkMapCanvas")){
       rkShowMap(rkState.selId);
     }
   }catch(e){}
@@ -2586,31 +2586,49 @@ function rkRenderList(){
 function rkMore(){ rkState.listN += 30; rkRenderList(); }
 
 /* ---- 轨迹地图（MapCN / CARTO 免费瓦片，零外链手写渲染，无需 token） ---- */
+/* 未选中轨迹按类型配色（与 RK_*_PAL 首色一致，弱化显示） */
+function rkTrackColor(type){
+  if(type === "Run") return "#fb923c";
+  if(type === "Ride") return "#60a5fa";
+  return "#c084fc";
+}
+/* 提取所有可绘制轨迹（verify 可测）：有 summary_polyline 且解码成功的活动 */
+function rkMapTracks(acts){
+  var out = [];
+  (acts||[]).forEach(function(a){
+    if(!a || !a.poly) return;
+    var coords = rkDecodePolyline(a.poly);
+    if(!coords || !coords.length) return;
+    out.push({ id:a.id, date:a.date||"", name:a.name||"", dist:a.dist||0, type:a.type||"Run", coords:coords });
+  });
+  return out;
+}
 function rkMapStyle(){
   var i = (rkMapStyleIdx() + 1) % RK_STYLES.length;
   try{ localStorage.setItem(RK_STYLE_KEY, String(i)); }catch(e){}
-  if(rkState.selId) rkShowMap(rkState.selId);
+  rkShowMap(rkState.selId);
 }
+/* 全量渲染所有轨迹；id 命中时该条高亮（其余轨迹弱化保留） */
 function rkShowMap(id){
   var a = null;
   (rkActs||[]).forEach(function(x){ if(x.id === id) a = x; });
-  rkState.selId = id;
+  rkState.selId = (a && id) ? id : 0;
   var sec = rkEl("rkMapSec"), box = rkEl("rkMapBox"), ti = rkEl("rkMapTitle");
   if(!sec || !box) return;
   sec.style.display = "block";
-  if(!a || !a.poly){
+  var tracks = rkMapTracks(rkActs);
+  if(!tracks.length){
     ti.textContent = "";
-    box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">该记录无轨迹数据</div><div>没有 summary_polyline，无法绘制路线。</div></div>";
+    box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">暂无轨迹数据</div><div>所有活动都没有可绘制的 summary_polyline。</div></div>";
     return;
   }
-  ti.textContent = ((a.date||"").slice(0,10) + " · ") + (a.name || rkTitleFor(a)) + " · " + (a.dist/1000).toFixed(2) + " km";
-  var coords = rkDecodePolyline(a.poly);
-  if(!coords.length){
-    box.innerHTML = "<div class=\"rk-map-hint\"><div class=\"rk-mh-t\">轨迹解码失败</div></div>";
-    return;
+  if(a){
+    ti.textContent = ((a.date||"").slice(0,10) + " · ") + (a.name || rkTitleFor(a)) + " · " + (a.dist/1000).toFixed(2) + " km · 共 " + tracks.length + " 条轨迹";
+  } else {
+    ti.textContent = "全部 " + tracks.length + " 条轨迹 · 点击活动列表高亮单条";
   }
   box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\"><div class=\"rk-tm-loading\">底图加载中（MapCN · 免费无需 token）…</div></div>";
-  rkMapInit(rkEl("rkMapCanvas"), coords, rkMapStyleIdx());
+  rkMapInit(rkEl("rkMapCanvas"), tracks, rkMapStyleIdx(), a ? a.id : 0);
 }
 /* Web Mercator 投影（verify 可测）：经纬度 <-> 世界像素（256*2^z 见方） */
 function rkMerc(lng, lat, z){
@@ -2626,15 +2644,27 @@ function rkMercInv(x, y, z){
   var lat = 180 / Math.PI * (2 * Math.atan(Math.exp((0.5 - y / n) * 2 * Math.PI)) - Math.PI / 2);
   return [lat, lng];
 }
-function rkMapInit(container, coords, styleIdx){
-  if(!container || !coords || !coords.length) return;
+/* 等步长抽稀：保留首尾，均匀采样至多 max 点（verify 可测；全量渲染数千条轨迹时控制 SVG 体积） */
+function rkThin(pts, max){
+  max = Math.max(2, max || 0);
+  if(!pts || pts.length <= max) return pts;
+  var step = (pts.length - 1) / (max - 1);
+  var out = [];
+  for(var i = 0; i < max; i++) out.push(pts[Math.round(i * step)]);
+  return out;
+}
+function rkMapInit(container, tracks, styleIdx, selId){
+  if(!container || !tracks || !tracks.length) return;
   var S = {
-    z: 14, cx: 0, cy: 0, pts: [],
+    z: 14, cx: 0, cy: 0, tracks: [],
     style: rkResolveStyle(styleIdx),
     auto: !!(RK_STYLES[styleIdx] && RK_STYLES[styleIdx].k === "auto"),
     container: container, W: 640, H: 420,
     ox0: 0, oy0: 0
   };
+  S.tracks = tracks.map(function(t){
+    return { id:t.id, type:t.type||"Run", sel:!!selId && t.id === selId, coords:t.coords, pts:[] };
+  });
   function rect(){
     try{
       var r = container.getBoundingClientRect();
@@ -2643,13 +2673,20 @@ function rkMapInit(container, coords, styleIdx){
   }
   function setZoom(nz){
     S.z = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, nz));
-    S.pts = coords.map(function(c){ var p = rkMerc(c[1], c[0], S.z); return [p[0], p[1]]; });
+    /* 全局点预算约 9 万，平摊到每条未选中轨迹；选中轨迹保持全精度 */
+    var budget = Math.floor(90000 / Math.max(1, S.tracks.length));
+    S.tracks.forEach(function(t){
+      var pts = t.coords.map(function(c){ var p = rkMerc(c[1], c[0], S.z); return [p[0], p[1]]; });
+      t.pts = t.sel ? pts : rkThin(pts, Math.max(8, Math.min(200, budget)));
+    });
   }
   function bbox(){
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    S.pts.forEach(function(p){
-      if(p[0] < x0) x0 = p[0]; if(p[1] < y0) y0 = p[1];
-      if(p[0] > x1) x1 = p[0]; if(p[1] > y1) y1 = p[1];
+    S.tracks.forEach(function(t){
+      t.pts.forEach(function(p){
+        if(p[0] < x0) x0 = p[0]; if(p[1] < y0) y0 = p[1];
+        if(p[0] > x1) x1 = p[0]; if(p[1] > y1) y1 = p[1];
+      });
     });
     return [x0, y0, x1, y1];
   }
@@ -2673,11 +2710,20 @@ function rkMapInit(container, coords, styleIdx){
     }
     html += '</div>';
     var sx = S.cx - S.W/2, sy = S.cy - S.H/2;
-    var pl = S.pts.map(function(p){ return (p[0]-sx).toFixed(1) + ',' + (p[1]-sy).toFixed(1); }).join(' ');
     html += '<svg class="rk-tm-svg" width="' + S.W + '" height="' + S.H + '" viewBox="0 0 ' + S.W + ' ' + S.H + '">';
-    html += '<polyline points="' + pl + '" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>';
-    if(S.pts.length){
-      var s0 = S.pts[0], s1 = S.pts[S.pts.length - 1];
+    var selT = null;
+    S.tracks.forEach(function(t){
+      if(!t.pts.length) return;
+      var pl = t.pts.map(function(p){ return (p[0]-sx).toFixed(1) + ',' + (p[1]-sy).toFixed(1); }).join(' ');
+      if(t.sel){
+        selT = t;
+        html += '<polyline points="' + pl + '" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+      } else {
+        html += '<polyline points="' + pl + '" fill="none" stroke="' + rkTrackColor(t.type) + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>';
+      }
+    });
+    if(selT && selT.pts.length){
+      var s0 = selT.pts[0], s1 = selT.pts[selT.pts.length - 1];
       html += '<circle cx="' + (s0[0]-sx).toFixed(1) + '" cy="' + (s0[1]-sy).toFixed(1) + '" r="5" fill="#22c55e" stroke="#fff" stroke-width="1.5"/>';
       html += '<circle cx="' + (s1[0]-sx).toFixed(1) + '" cy="' + (s1[1]-sy).toFixed(1) + '" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>';
     }
@@ -2839,13 +2885,7 @@ function rkRenderAll(){
   rkRenderTrend();
   rkRenderPbs();
   rkRenderListTools();
-  if(!rkState.selId){
-    var best = null, bestD = "";
-    (rkActs||[]).forEach(function(a){
-      if(a.poly && a.date && a.date >= bestD){ bestD = a.date; best = a; }
-    });
-    if(best) rkShowMap(best.id);
-  }
+  rkShowMap(rkState.selId);  /* 全量渲染所有轨迹；有选中则高亮 */
 }
 function rkRefresh(){ rkFetch(); }
 function rkLoad(){
