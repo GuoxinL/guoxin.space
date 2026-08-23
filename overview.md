@@ -172,3 +172,12 @@
 - **踩坑**：主页仓库 `running/` 是 **submodule**（gitlink 停在上轮之前的 ef95922），`git add` 报 "is in submodule" → 恢复 submodule 内被误覆盖的文件，改走正规流程 `git submodule update --remote running` 推进到 `0a94e00`（running_page 最新），再 `git add running` 更新 gitlink 一并提交。
 - **验证**：verify.js 断言 640/420 → 640/360（并加「无 640/420 残留」反向断言）、mock rect 同步改 640x360，**233/233 全绿**；puppeteer `/tmp/rk_fixed.cjs` 比例断言 1.5238 → 1.7778，本地 + 线上均 **7/7 ALL PASS**（ratio=1.7778 / z8·浅色 / 暗色主题不跟随 / 按钮循环 / 零 JS 错误）。
 - **部署**：running_page `79f2753..0a94e00`、主页 `a5d1902..bedfc80`（含 submodule gitlink）已推送；CloudStudio 重新部署，线上复验 7/7 ALL PASS。
+
+## 2026-08-24 轨迹地图缩放卡顿优化：投影抽稀 + GPU 合成缩放过渡动画（commit 4ad4746）
+
+- **需求**：用户反馈「放大缩小不丝滑，很卡」。
+- **根因诊断**（puppeteer `/tmp/rk_perf.cjs`）：JS 同步耗时仅 1–3ms（`zoomBy`/`refreshView`），但 SVG 里 **161 条 polyline、共 345013 点全量绘制**——缩放时每次 `viewBox` 变化都触发整张 SVG 重光栅化 34.5 万点，中低端设备（核显/移动端）明显掉帧；且缩放是**离散跳变**（z8→z9 瞬间跳）无过渡动画，视觉「不丝滑」。
+- **优化 1——投影抽稀**：新增 `var RK_THIN_MAX = 500`；投影时 `var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX)`（非选中抽稀到 500 点，选中保留全量，单条放大查看精度不损）。全量 345013 → **74323 点**（降 ~4.6 倍），重光栅化成本同比例下降。
+- **优化 2——缩放过渡动画**：`zoomBy` 改为对瓦片层 + SVG 层做 `transform: scale(f)` 绕锚点 + `transform-origin` 的 CSS transition（`0.2s ease-out`，`f = 2^(nz-oldZ)`）；因 `.rk-tm-svg`/`.rk-tm-tiles` 已声明 `will-change:transform`，动画走 **GPU 合成、期间不重光栅化**，丝滑。过渡结束 `settle()` 应用真实 viewBox + 重建瓦片（scale 归 1 与新 viewBox 数学等价，零跳变）。新增 `zoomAnimTimer` 防叠加：连续快速缩放先 `settle()` 结算到当前 zoom 再起新动画；`mousedown`/`touchstart` 前也先 `settle()` 避免拖拽与 scale 冲突。
+- **验证**：verify.js 新增 2 条断言（投影抽稀常量+选中全量 / 过渡动画+settle+连续防叠加），**235/235 全绿**；puppeteer `/tmp/rk_zoom.cjs` 本地 + 线上 **8/8 ALL PASS**（抽稀后 totalPoints=74323 / 过渡中 scale(2)+transition / settle 后 transform 清空+viewBox 更新+zoom+1 / 连续快速缩放 8 次 zoom 正确 / 零 JS 错误）；`/tmp/rk_fixed.cjs` 固定规格回归本地 + 线上 **7/7 ALL PASS**（比例/固定 z8/浅色不随明暗/按钮循环均未破坏）。
+- **部署**：personal-homepage `b4e4993..4ad4746` 已推送（running_page 无改动，PNG/meta 不变）；CloudStudio 重新部署，线上复验通过。
