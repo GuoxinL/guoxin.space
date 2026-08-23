@@ -449,11 +449,14 @@ T('skMdTabsShow(true) 显示 tabs', el('drTabs').style.display==='flex');
 console.log('== 11. 运动数据 rk ==');
 // rkParse 字段规整 + 过滤
 var rkRaw = [
-  { run_id:101, name:'晨跑', distance:'5200', moving_time:'30:00', type:'Run', start_date_local:'2024-01-01T08:00:00Z', location_country:'中国', summary_polyline:'p'.repeat(25), average_heartrate:'145', average_speed:3.12, elevation_gain:'50' },
+  { run_id:'9007199254740993', name:'晨跑', distance:'5200', moving_time:'30:00', type:'Run', start_date_local:'2024-01-01T08:00:00Z', location_country:'中国', location_city:'北京市丰台区', summary_polyline:'p'.repeat(25), average_heartrate:'145', average_speed:3.12, elevation_gain:'50', thumbnail:'https://cdn.example.com/x.png' },
   { run_id:102, distance:0 }
 ];
 var rkP = ctx.rkParse(rkRaw);
-T('rkParse 规整字段', rkP.length===1 && rkP[0].id===101 && rkP[0].dist===5200 && rkP[0].mt==='30:00' && rkP[0].type==='Run' && rkP[0].date==='2024-01-01T08:00:00Z' && rkP[0].hr===145 && rkP[0].spd===3.12 && rkP[0].elev===50, JSON.stringify(rkP));
+T('rkParse 规整字段', rkP.length===1 && rkP[0].id==='9007199254740993' && rkP[0].dist===5200 && rkP[0].mt==='30:00' && rkP[0].type==='Run' && rkP[0].date==='2024-01-01T08:00:00Z' && rkP[0].hr===145 && rkP[0].spd===3.12 && rkP[0].elev===50, JSON.stringify(rkP));
+T('rkParse run_id 字符串化（规避超安全整数精度丢失）', rkP[0].id==='9007199254740993' && typeof rkP[0].id==='string');
+T('rkParse 数字 run_id 也转字符串', (function(){ var p2 = ctx.rkParse([{ run_id:101, distance:100, start_date_local:'x' }]); return p2[0].id==='101' && typeof p2[0].id==='string'; })());
+T('rkParse 地点与主图字段', rkP[0].city==='北京市丰台区' && rkP[0].thumb==='https://cdn.example.com/x.png', JSON.stringify(rkP[0]));
 T('rkParse 过滤无距离无日期记录', rkP.length===1);
 // rkMovingSec 3 段 / 2 段 / 天 + 时分秒
 T('rkMovingSec 3 段', ctx.rkMovingSec('12:34:56')===45296);
@@ -744,6 +747,64 @@ T('拖拽平移：触摸 touchmove 中 SVG 层同样 translate(+dx,+dy)（与鼠
   && html.indexOf('(-(S.ox0 - dx)).toFixed(1)') >= 0
   && html.indexOf('(-dx).toFixed(1) + "px," + (-dy).toFixed(1)') < 0,
   'SVG 正向位移、瓦片基线偏移正确');
+
+/* ========== 12. 活动列表卡片网格 + 详情弹窗轨迹回放 ========== */
+console.log('== 12. 活动列表卡片 + 弹窗回放 ==');
+// 卡片网格容器与卡片结构（主图/类型标签/地点 pin/日期/底部三格统计）
+T('卡片网格容器 rkList + .rk-actlist grid',
+  html.indexOf('id="rkList"') >= 0
+  && html.indexOf('.rk-actlist{display:grid') >= 0
+  && html.indexOf('repeat(auto-fill,minmax(230px,1fr))') >= 0,
+  '卡片式网格替代行式列表');
+T('卡片渲染：主图 thumb + 类型标签 + 地点 pin + 日期 + 三格统计(公里/kmh/时长)',
+  html.indexOf('class=\\"rk-actcard\\"') >= 0
+  && html.indexOf('class=\\"rk-act-thumb\\"') >= 0
+  && html.indexOf('(a.thumb ? "<img src=\\"" + esc(a.thumb)') >= 0
+  && html.indexOf('rkTypeTag(a.type)') >= 0
+  && html.indexOf('esc(a.city || "未知地点")') >= 0
+  && html.indexOf('(a.dist/1000).toFixed(1)') >= 0
+  && html.indexOf('(kmh ? kmh.toFixed(1) : "--")') >= 0
+  && html.indexOf('rkFmtDur(t)') >= 0,
+  '卡片字段齐全');
+T('平均时速单位换算 m/s → km/h（spd*3.6）',
+  html.indexOf('a.spd ? (a.spd*3.6)') >= 0,
+  'spd*3.6 换算');
+T('卡片点击打开弹窗 onclick=rkOpenAct',
+  html.indexOf('onclick=\\"rkOpenAct(\'" + a.id') >= 0,
+  '卡片→弹窗绑定');
+// 弹窗结构：遮罩置灰 + 视频窗口 + 关闭按钮 + 信息区
+T('弹窗结构：遮罩 + 视频窗口 + 关闭按钮 + 信息区',
+  html.indexOf('id="rkActModal"') >= 0
+  && html.indexOf('onclick="rkMaskClose(event)"') >= 0
+  && html.indexOf('id="rkActVideo"') >= 0
+  && html.indexOf('class="rk-act-close"') >= 0
+  && html.indexOf('id="rkActInfo"') >= 0
+  && html.indexOf('.rk-act-modal .modal{max-width:720px') >= 0
+  && html.indexOf('.rk-act-video{') >= 0,
+  '弹窗骨架完整');
+T('弹窗遮罩置灰（modal-mask 复用）',
+  html.indexOf('class="modal-mask rk-act-modal"') >= 0,
+  '遮罩置灰');
+// 回放：canvas 等距投影 + 标记点循环移动 + 进入即自动播放
+T('轨迹回放：canvas 等距投影 + 已走轨迹高亮 + 起点/当前标记点',
+  html.indexOf('var RK_ACT_DUR = 8') >= 0
+  && html.indexOf('document.createElement("canvas")') >= 0
+  && html.indexOf('rkDecodePolyline(a.poly)') >= 0
+  && html.indexOf('cosLat = Math.cos(cy * Math.PI / 180)') >= 0
+  && html.indexOf('rkTrackColor(a.type)') >= 0
+  && html.indexOf('ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI*2)') >= 0,
+  '回放绘制逻辑');
+T('进入即自动播放 + 循环（requestAnimationFrame + prog 回卷）',
+  html.indexOf('rkActAnim = requestAnimationFrame(tick)') >= 0
+  && html.indexOf('if(prog >= 1){ t0 = ts; prog = 0; }') >= 0,
+  '自动播放循环');
+T('弹窗打开/关闭/遮罩/回放函数挂载到 window',
+  html.indexOf('window.rkOpenAct = rkOpenAct') >= 0
+  && html.indexOf('window.rkCloseAct = rkCloseAct') >= 0
+  && html.indexOf('window.rkMaskClose = rkMaskClose') >= 0
+  && html.indexOf('window.rkActReplay = rkActReplay') >= 0
+  && html.indexOf('window.rkActStop = rkActStop') >= 0,
+  '弹窗函数挂载');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
