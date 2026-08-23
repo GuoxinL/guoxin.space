@@ -333,7 +333,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-map-hint{padding:26px 20px;text-align:center;color:var(--text2);font-size:13px}
 .rk-map-hint .rk-mh-t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
 .rk-map-hint code{background:var(--surface);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
-.rk-tilemap{position:relative;aspect-ratio:640/420;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
+.rk-tilemap{position:relative;aspect-ratio:640/360;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
 .rk-tm-pv{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;user-select:none;-webkit-user-drag:none;opacity:1;will-change:transform}
 .rk-tm-tiles{position:absolute;left:0;top:0;will-change:transform}
 .rk-tm-tile{position:absolute;width:256px;height:256px;background-size:cover;background-color:#dfe5ea}
@@ -2201,7 +2201,7 @@ document.addEventListener("DOMContentLoaded", init);
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
 var RK_CACHE = "wb_rk_acts_v2";
 /* MapCN（CARTO Basemaps）免费瓦片，无 token；默认浅色固定（与 running 仓库
-   activities.preview.png 生成规格一致：z8 + 浅色，不随系统明暗切换），
+   activities.preview.png 生成规格一致：640:360 + z8 + 浅色，不随系统明暗切换），
    用户可手动切 明亮 / 暗色（浅色 / 明亮 / 暗色 三档循环） */
 var RK_STYLES = [
   { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
@@ -2210,7 +2210,7 @@ var RK_STYLES = [
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
-/* 全量轨迹垫底 PNG（running 仓库构建产物：OSM 瓦片底图 + 全量轨迹，2x 1280x840，
+/* 全量轨迹垫底 PNG（running 仓库构建产物：浅灰纯色底图 + 全量轨迹，1x 640x360，
    位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换） */
 var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png";
 /* 垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom）：
@@ -3057,7 +3057,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     else if(idx === 3) fit();
   });
   /* 默认视角固定规格：z=8（与 running 仓库 activities.preview.png 生成规格一致，
-     长宽 640:420 固定、z8 固定浅色）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
+     长宽 640:360（16:9）固定、z8 固定浅色）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
      中心优先用垫底 PNG 视角元数据（热点中心，PNG 与矢量层切换零跳动）；
      无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
   var mv = metaView || null, HP_Z = 8;
