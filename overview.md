@@ -91,6 +91,8 @@
 
 - **迭代十·模块顺序再调整**（用户要求「1. rk-cards 2. 轨迹地图 3. 个人最佳 4. 年度热力图」）：rkBody 最终顺序 `rkStats（统计卡）→ rkMapSec（轨迹地图）→ 个人最佳 → 年度热力图 → 趋势 → 活动列表`；rkStats 移为第一位，个人最佳移到地图之后热力图之前（仅移动区块，总字节数不变）；verify.js 顺序断言更新为 `riStats < riMap < riPbs < riHeat < riTrend < riList`，192/192 全绿；puppeteer 真实浏览器复验 DOM 顺序 `["rkStats","rkMapSec","个人最佳","年度热力图","趋势","活动列表"]` PASS、零 JS 错误；git 提交 `8216f30` 已推送，CloudStudio 重部署，线上 diff 与本地 0 差异、顺序索引 PASS（stats 50880 < map 50926 < pbs 51840 < heat 52155 < trend 52812 < list 53221）
 
+- **迭代十一·路由改名 `#/run` → `#/running`**（用户要求「#/run 修改为 #/running」）：侧边栏 `href/data-nav`、首页快捷卡 `location.hash`、页面 `id="page-run"→"page-running"`、底部 tab `href/data-tabpage`、路由白名单 `["home","json","skills","running"]`、`if(h === "running") rkLoad()` 六处全量更新；navigate 开头新增兼容重定向 `h === "run"` → `location.replace("#/running"...）`（旧收藏链接无缝跳转）；verify.js 新增 1 条源码断言（running 路由全量生效 + 无 `#/run"`/`page-run`/`data-nav="run"` 残留 + 兼容重定向存在），193/193 全绿；puppeteer 真实浏览器 3 断言全 PASS（直接打开 #/running 页面/侧边栏/底部 tab 全高亮、旧链接 #/run 自动重定向为 #/running 且页面激活、侧边栏点击跳转），零 JS 错误；git 提交 `9578d35` 已推送，CloudStudio 重部署，线上确认 6 处 running 路由元素存在、旧 `#/run"`/`page-run` 零残留（154,602 字节）
+
 ## 待办
 
 - Worker 已部署 `skillboard-collect.lgx31.workers.dev`（健康检查 200）；收藏仓库为空时现在可**直接收藏首个 Skill，Worker 会自动初始化**，无需手工建 README
