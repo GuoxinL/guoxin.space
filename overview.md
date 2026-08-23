@@ -123,3 +123,12 @@
 - **顺带修复路由崩溃 bug**：path 路由两处 `replaceState` 未保护（navigate `/run` 兼容 + `#/hash` 兼容块），**file:// 本地预览下抛 SecurityError 中断整段 script**（地图/热力图/数据加载全不执行）。修复：补 try/catch + `navigate()` 内 hash 回退解析（pathname 无效且带 `#/` 时从 hash 取目标页）。
 - **验证**：verify.js 断言同步（4 档解析/越界回退/按钮顺序分组），**224/224 全绿**；puppeteer 本地 + 线上双验证 ALL PASS（按钮存在/顺序/初始 auto 浅色/点击依次浅色→明亮→暗色，瓦片 URL 断言 light_all→voyager→dark_all/暗色主题 auto 自动 dark_all/零 JS 错误）。
 - **遗留**：垫底 PNG 仍 OSM 风格（加载瞬间跳变，方案 C1 接受）；轨迹配色仍橙/蓝/紫（方案 B 未做）；running 仓库脚本 JS 化方案见 `running-js-migration-plan.md`。
+
+## 2026-08-24 轨迹地图滚轮缩放灵敏度修复（commit bc3844c）
+
+- **问题**：用户反馈「滚轮太灵活，滚动一下地图就找不到位置」。根因：旧 wheel 监听按**事件**触发 `zoomBy(±1)`，触控板/高精度滚轮一次手势拆成大量小 deltaY 事件，一次滚动跳 10+ 级。
+- **修复**（累积式灵敏度）：
+  - `wheelAcc` 累积 deltaY，阈值 ±120（标准一格）才缩放 1 级
+  - 手势间隔 >400ms 重置累积（独立手势）
+  - 单次手势限幅 3 级，防超大 deltaY 跳级
+- **验证**：verify **225/225 全绿**（补滚轮源码断言）；puppeteer 本地 + 线上双验证 ALL PASS（单次小 deltaY 不缩放 / 累积 120 缩 1 级 / 标准一格 1 级 / 向上放大 / -1000 限幅 3 级 / 超时重置 / 连续 4 格缩 4 级 / 零 JS 错误）。
