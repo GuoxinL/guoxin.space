@@ -147,3 +147,19 @@
 - **根因 1**：`zoomBy` 锚点公式 `S.cx = wx - mx/S.k` 漏 `+S.W/(2*k')` 修正项，缩放后鼠标指向的世界坐标偏移 W/(2k')（z8 时实测约 1/4 屏宽）。修正为 `S.cx = wx + (S.W/2 - mx)/S.k`，锚点偏移 3113 → 9.6 z13 像素（≈0.6px 亚像素）。注：按钮传 mx=null 默认中心，±W/(2k') 恰好抵消，旧公式下按钮中心锚点"巧合正确"。
 - **根因 2**：恢复 4 按钮后点击委托仍用 3 按钮时代的 idx 映射（idx=1 缩小、idx=2 fit、idx=3 无分支、⤢ 失效）。修正 idx=1 放大 / idx=2 缩小 / idx=3 fit。
 - **验证**：verify 227/227 全绿（新增锚点公式 + idx 映射源码断言）；puppeteer 本地+线上 ALL PASS（初始 z=8 / 滚轮放大锚点 0.6px / 按钮+ 中心偏移 0 / 按钮− 缩小 / ⤢ fit / 零 JS 错误）。
+
+## 2026-08-24 轨迹地图固定比例 + z8 固定浅色（双端对齐，commit 49729f0 / running 79f2753）
+
+- **需求**：① 主页轨迹地图容器长宽**固定比例**（不再随宽度伸缩高度）；样式**固定 z8 浅色**（不随系统明暗切换、去掉 auto 档联动）。② running 仓库 `activities.preview.png` 按**同一规格**生成：固定长宽比 + z8 固定浅色。
+- **主页（index.html）**：
+  - `.rk-tilemap`：`height:420px` → `aspect-ratio:640/420`（32:21），宽随内容区、高按比例自适应，与 PNG 视口 640×420 一致。
+  - `RK_STYLES` 简化为 **3 档固定浅色**（light_all / voyager / dark_all，默认 idx 0 = 浅色），删除 auto 档 + `rkThemeDark()` + 主题切换重绘联动（applyTheme 不再重绘地图）。
+  - 初始视角**恒 z8**：新增 `HP_Z = 8` 常量，meta 分支与热点回退分支均 `setZoom(HP_Z)`（不再用 `mv.z`/`hp.z`）；meta 的 cx/cy 为 z13 世界像素中心，与 zoom 解耦 → 固定 z8 仍精确复用 PNG 热点中心，垫底与矢量层零跳动。
+  - 样式按钮 title 改「切换底图样式：浅色 / 明亮 / 暗色」；zoom 显示去掉「自动·」分支。
+- **running_page（prebuild_preview.py）**：
+  - 常量 `VIEW_W, VIEW_H = 640, 420`、`Z_FIXED = 8`；删除 `fit_view()`；新增 `thin(pts, maxn)`（移植 rkThin：等步长、首尾保留）与 `hotspot_center(tracks)`（移植前端 rkHotSpot：gs=RK_TILE/2 网格密度统计、3×3 加权中心、35% 峰值阈值、60 点抽稀；无有效输入返回 None）。
+  - `build_png`：cx/cy = 热点中心（无则 bbox 中心兜底），`z = Z_FIXED`，`k = 2.0 ** (z - RK_Z)`；3× 超采样、浅灰底（BG=D8D8D8）、原子写 .tmp → os.replace → 数据不变则产物逐字节稳定。
+  - 输出：`activities.preview.png`（640×420 RGB，161 条轨迹 / 345013 点全量，z8 浅灰底）+ `activities.preview.meta.json`（`{"cx":1726132.797895111,"cy":795046.5622139904,"z":8}`，z 恒 8）。
+- **验证**：verify.js 新增 4 条固定规格断言（aspect-ratio 640/420 精确匹配、meta/热点分支均 `setZoom(HP_Z)` 非 `mv.z`/`hp.z`、三档样式无「跟随明暗」「S.auto」「自动·」残留），**233/233 全绿**；puppeteer `/tmp/rk_fixed.cjs` 本地 file:// 7/7 ALL PASS（容器比例 1.5238 / 初始 z8·浅色 / light_all 瓦片 / 暗色主题下仍 light_all 不跟随 / 按钮循环 voyager→回浅色 / zoom 无「自动」/ JS 错误 0）；**线上复验同样 7/7 ALL PASS**。
+- **踩坑**：① verify 新增断言误伤 `.editor-wrap{min-height:420px}`（`html.indexOf('height:420px') < 0` 被 min-height 子串命中）→ 改精确匹配 `.rk-tilemap{position:relative;height:420px` 不存在。② running_page push 管道 `| tail` SIGPIPE（exit 137）导致 push 未执行、rebase 被中断——重跑 push 发现远端 daily sync 分叉（8f1b7a2），`git pull --rebase` 后 PNG 二进制冲突（daily sync 也重生成过）→ `git checkout --ours` + 重跑 prebuild 幂等统一 + `GIT_EDITOR=true git rebase --continue`；最终 `8f1b7a2..79f2753` 推送成功。
+- **部署**：双仓库已推送（personal-homepage `bd9d4b2..49729f0`、running_page `8f1b7a2..79f2753`）；CloudStudio 重新部署完成，线上复验 7/7 ALL PASS。
