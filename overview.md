@@ -89,6 +89,8 @@
 - **迭代八·热力图默认当前年份**（用户要求「年度热力图，默认只显示当前年份」）：`rkOnData` 中 `rkState.year = "all"` 改为 `rkYears(rkActs)[0]`（数据最新年份，当前 2026；数据为空兜底系统年份）；`rkState` 初始化同步为 `String(new Date().getFullYear())`；「全部」tab 保留可手动切换；趋势月度视图跟随默认年份无需改动（2477 行 `"all"` 分支仍兼容）。verify.js 新增 1 条源码断言（默认年份=数据最新年份），189/189 全绿；puppeteer 真实浏览器复验：默认 active tab=2026、热力图仅 1 个块显示 2026、切「全部」出 15 年块、切 2022 只显示 2022、零 JS 错误；git 提交 `85b149e` 已推送，CloudStudio 重部署，线上确认默认年份逻辑存在、无 `rkState.year = "all"` 重置残留
 - **迭代九·地图样式跟随明暗 + 按钮入地图**（用户要求「轨迹地图默认为白色，底图样式按钮放到地图右上角，地图明暗根据明/暗模式」）：`RK_STYLES` 重构为 4 档，首档 `auto`（默认）——亮色模式解析为 `light_all` 白色底图、暗色模式解析为 `dark_all`，新增 `rkThemeDark()`/`rkResolveStyle()`；`rkMapInit` 内部解析样式并在 zoom 标签显示「自动·浅色/暗色」；页头工具栏「底图样式」按钮移除，改为地图右上角 `.rk-tm-ctrl` 组顶部 SVG 图标按钮（`onclick="rkMapStyle()"`），循环 auto→浅色→明亮→暗色；`applyTheme` 末尾联动——当前为 auto 档且地图已渲染时调 `rkShowMap` 重绘底图（手动档不受主题影响）；`init()` 挂载 `rkMapStyleIdx`/`rkResolveStyle`。verify.js 更新 1 条 + 新增 3 条样式断言，192/192 全绿；puppeteer 5 条断言全 PASS（默认亮色 light_all、切暗色 dark_all 且 zoom 显示「自动·暗色」、切回亮色恢复、点击按钮切手动档、手动档切主题不重绘），零 JS 错误；git 提交 `cdb9d21` 已推送，CloudStudio 重部署，线上确认 154,405 字节、auto 档与 rkResolveStyle 存在、页头旧按钮已移除、右上角新按钮存在
 
+- **迭代十·模块顺序再调整**（用户要求「1. rk-cards 2. 轨迹地图 3. 个人最佳 4. 年度热力图」）：rkBody 最终顺序 `rkStats（统计卡）→ rkMapSec（轨迹地图）→ 个人最佳 → 年度热力图 → 趋势 → 活动列表`；rkStats 移为第一位，个人最佳移到地图之后热力图之前（仅移动区块，总字节数不变）；verify.js 顺序断言更新为 `riStats < riMap < riPbs < riHeat < riTrend < riList`，192/192 全绿；puppeteer 真实浏览器复验 DOM 顺序 `["rkStats","rkMapSec","个人最佳","年度热力图","趋势","活动列表"]` PASS、零 JS 错误；git 提交 `8216f30` 已推送，CloudStudio 重部署，线上 diff 与本地 0 差异、顺序索引 PASS（stats 50880 < map 50926 < pbs 51840 < heat 52155 < trend 52812 < list 53221）
+
 ## 待办
 
 - Worker 已部署 `skillboard-collect.lgx31.workers.dev`（健康检查 200）；收藏仓库为空时现在可**直接收藏首个 Skill，Worker 会自动初始化**，无需手工建 README
