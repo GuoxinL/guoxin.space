@@ -689,6 +689,13 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
     </div>
     <div class="rk-bar" id="rkBar"><span class="dot" id="rkDot"></span><span id="rkBarText">正在加载数据…</span></div>
     <div id="rkBody">
+      <div class="rk-sec" id="rkMapSec">
+        <div class="rk-sec-h">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>轨迹地图</h3>
+          <span id="rkMapTitle" style="font-size:12px;color:var(--text3)"></span>
+        </div>
+        <div class="rk-map" id="rkMapBox"><div class="rk-map-hint"><div class="rk-mh-t">轨迹地图</div><div>数据加载完成后自动显示最近一次活动轨迹，点击活动列表中的记录可切换。</div></div></div>
+      </div>
       <div class="rk-cards" id="rkStats"></div>
       <div class="rk-sec">
         <div class="rk-sec-h">
@@ -719,13 +726,6 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <div class="toolbar" id="rkListTools"></div>
         </div>
         <div class="rk-list" id="rkList"></div>
-      </div>
-      <div class="rk-sec" id="rkMapSec" style="display:none">
-        <div class="rk-sec-h">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>轨迹地图</h3>
-          <span id="rkMapTitle" style="font-size:12px;color:var(--text3)"></span>
-        </div>
-        <div class="rk-map" id="rkMapBox"></div>
       </div>
     </div>
   </section>
@@ -2819,6 +2819,13 @@ function rkRenderAll(){
   rkRenderTrend();
   rkRenderPbs();
   rkRenderListTools();
+  if(!rkState.selId){
+    var best = null, bestD = "";
+    (rkActs||[]).forEach(function(a){
+      if(a.poly && a.date && a.date >= bestD){ bestD = a.date; best = a; }
+    });
+    if(best) rkShowMap(best.id);
+  }
 }
 function rkRefresh(){ rkFetch(); }
 function rkLoad(){
