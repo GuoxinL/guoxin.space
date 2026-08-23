@@ -194,3 +194,13 @@
   - 顺手补内联 SVG favicon，消除 `/favicon.ico` 404 控制台报错。
 - **验证**：verify.js 新增第 12 节「活动列表卡片 + 弹窗回放」8 条断言 + rkParse 字段/字符串化断言，**247/247 全绿**；puppeteer 线上复验（`https://guoxin.space/#/running`）**ALL PASS**——30 张卡片 / 主图行者 CDN / 地点「北京市海淀区」/ 三格统计「10.1公里·19.8km/h·30m时长」/ 弹窗 show + 遮罩 rgba / canvas 1280×720 / 6 格信息 / 回放动画 diff 3225px / 关闭正常 / 零 JS 错误。
 - **部署**：personal-homepage 已推送 GitHub Pages（`guoxin.space`，remote 已迁移 `GuoxinL/guoxin.space`），404.html 同步 SPA fallback，线上复验通过。
+
+## 2026-08-24 活动地点起终点拼接（running_page f735b0d）
+
+- **需求**：反解放在 running 脚本中，坐标反解「城市/区」后填 json；起终点同地 → 填一个「城市/区」；异地 → 填「起点城市/区 -> 终点城市/区」。
+- **数据侧改动**（running_page 仓库，commit `f735b0d`）：
+  - `geocode_locations.py`：反解坐标从**仅起点**改为**起点 + 终点**（`coords[0]` 与 `coords[-1]`），`locations.json` 96 → 119 项（补齐 23 个终点坐标，全含区级）。
+  - `prebuild_preview.py`：`location_city` 起终点都查；`s_loc && e_loc && s_loc != e_loc` 时填 `s_loc + " -> " + e_loc`，否则 `s_loc or e_loc`（同地/单点只填一个）。
+- **结果**：161 条，空地点 0；同地单地 95 条、异地 `->` 拼接 66 条、闭环（起终点同坐标）8 条全单地。异地样例：`北京市海淀区 -> 北京市丰台区`、`北京市朝阳区 -> 天津市河东区` 等。
+- **验证**：交叉验证 161/161 全部一致（起终点坐标反查 locations.json 手算期望 vs preview 输出）；前端 puppeteer 注入最新数据复验通过——卡片地点正常显示 `->` 拼接（`.rk-act-loc span` ellipsis 截断）、弹窗副标题 `日期 · 北京市海淀区 -> 北京市丰台区`（`.rk-ai-sub` flex-wrap 换行）、零 JS 错误。
+- **部署**：CI 只跑 `prebuild_preview.py`（不跑 geocode，`locations.json` 本地手动提交）；前端 `RK_URL` 直读 `raw.githubusercontent.com/GuoxinL/running/master/.../activities.preview.json`，推送 master 即生效（CDN 约 5 分钟缓存）。前端代码零改动——长地点由既有 ellipsis/flex-wrap 兜底。
