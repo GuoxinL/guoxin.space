@@ -334,6 +334,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-map-hint .rk-mh-t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
 .rk-map-hint code{background:var(--surface);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
 .rk-tilemap{position:relative;height:420px;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
+.rk-tm-pv{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;user-select:none;-webkit-user-drag:none;opacity:1;will-change:transform}
 .rk-tm-tiles{position:absolute;left:0;top:0;will-change:transform}
 .rk-tm-tile{position:absolute;width:256px;height:256px;background-size:cover;background-color:#dfe5ea}
 .rk-tm-svg{position:absolute;left:0;top:0;pointer-events:none;will-change:transform}
@@ -470,7 +471,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
         <button class="qcard" onclick="go('/running')">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></div>
           <div class="qt">Running</div>
-          <div class="qd">跑步 / 骑行统计 · 直连 running_page</div>
+          <div class="qd">跑步 / 骑行统计 · 直连 running</div>
         </button>
         <div class="qcard dashed">+ 更多卡片<br>（待办 / 打卡 / 记账…）</div>
       </div>
@@ -671,16 +672,16 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
     </div>
   </section>
 
-  <!-- 页面四：Running（running_page 数据直连） -->
+  <!-- 页面四：Running（running 数据直连） -->
   <section class="page" id="page-running">
     <div class="rk-head">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
         Running
-        <span class="rk-sub">跑步 / 骑行 · 直连 running_page</span>
+        <span class="rk-sub">跑步 / 骑行 · 直连 running</span>
       </h2>
       <div class="toolbar">
-        <button class="btn" onclick="rkRefresh()" title="重新拉取 running_page 仓库的 activities.json">
+        <button class="btn" onclick="rkRefresh()" title="重新拉取 running 仓库的 preview 抽帧数据">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
           刷新数据
         </button>
@@ -2189,9 +2190,9 @@ function init(){
 }
 document.addEventListener("DOMContentLoaded", init);
 
-/* ================= Running (run)：数据源 = running_page 仓库直连 ================= */
-var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running_page/master/src/static/activities.json";
-var RK_CACHE = "wb_rk_acts_v1";
+/* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
+var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
+var RK_CACHE = "wb_rk_acts_v2";
 /* MapCN（CARTO Basemaps）免费瓦片，无需 token；对齐 running_page MAP_TILE_VENDOR='mapcn'。
    首档 auto（默认）：亮色模式→light_all 白底，暗色模式→dark_all，跟随页面明暗切换 */
 var RK_STYLES = [
@@ -2202,6 +2203,11 @@ var RK_STYLES = [
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
+/* 全量轨迹垫底 SVG（running 仓库构建产物，gzip ~33KB，进入地图立即 <img> 显示路线全貌） */
+var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.svg";
+/* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
+   所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
+var RK_BASE_Z = 13;
 function rkThemeDark(){
   try{ return !!document.body && document.body.dataset.theme === "dark"; }catch(e){ return false; }
 }
@@ -2656,8 +2662,22 @@ function rkShowMap(id){
   } else {
     ti.textContent = "全部 " + tracks.length + " 条轨迹 · 已聚焦最热点区域（点击 ⤢ 查看全貌）";
   }
-  box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\"><div class=\"rk-tm-loading\">底图加载中（MapCN · 免费无需 token）…</div></div>";
-  rkMapInit(rkEl("rkMapCanvas"), tracks, rkMapStyleIdx(), a ? a.id : 0);
+  /* phase1：垫底 SVG 全貌立即显示（running 仓库预渲染产物，gzip ~33KB，通常比 JSON 先到）；
+     矢量层就绪后无缝切换 —— img onload 门控（缓存命中/测试环境无 img 时同步渲染） */
+  box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\">"
+    + "<img class=\"rk-tm-pv\" src=\"" + RK_PV_URL + "\" alt=\"轨迹全貌预览\" decoding=\"async\">"
+    + "<div class=\"rk-tm-loading\">轨迹矢量层构建中…</div></div>";
+  var cnv = rkEl("rkMapCanvas");
+  var img = (cnv && cnv.querySelector) ? cnv.querySelector(".rk-tm-pv") : null;
+  var once = false;
+  function go(){
+    if(once) return;
+    once = true;
+    rkMapInit(cnv, tracks, rkMapStyleIdx(), a ? a.id : 0);
+  }
+  if(!img) go();                                   /* 无 img（旧浏览器/测试环境）→ 同步渲染矢量层 */
+  else if(img.complete && img.naturalWidth > 0) go();  /* 已缓存 → 垫底已显示，立即接矢量层 */
+  else { img.onload = go; img.onerror = go; }      /* 网络加载 → 就绪后再接矢量层 */
 }
 /* Web Mercator 投影（verify 可测）：经纬度 <-> 世界像素（256*2^z 见方） */
 function rkMerc(lng, lat, z){
@@ -2746,10 +2766,20 @@ function rkMapInit(container, tracks, styleIdx, selId){
     style: rkResolveStyle(styleIdx),
     auto: !!(RK_STYLES[styleIdx] && RK_STYLES[styleIdx].k === "auto"),
     container: container, W: 640, H: 420,
-    ox0: 0, oy0: 0
+    ox0: 0, oy0: 0,
+    selId: selId || 0,
+    prep: 0,                   /* 视图预备（fit/热点设定中），避免中途 render 重置 */
+    fit: { k: 0, ok: false },  /* fit 完成时的缩放 k（供扩展） */
+    k: 1,                      /* 世界像素(z13) → 当前 zoom 像素 倍数 = 2^(z-RK_BASE_Z) */
+    ready: false, svgEl: null, tilesEl: null, zoomEl: null
   };
   S.tracks = tracks.map(function(t){
     return { id:t.id, type:t.type||"Run", sel:!!selId && t.id === selId, coords:t.coords, pts:[] };
+  });
+  /* 固定基准投影：全部轨迹只在 RK_BASE_Z(13) 世界像素投影一次（345K 点 ~几十 ms），
+     缩放/平移仅改 viewBox 矩阵，零重投影 —— 消除旧架构「每次缩放全量重投影卡顿」 */
+  S.tracks.forEach(function(t){
+    t.pts = t.coords.map(function(c){ var p = rkMerc(c[1], c[0], RK_BASE_Z); return [p[0], p[1]]; });
   });
   function rect(){
     try{
@@ -2759,12 +2789,7 @@ function rkMapInit(container, tracks, styleIdx, selId){
   }
   function setZoom(nz){
     S.z = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, nz));
-    /* 全局点预算约 9 万，平摊到每条未选中轨迹；选中轨迹保持全精度 */
-    var budget = Math.floor(90000 / Math.max(1, S.tracks.length));
-    S.tracks.forEach(function(t){
-      var pts = t.coords.map(function(c){ var p = rkMerc(c[1], c[0], S.z); return [p[0], p[1]]; });
-      t.pts = t.sel ? pts : rkThin(pts, Math.max(8, Math.min(200, budget)));
-    });
+    S.k = Math.pow(2, S.z - RK_BASE_Z);
   }
   function bbox(){
     var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -2782,71 +2807,140 @@ function rkMapInit(container, tracks, styleIdx, selId){
     var sub = "abcd"[(wx + ty + S.z) % 4];
     return S.style.url.replace("{s}", sub).replace("{z}", S.z).replace("{x}", wx).replace("{y}", ty);
   }
-  function render(){
-    rect();
-    var x0 = Math.floor((S.cx - S.W/2) / RK_TILE), x1 = Math.floor((S.cx + S.W/2) / RK_TILE);
-    var y0 = Math.floor((S.cy - S.H/2) / RK_TILE), y1 = Math.floor((S.cy + S.H/2) / RK_TILE);
-    S.ox0 = (S.cx - S.W/2) - x0 * RK_TILE;
-    S.oy0 = (S.cy - S.H/2) - y0 * RK_TILE;
-    var html = '<div class="rk-tm-tiles" style="transform:translate(' + (-S.ox0).toFixed(1) + 'px,' + (-S.oy0).toFixed(1) + 'px)">';
-    for(var ty = y0; ty <= y1; ty++){
-      for(var tx = x0; tx <= x1; tx++){
-        html += '<div class="rk-tm-tile" style="left:' + ((tx - x0) * RK_TILE) + 'px;top:' + ((ty - y0) * RK_TILE) + 'px;background-image:url(' + tileUrl(tx, ty) + ')"></div>';
+  function finishPrepare(){
+    S.prep = 0;
+    S.fit = { k: S.k, ok: true };
+  }
+  /* 视口四角（z13 世界像素）→ viewBox 参数 */
+  function viewBoxArgs(){
+    var k = S.k;
+    var vw = S.W / k, vh = S.H / k;
+    return [S.cx - vw/2, S.cy - vh/2, vw, vh];
+  }
+  /* 瓦片层 HTML（z 级世界像素，随 zoom 变化，数量少 ~20 块，重建便宜） */
+  function tilesHTML(vx0, vy0){
+    var k = S.k;
+    var zx0 = vx0 * k, zy0 = vy0 * k;
+    var tx0 = Math.floor(zx0 / RK_TILE), ty0 = Math.floor(zy0 / RK_TILE);
+    var tx1 = Math.floor((zx0 + S.W) / RK_TILE), ty1 = Math.floor((zy0 + S.H) / RK_TILE);
+    S.ox0 = zx0 - tx0 * RK_TILE; S.oy0 = zy0 - ty0 * RK_TILE;
+    var h = '<div class="rk-tm-tiles" style="transform:translate(' + (-S.ox0).toFixed(1) + 'px,' + (-S.oy0).toFixed(1) + 'px)">';
+    for(var ty = ty0; ty <= ty1; ty++){
+      for(var tx = tx0; tx <= tx1; tx++){
+        h += '<div class="rk-tm-tile" style="left:' + ((tx - tx0) * RK_TILE) + 'px;top:' + ((ty - ty0) * RK_TILE) + 'px;background-image:url(' + tileUrl(tx, ty) + ')"></div>';
       }
     }
-    html += '</div>';
-    var sx = S.cx - S.W/2, sy = S.cy - S.H/2;
-    html += '<svg class="rk-tm-svg" width="' + S.W + '" height="' + S.H + '" viewBox="0 0 ' + S.W + ' ' + S.H + '">';
+    return h + '</div>';
+  }
+  /* 矢量层 SVG HTML：坐标直接写 z13 世界像素，viewBox 矩阵完成缩放/平移（仅构建一次） */
+  function svgHTML(vx0, vy0, vw, vh){
+    var k = S.k;
+    var swN = (1.6 / k).toFixed(2), swH = (3.5 / k).toFixed(2);  /* 线宽反算：屏幕像素/k，任意缩放屏幕恒 1.6/3.5px */
+    var rDot = (5 / k).toFixed(1), rRing = (1.5 / k).toFixed(2);
+    var h = '<svg class="rk-tm-svg" width="' + S.W + '" height="' + S.H + '" viewBox="' + vx0 + ' ' + vy0 + ' ' + vw + ' ' + vh + '">';
     var selT = null;
     S.tracks.forEach(function(t){
       if(!t.pts.length) return;
-      var pl = t.pts.map(function(p){ return (p[0]-sx).toFixed(1) + ',' + (p[1]-sy).toFixed(1); }).join(' ');
+      var pl = t.pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
       if(t.sel){
         selT = t;
-        html += '<polyline points="' + pl + '" fill="none" stroke="#f97316" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
+        h += '<polyline data-id="' + t.id + '" points="' + pl + '" fill="none" stroke="#f97316" stroke-width="' + swH + '" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>';
       } else {
-        html += '<polyline points="' + pl + '" fill="none" stroke="' + rkTrackColor(t.type) + '" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>';
+        h += '<polyline data-id="' + t.id + '" points="' + pl + '" fill="none" stroke="' + rkTrackColor(t.type) + '" stroke-width="' + swN + '" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>';
       }
     });
     if(selT && selT.pts.length){
       var s0 = selT.pts[0], s1 = selT.pts[selT.pts.length - 1];
-      html += '<circle cx="' + (s0[0]-sx).toFixed(1) + '" cy="' + (s0[1]-sy).toFixed(1) + '" r="5" fill="#22c55e" stroke="#fff" stroke-width="1.5"/>';
-      html += '<circle cx="' + (s1[0]-sx).toFixed(1) + '" cy="' + (s1[1]-sy).toFixed(1) + '" r="5" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>';
+      h += '<circle data-s0="' + selT.id + '" cx="' + s0[0].toFixed(1) + '" cy="' + s0[1].toFixed(1) + '" r="' + rDot + '" fill="#22c55e" stroke="#fff" stroke-width="' + rRing + '"/>';
+      h += '<circle data-s1="' + selT.id + '" cx="' + s1[0].toFixed(1) + '" cy="' + s1[1].toFixed(1) + '" r="' + rDot + '" fill="#ef4444" stroke="#fff" stroke-width="' + rRing + '"/>';
     }
-    html += '</svg>';
-    html += '<div class="rk-tm-ctrl">'
+    return h + '</svg>';
+  }
+  function ctrlHTML(){
+    return '<div class="rk-tm-ctrl">'
       + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
-      + '</div>';
-    html += '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>';
-    html += '<div class="rk-tm-attr">Map tiles © CARTO · Map data © OpenStreetMap contributors</div>';
-    container.innerHTML = html;
+      + '</div>'
+      + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>'
+      + '<div class="rk-tm-attr">Map tiles © CARTO · Map data © OpenStreetMap contributors</div>';
+  }
+  /* 缩放/平移：仅更新 viewBox 矩阵 + 线宽反算（SVG 内容零重建，345K 点不重绘） */
+  function refreshView(){
+    var vb = viewBoxArgs();
+    if(S.svgEl){
+      S.svgEl.setAttribute("viewBox", vb[0] + " " + vb[1] + " " + vb[2] + " " + vb[3]);
+      S.svgEl.style.transform = "";
+      if(S.tilesEl){ S.tilesEl.outerHTML = tilesHTML(vb[0], vb[1]); S.tilesEl = container.querySelector(".rk-tm-tiles"); }
+      if(S.zoomEl) S.zoomEl.textContent = "z" + S.z + " · " + (S.auto ? ("自动·" + S.style.n) : S.style.n);
+      updateStrokeWidths();
+    }
+  }
+  /* 缩放后线宽反算更新：每条轨迹一个属性（~百条，毫秒级） */
+  function updateStrokeWidths(){
+    if(!S.svgEl) return;
+    var k = S.k;
+    var swN = (1.6 / k).toFixed(2), swH = (3.5 / k).toFixed(2);
+    var rDot = (5 / k).toFixed(1), rRing = (1.5 / k).toFixed(2);
+    S.tracks.forEach(function(t){
+      if(!t.pts.length) return;
+      if(t._el) t._el.setAttribute("stroke-width", t.sel ? swH : swN);
+      if(t.sel){
+        if(t._s0){ t._s0.setAttribute("r", rDot); t._s0.setAttribute("stroke-width", rRing); }
+        if(t._s1){ t._s1.setAttribute("r", rDot); t._s1.setAttribute("stroke-width", rRing); }
+      }
+    });
+  }
+  function render(){
+    rect();
+    if(!S.ready){
+      var vb = viewBoxArgs();
+      container.innerHTML = tilesHTML(vb[0], vb[1]) + svgHTML(vb[0], vb[1], vb[2], vb[3]) + ctrlHTML();
+      S.svgEl = container.querySelector(".rk-tm-svg");
+      if(S.svgEl){
+        S.tilesEl = container.querySelector(".rk-tm-tiles");
+        S.zoomEl = container.querySelector("#rkTmZoom");
+        /* 缓存 polyline 元素引用：后续缩放只 setAttribute，零重建 */
+        S.tracks.forEach(function(t){
+          if(!t.pts.length) return;
+          t._el = S.svgEl.querySelector('[data-id="' + t.id + '"]');
+          if(t.sel){
+            t._s0 = S.svgEl.querySelector('[data-s0="' + t.id + '"]');
+            t._s1 = S.svgEl.querySelector('[data-s1="' + t.id + '"]');
+          }
+        });
+      }
+      S.ready = true;
+      updateStrokeWidths();
+    } else {
+      refreshView();
+    }
     container.style.cursor = "grab";
   }
   function zoomBy(d, mx, my){
     var nz = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, S.z + d));
     if(nz === S.z) return;
     if(mx == null){ mx = S.W/2; my = S.H/2; }
-    var ll = rkMercInv(S.cx + mx - S.W/2, S.cy + my - S.H/2, S.z);
+    /* 锚点 = 鼠标位置的 z13 世界像素，缩放前后保持不变（视口左上角 + 鼠标偏移/k） */
+    var wx = S.cx - S.W/(2*S.k) + mx / S.k;
+    var wy = S.cy - S.H/(2*S.k) + my / S.k;
     setZoom(nz);
-    var p = rkMerc(ll[1], ll[0], nz);
-    S.cx = p[0] - (mx - S.W/2);
-    S.cy = p[1] - (my - S.H/2);
+    S.cx = wx - mx / S.k;
+    S.cy = wy - my / S.k;
     render();
   }
   function fit(){
     rect();
+    S.prep = 1;
+    var b = bbox(), pad = 70;   /* bbox 为 z13 世界像素，不随 zoom 变，只需算一次 */
+    function wpx(){ return (b[2]-b[0]) * S.k; }   /* 换算当前 zoom 的视口像素 */
+    function hpx(){ return (b[3]-b[1]) * S.k; }
     setZoom(14);
-    var b = bbox(), w = b[2]-b[0], h = b[3]-b[1], pad = 70;
-    while(S.z > RK_Z_MIN && (w > S.W - 2*pad || h > S.H - 2*pad)){
-      S.z--; setZoom(S.z); b = bbox(); w = b[2]-b[0]; h = b[3]-b[1];
-    }
-    while(S.z < RK_Z_MAX && w < (S.W - 2*pad) * 0.55 && h < (S.H - 2*pad) * 0.55){
-      S.z++; setZoom(S.z); b = bbox(); w = b[2]-b[0]; h = b[3]-b[1];
-    }
+    while(S.z > RK_Z_MIN && (wpx() > S.W - 2*pad || hpx() > S.H - 2*pad)){ S.z--; setZoom(S.z); }
+    while(S.z < RK_Z_MAX && wpx() < (S.W - 2*pad) * 0.55 && hpx() < (S.H - 2*pad) * 0.55){ S.z++; setZoom(S.z); }
     S.cx = (b[0]+b[2])/2; S.cy = (b[1]+b[3])/2;
+    finishPrepare();
     render();
   }
   /* 拖拽平移（document 级成对监听，松手即清理，无泄漏） */
@@ -2854,7 +2948,7 @@ function rkMapInit(container, tracks, styleIdx, selId){
   function onMove(e){
     if(!drag) return;
     var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
-    S.cx = drag.cx - dx; S.cy = drag.cy - dy;
+    S.cx = drag.cx - dx / S.k; S.cy = drag.cy - dy / S.k;   /* 屏幕像素 → z13 世界像素 */
     var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
     if(tiles && svg){
       var nx = S.ox0 - dx, ny = S.oy0 - dy;
@@ -2890,7 +2984,7 @@ function rkMapInit(container, tracks, styleIdx, selId){
     if(!drag || e.touches.length !== 1) return;
     var t = e.touches[0];
     var dx = t.clientX - drag.sx, dy = t.clientY - drag.sy;
-    S.cx = drag.cx - dx; S.cy = drag.cy - dy;
+    S.cx = drag.cx - dx / S.k; S.cy = drag.cy - dy / S.k;
     var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
     if(tiles && svg){
       tiles.style.transform = "translate(" + (-(S.ox0 - dx)).toFixed(1) + "px," + (-(S.oy0 - dy)).toFixed(1) + "px)";
@@ -2925,7 +3019,7 @@ function rkMapInit(container, tracks, styleIdx, selId){
   /* 默认视角：全量模式聚焦轨迹最密集的热点区域（放大展示）；选中模式保持全量 fit */
   var hp = (!selId) ? rkHotSpot(tracks) : null;
   if(hp){
-    rect(); setZoom(hp.z); S.cx = hp.cx; S.cy = hp.cy; render();
+    rect(); S.prep = 1; setZoom(hp.z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
   } else {
     fit();
   }
@@ -2960,7 +3054,7 @@ function rkOnData(text){
     rkActs = rkParse(text);
     window.rkActs = rkActs; /* 挂全局便于控制台调试与外部脚本访问 */
     if(!rkActs.length) throw new Error("数据为空");
-    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running_page 仓库，本地零存储）", "ok");
+    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running 仓库 preview，本地零存储）", "ok");
     var curYr = String(new Date().getFullYear());
     rkState.year = rkYears(rkActs).indexOf(curYr) >= 0 ? curYr : (rkYears(rkActs)[0] || curYr); // 默认当年（2026）；数据无当年则回退最新年份
     rkState.listYear = "all"; rkState.listN = 30;
