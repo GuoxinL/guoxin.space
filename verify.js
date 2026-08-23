@@ -522,6 +522,22 @@ var rkT1 = ctx.rkThin(rkThinPts, 10);
 T('rkThin 抽稀到 10 点且保留首尾', rkT1.length===10 && rkT1[0][0]===0 && rkT1[9][0]===99, 'n='+rkT1.length);
 T('rkThin 均匀采样', rkT1[1][0]===11 && rkT1[5][0]===55, JSON.stringify(rkT1.map(function(p){return p[0];})));
 T('rkThin 空/小数组', ctx.rkThin([], 10).length===0 && ctx.rkThin([[1,2],[3,4]], 10).length===2);
+// rkHotSpot 热点视角（默认放大最密集区域）
+T('rkHotSpot 空输入返回 null', ctx.rkHotSpot(null)===null && ctx.rkHotSpot([])===null);
+var rkHsC = 39.907, rkHsL = 116.391, rkHSTracks = [];
+for (var rkg = 0; rkg < 9; rkg++) for (var rkh = 0; rkh < 9; rkh++){
+  var rkc = rkHsC + (rkg - 4) * 0.0022, rkl = rkHsL + (rkh - 4) * 0.0022;
+  rkHSTracks.push({ coords: [[rkc, rkl], [rkc + 0.001, rkl + 0.001]] });
+}
+rkHSTracks.push({ coords: [[31.23, 121.47], [31.24, 121.48], [31.25, 121.49]] }); /* 上海稀疏轨迹 */
+var rkHS = ctx.rkHotSpot(rkHSTracks);
+T('rkHotSpot 返回中心与缩放', !!rkHS && typeof rkHS.cx==='number' && typeof rkHS.cy==='number' && typeof rkHS.z==='number', JSON.stringify(rkHS));
+var rkHSll = ctx.rkMercInv(rkHS.cx, rkHS.cy, 13);
+T('rkHotSpot 中心落在密集簇（北京）而非稀疏点', Math.abs(rkHSll[0]-rkHsC)<0.05 && Math.abs(rkHSll[1]-rkHsL)<0.05, rkHSll.map(function(v){return v.toFixed(4);}).join(','));
+T('rkHotSpot 缩放级别放大展示（≥12）', rkHS.z >= 12 && rkHS.z <= 18, 'z='+rkHS.z);
+var rkHS1 = ctx.rkHotSpot([{ coords: [[39.9,116.39],[39.901,116.391],[39.902,116.392]] }]);
+T('rkHotSpot 单轨迹退化有效', !!rkHS1 && rkHS1.z >= 10, JSON.stringify(rkHS1));
+
 ctx.rkActs = [
   { id:1, type:'Run', date:'2024-01-01T08:00:00Z', name:'晨跑', dist:5200, poly:'p'.repeat(25) },
   { id:2, type:'Ride', date:'2024-01-02T08:00:00Z', name:'骑行', dist:20000, poly:'p'.repeat(30) },
@@ -580,6 +596,15 @@ T('路由 #/running 全量生效（无 #/run 残留）',
   && html.indexOf('data-tabpage="run"') < 0
   && html.indexOf('h === "run"') >= 0,
   'running 路由 + 旧 run 兼容重定向');
+
+// 热点视角（rkHotSpot 挂载 + 默认视角调用）+ ⤢ 适应轨迹按钮修复（idx=3）
+T('热点视角：rkHotSpot 挂载 + 默认聚焦 + ⤢ 按钮修复',
+  html.indexOf('window.rkHotSpot = rkHotSpot') >= 0
+  && html.indexOf('window.rkMercInv = rkMercInv') >= 0
+  && html.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0
+  && html.indexOf('else if(idx === 2 || idx === 3) fit()') >= 0
+  && html.indexOf('已聚焦最热点区域') >= 0,
+  'rkHotSpot/挂载/默认视角/⤢修复');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
