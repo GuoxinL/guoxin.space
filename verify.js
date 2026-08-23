@@ -522,6 +522,11 @@ T('rkBody 顺序 地图<热力图<统计<趋势<个人最佳<活动列表',
   riMap >= 0 && riMap < riHeat && riHeat < riStats && riStats < riTrend && riTrend < riPbs && riPbs < riList,
   [riMap, riHeat, riStats, riTrend, riPbs, riList].join(' < '));
 
+// 热力图默认年份：rkOnData 中取数据最新年份（非 "all"），初始状态取系统当前年份
+T('rkHeat 默认当前年份（非全部）',
+  /rkState\.year = rkYears\(rkActs\)\[0\]/.test(html) && /year:String\(new Date\(\)\.getFullYear\(\)\)/.test(html),
+  '默认年份 = 数据最新年份');
+
 /* ========== 结果 ========== */
 console.log('\n========================================');
 console.log('通过 ' + pass + ' / ' + (pass + fail));

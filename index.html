@@ -2163,7 +2163,7 @@ var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_
 var RK_RIDE_PAL = ["#bfdbfe","#60a5fa","#3b82f6","#2563eb"];
 var RK_ALL_PAL = ["#e9d5ff","#c084fc","#a855f7","#7c3aed"];
 var rkActs = null;               /* 规整后的活动数组 */
-var rkState = { year:"all", trend:"m", listYear:"all", listN:30, selId:0 };
+var rkState = { year:String(new Date().getFullYear()), trend:"m", listYear:"all", listN:30, selId:0 };
 
 function rkEl(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
 function rkMapStyleIdx(){
@@ -2803,7 +2803,8 @@ function rkOnData(text){
     rkActs = rkParse(text);
     if(!rkActs.length) throw new Error("数据为空");
     rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running_page 仓库，本地零存储）", "ok");
-    rkState.year = "all"; rkState.listYear = "all"; rkState.listN = 30;
+    rkState.year = rkYears(rkActs)[0] || String(new Date().getFullYear()); // 默认当前年份（数据最新年份）
+    rkState.listYear = "all"; rkState.listN = 30;
     rkRenderAll();
   }catch(e){ rkOnErr(e); }
 }
