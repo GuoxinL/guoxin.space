@@ -700,6 +700,16 @@ T('按钮缩放围绕图片中心：idx=1 放大 / idx=2 缩小 / idx=3 适应�
   && html.indexOf('else if(idx === 3) fit();') >= 0
   && html.indexOf('if(idx === 0) zoomBy(1)') < 0,
   '按钮 idx 映射与顺序一致');
+T('拖拽平移：鼠标 onMove 中 SVG 路径层与瓦片层同向（translate(+dx,+dy) 跟随鼠标，路径与地图零脱离）',
+  html.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
+  && html.indexOf('svg.style.transform = "translate(" + (-dx).toFixed(1)') < 0
+  && html.indexOf('tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";') >= 0,
+  'SVG 增量(+dx,+dy) 与瓦片增量一致');
+T('拖拽平移：触摸 touchmove 中 SVG 层同样 translate(+dx,+dy)（与鼠标路径一致，防移动端脱离）',
+  html.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
+  && html.indexOf('(-(S.ox0 - dx)).toFixed(1)') >= 0
+  && html.indexOf('(-dx).toFixed(1) + "px," + (-dy).toFixed(1)') < 0,
+  'SVG 正向位移、瓦片基线偏移正确');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
