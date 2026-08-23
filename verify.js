@@ -521,9 +521,9 @@ T('rkMerc 北京 y 范围', rkM[1] > 397200 && rkM[1] < 397450, 'y='+rkM[1].toFi
 var rkMi = ctx.rkMercInv(rkM[0], rkM[1], 12);
 T('rkMercInv 往返还原', rkMi[0].toFixed(3)==='39.907' && rkMi[1].toFixed(3)==='116.391', JSON.stringify(rkMi.map(function(v){return v.toFixed(4)})));
 T('rkMapStyleIdx 默认 0=auto（无 token 依赖）', ctx.rkMapStyleIdx()===0, 'idx='+ctx.rkMapStyleIdx());
-T('rkResolveStyle 默认档→OSM 标准', ctx.rkResolveStyle(0).k==='osm' && ctx.rkResolveStyle(0).url.indexOf('tile.openstreetmap.org')>0, 'k='+ctx.rkResolveStyle(0).k);
-T('rkResolveStyle 越界档回退 OSM', ctx.rkResolveStyle(3).k==='osm' && ctx.rkResolveStyle(3).url.indexOf('tile.openstreetmap.org')>0, 'k='+ctx.rkResolveStyle(3).k);
-T('rkResolveStyle 任意档原样返回 OSM', ctx.rkResolveStyle(1).k==='osm' && ctx.rkResolveStyle(1).url.indexOf('openstreetmap')>0, 'k='+ctx.rkResolveStyle(1).k);
+T('rkResolveStyle auto 档→light 主题解析为浅色 MapCN', ctx.rkResolveStyle(0).k==='light' && ctx.rkResolveStyle(0).url.indexOf('basemaps.cartocdn.com/light_all')>0, 'k='+ctx.rkResolveStyle(0).k);
+T('rkResolveStyle 越界档回退 auto→light 主题实际样式', ctx.rkResolveStyle(9).k==='light' && ctx.rkResolveStyle(9).url.indexOf('light_all')>0, 'k='+ctx.rkResolveStyle(9).k);
+T('rkResolveStyle 手动档原样返回（浅色/明亮/暗色）', ctx.rkResolveStyle(1).k==='light' && ctx.rkResolveStyle(2).k==='voyager' && ctx.rkResolveStyle(3).k==='dark' && ctx.rkResolveStyle(3).url.indexOf('dark_all')>0, [ctx.rkResolveStyle(1).k,ctx.rkResolveStyle(2).k,ctx.rkResolveStyle(3).k].join('/'));
 T('rkMerc 高纬负值（南半球 y>n/2）', ctx.rkMerc(0, -30, 10)[1] > ctx.rkMerc(0, 30, 10)[1]);
 // rkTitleFor 时段标题（对齐 classic RUN_TITLES）
 T('rkTitleFor 半马/全马', ctx.rkTitleFor({dist:21000,date:'2024-01-01T08:00:00Z'})==='半程马拉松' && ctx.rkTitleFor({dist:42000,date:'2024-01-01T08:00:00Z'})==='全程马拉松');
@@ -584,13 +584,14 @@ T('rkShowMap(0) phase2 矢量层 polyline 数=2', (rkCanvasHtml.match(/<polyline
 T('rkShowMap(0) 无高亮（无 #f97316 条带）', (rkCanvasHtml.match(/stroke="#f97316"/g)||[]).length===0, 'hl='+(rkCanvasHtml.match(/stroke="#f97316"/g)||[]).length);
 T('rkShowMap(0) 标题显示全部轨迹', el('rkMapTitle').textContent.indexOf('全部 2 条轨迹')>=0, el('rkMapTitle').textContent);
 var rkCtrlHtml = rkCanvasHtml.slice(rkCanvasHtml.indexOf('rk-tm-ctrl'));
-T('控件按钮：放大/缩小/适应轨迹 独立分组（OSM 单样式，无样式切换按钮）',
-  rkCtrlHtml.indexOf('rkMapStyle()') < 0
-  && rkCtrlHtml.indexOf('rk-tm-style') < 0
+T('控件按钮：样式切换独立分组在放大前 + 放大/缩小/适应轨迹',
+  rkCtrlHtml.indexOf('rkMapStyle()') >= 0
+  && rkCtrlHtml.indexOf('rk-tm-style') >= 0
+  && rkCtrlHtml.indexOf('rk-tm-style') < rkCtrlHtml.indexOf('title="放大"')
   && rkCtrlHtml.indexOf('title="放大"') >= 0
   && rkCtrlHtml.indexOf('title="缩小"') >= 0
   && rkCtrlHtml.indexOf('title="适应轨迹"') >= 0
-  && rkCtrlHtml.indexOf('© OpenStreetMap contributors') >= 0, rkCtrlHtml.slice(0,120));
+  && rkCtrlHtml.indexOf('© OpenStreetMap contributors © CARTO') >= 0, rkCtrlHtml.slice(0,120));
 ctx.rkShowMap(1);
 rkBoxHtml = el('rkMapBox').innerHTML;
 rkCanvasHtml = el('rkMapCanvas').innerHTML;
@@ -642,7 +643,7 @@ T('路由 /running 全量生效（无 /run 残留）',
   && html.indexOf('h === "run"') >= 0,
   'running 路由 + 旧 run 兼容重定向');
 
-// 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮修复（idx=2，OSM 单样式无切换按钮）
+// 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮修复（idx=2，MapCN 4 档样式切换已恢复）
 T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   html.indexOf('window.rkHotSpot = rkHotSpot') >= 0
   && html.indexOf('window.rkMercInv = rkMercInv') >= 0
