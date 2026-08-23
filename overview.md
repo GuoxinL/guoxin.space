@@ -10,6 +10,14 @@
 | `test-worker.mjs` | Worker mock 单测 60 条（自动同步 worker.js，改后直接重跑） |
 | `verify.js` | 页面回归 182 条（原 144 + 运动数据 rk 数据层/算法对齐 38：rkParse 规整/过滤、rkMovingSec 3 段/2 段/天、rkFmtDist/rkPace/rkFmtDur/rkFmtClock、rkYears/rkSortDate、rkStats、rkHeatYear 网格/月份、rkHeatColor 4 级色阶边界、rkPbs 窗口+配速过滤、rkDecodePolyline、rkTitleFor 时段、rkMonthDist/rkYearDist、rkComma、rkTrendSVG） |
 
+## 2026-08-24 迭代十六：拖拽平移路径与地图脱离修复
+
+- **需求**：轨迹地图鼠标/触摸拖动时，路径（SVG 层）与底图（瓦片层）脱离，一拖即分离。
+- **根因**：`rkMapInit` 的 `onMove`（鼠标）与 `touchmove`（触摸）中，瓦片层 transform 增量为 `(+dx,+dy)`（内容跟随鼠标右移，与 `S.cx = drag.cx - dx/k` 语义一致），而 SVG 路径层写成了 `translate(-dx,-dy)`——**方向相反**，拖动瞬间两图层即分离；松手 `render()` 用新中心重建 viewBox 后重新对齐，故表现为"拖动过程中脱离"。
+- **修复**：两处 SVG transform 改为 `translate(+dx,+dy)`，与瓦片层同向同量。数学一致性：拖动中 transform 增量 `(+dx,+dy)` 等价于松手后 viewBox 起点左移 `dx/k`，故拖动全程零脱离、松手无跳变（推导：新 viewBox 起点 = `vx0 - dx/k`，SVG 平移 dx 后屏幕 sx 显示世界 `vx0 + (sx-dx)/k`，两者一致）。
+- **验证**：verify.js 新增 2 条断言（鼠标/触摸同向、旧反向写法不残留），**229/229 全绿**；puppeteer 实测 6/6（`/tmp/rk_drag.cjs`，file:// 与线上双跑）——拖动中 tilesΔ = svgΔ = (+80,+30)、反向 (-60,-20) 同向、松手后 viewBox 左移 `dx/k` 精确匹配、SVG transform 归零、瓦片 transform 与 viewBox mod 256 网格对齐。
+- **提交**：`6cb4949`（含此前未提交的 running-js-migration-plan.md）；已推送 + CloudStudio 部署 + 线上复验 ALL PASS。
+
 ## 2026-08-22 迭代五：运动数据页（直连 running_page，原生集成）
 
 - **需求**：工作台内**原生完整实现** running 页面（不做 iframe/跳转），数据直连 running_page 仓库的 `activities.json`；选择 Mapbox（需 token）+ 核心全套功能（统计卡、年度热力图、活动列表、个人最佳、月/年趋势图、轨迹地图）。
