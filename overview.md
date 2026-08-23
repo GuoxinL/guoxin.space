@@ -102,3 +102,13 @@
 - Worker 已部署 `skillboard-collect.lgx31.workers.dev`（健康检查 200）；收藏仓库为空时现在可**直接收藏首个 Skill，Worker 会自动初始化**，无需手工建 README
 - **⚠️ worker.js 本次新增 mirror 元信息注入，需重新部署 Worker 后新的镜像收藏才会写入 source/sourceOwner**（旧镜像收藏页面端已通过 `_collect.json` 兼容）
 - workers.dev 域名国内直连需代理；后续可考虑绑自定义域名（方案 B）或适配腾讯云 SCF/阿里云 FC（方案 C）
+
+## 2026-08-24 部署规划：guoxin.space 腾讯云映射
+
+- **需求**：把工作台（`index.html`）从 workbuddy.link（CloudStudio 分享域名）迁移映射到 `guoxin.space`（域名管理在腾讯云 DNSPod；当前裸域无解析、`www` 指向 GitHub Pages 返回 404）。
+- **关键结论**：workbuddy.link 为分享域名（APISIX 网关），**不支持外部自定义域名绑定**，无法 CNAME 直连；且文件为全内联单文件 + hash 路由（hash 不发给服务器），迁移成本 = 上传 1 个文件 + 配解析，**零代码改动**。
+- **主方案（已备案）**：COS 静态网站（公有读、索引 index.html）+ CDN 加速域名绑 `guoxin.space` + 免费 DV 证书 + DNSPod `@`/`www` CNAME → CDN；预计 1~2 小时（不含备案）。
+- **备选（未备案）**：EdgeOne Pages（全球节点免备案，30 分钟上线），且其边缘函数可承载 worker.js 写通道迁移（`api.guoxin.space`）。
+- **过渡**：COS 静态网站 301 重定向到 workbuddy.link 完整链接。
+- **写通道决策（用户确认）**：**保留 Cloudflare Worker**，CORS `*` 已放行、页面零改动；仅国内访问收藏/同步可能超时（只读功能不受影响），彻底解决留待迁移 EdgeOne/SCF。
+- **交付物**：`DEPLOY-GUOXIN-SPACE.md`（部署手册：前置检查/方案选型/分步操作/验证清单/回滚/时间线）。

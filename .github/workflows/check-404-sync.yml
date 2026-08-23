@@ -1,0 +1,36 @@
+name: 校验 404.html 同步
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-sync:
+    name: index.html 与 404.html 一致性
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 校验文件存在
+        run: |
+          test -f index.html || { echo "::error::index.html 缺失"; exit 1; }
+          test -f 404.html  || { echo "::error::404.html 缺失，请执行: cp index.html 404.html"; exit 1; }
+
+      - name: 校验内容一致
+        run: |
+          if ! cmp -s index.html 404.html; then
+            echo "::error::index.html 与 404.html 内容不一致！"
+            echo "::error::请执行: cp index.html 404.html，然后重新提交。"
+            echo "::error::(本地已在 .git/hooks/pre-commit 配置自动同步，若此处报错说明绕过了钩子或钩子未生效)"
+            exit 1
+          fi
+          echo "OK: 两文件一致 ($(wc -c < index.html) 字节)"
+
+      - name: 校验 404.html 未被刻意定制（注释提示）
+        run: |
+          if grep -q "CUSTOM_404" 404.html; then
+            echo "::warning::404.html 含 CUSTOM_404 标记，确认是有意定制而非误改"
+          fi
