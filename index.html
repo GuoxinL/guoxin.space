@@ -340,6 +340,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-tm-ctrl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:5}
 .rk-tm-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:17px;font-weight:600;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.14)}
 .rk-tm-btn:hover{background:var(--hover);border-color:var(--primary)}
+.rk-tm-btn svg{width:18px;height:18px}
 .rk-tm-zoom{position:absolute;left:10px;bottom:8px;font-size:11px;color:var(--text2);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:10px;z-index:4}
 .rk-tm-attr{position:absolute;left:0;right:0;bottom:0;padding:3px 8px;font-size:10px;color:#666;background:rgba(255,255,255,.78);text-align:right;z-index:4;border-top:1px solid rgba(0,0,0,.05)}
 .rk-empty{padding:30px 0;text-align:center;color:var(--text3);font-size:13px}
@@ -681,10 +682,6 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
           刷新数据
         </button>
-        <button class="btn" onclick="rkMapStyle()" title="切换底图样式（MapCN / CARTO 免费瓦片，无需 token）">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>
-          底图样式
-        </button>
       </div>
     </div>
     <div class="rk-bar" id="rkBar"><span class="dot" id="rkDot"></span><span id="rkBarText">正在加载数据…</span></div>
@@ -890,6 +887,12 @@ function applyTheme(t){
   store(KEY_THEME, t);
   var label = $("themeLabel");
   if(label) label.textContent = (t==="dark" ? "亮色模式" : "暗色模式");
+  /* 地图 auto 样式跟随明暗模式：已渲染且处于自动档时重绘底图 */
+  try{
+    if(rkMapStyleIdx && rkMapStyleIdx() === 0 && rkState && rkState.selId && rkShowMap){
+      rkShowMap(rkState.selId);
+    }
+  }catch(e){}
 }
 function toggleTheme(){
   applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
@@ -2143,6 +2146,7 @@ function init(){
   skLoad();
   window.rkLoad = rkLoad; window.rkFetch = rkFetch; window.rkRefresh = rkRefresh;
   window.rkRenderAll = rkRenderAll; window.rkMapStyle = rkMapStyle;
+  window.rkMapStyleIdx = rkMapStyleIdx; window.rkResolveStyle = rkResolveStyle;
   window.rkHeatSel = rkHeatSel; window.rkTrendMode = rkTrendMode;
   window.rkListSel = rkListSel; window.rkMore = rkMore; window.rkShowMap = rkShowMap;
 }
@@ -2151,14 +2155,25 @@ document.addEventListener("DOMContentLoaded", init);
 /* ================= Running (run)：数据源 = running_page 仓库直连 ================= */
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running_page/master/src/static/activities.json";
 var RK_CACHE = "wb_rk_acts_v1";
-/* MapCN（CARTO Basemaps）免费瓦片，无需 token；对齐 running_page MAP_TILE_VENDOR='mapcn' 的三档样式 */
+/* MapCN（CARTO Basemaps）免费瓦片，无需 token；对齐 running_page MAP_TILE_VENDOR='mapcn'。
+   首档 auto（默认）：亮色模式→light_all 白底，暗色模式→dark_all，跟随页面明暗切换 */
 var RK_STYLES = [
-  { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
+  { k:"auto",    n:"自动", url:"" },
   { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
+  { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
   { k:"dark",    n:"暗色", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" }
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
+function rkThemeDark(){
+  try{ return !!document.body && document.body.dataset.theme === "dark"; }catch(e){ return false; }
+}
+/* 解析实际生效的样式索引：auto 档按当前明暗模式返回 light_all(1) 或 dark_all(3) */
+function rkResolveStyle(idx){
+  var s = RK_STYLES[idx] || RK_STYLES[0];
+  if(s && s.k === "auto") return RK_STYLES[rkThemeDark() ? 3 : 1];
+  return s;
+}
 var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_page TYPE_PALETTES.Run */
 var RK_RIDE_PAL = ["#bfdbfe","#60a5fa","#3b82f6","#2563eb"];
 var RK_ALL_PAL = ["#e9d5ff","#c084fc","#a855f7","#7c3aed"];
@@ -2613,7 +2628,8 @@ function rkMapInit(container, coords, styleIdx){
   if(!container || !coords || !coords.length) return;
   var S = {
     z: 14, cx: 0, cy: 0, pts: [],
-    style: RK_STYLES[styleIdx] || RK_STYLES[0],
+    style: rkResolveStyle(styleIdx),
+    auto: !!(RK_STYLES[styleIdx] && RK_STYLES[styleIdx].k === "auto"),
     container: container, W: 640, H: 420,
     ox0: 0, oy0: 0
   };
@@ -2665,11 +2681,12 @@ function rkMapInit(container, coords, styleIdx){
     }
     html += '</svg>';
     html += '<div class="rk-tm-ctrl">'
+      + '<button class="rk-tm-btn" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
       + '</div>';
-    html += '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + S.style.n + '</div>';
+    html += '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>';
     html += '<div class="rk-tm-attr">Map tiles © CARTO · Map data © OpenStreetMap contributors</div>';
     container.innerHTML = html;
     container.style.cursor = "grab";

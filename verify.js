@@ -494,7 +494,10 @@ T('rkMerc 北京 x 范围', rkM[0] > 863200 && rkM[0] < 863400, 'x='+rkM[0].toFi
 T('rkMerc 北京 y 范围', rkM[1] > 397200 && rkM[1] < 397450, 'y='+rkM[1].toFixed(1));
 var rkMi = ctx.rkMercInv(rkM[0], rkM[1], 12);
 T('rkMercInv 往返还原', rkMi[0].toFixed(3)==='39.907' && rkMi[1].toFixed(3)==='116.391', JSON.stringify(rkMi.map(function(v){return v.toFixed(4)})));
-T('rkMapStyleIdx 默认 0（无 token 依赖）', ctx.rkMapStyleIdx()===0, 'idx='+ctx.rkMapStyleIdx());
+T('rkMapStyleIdx 默认 0=auto（无 token 依赖）', ctx.rkMapStyleIdx()===0, 'idx='+ctx.rkMapStyleIdx());
+T('rkResolveStyle auto 亮色→light_all 白底', ctx.rkResolveStyle(0).k==='light', 'k='+ctx.rkResolveStyle(0).k);
+T('rkResolveStyle 暗色档→dark_all', ctx.rkResolveStyle(3).k==='dark', 'k='+ctx.rkResolveStyle(3).k);
+T('rkResolveStyle 浅色档原样返回', ctx.rkResolveStyle(1).k==='light' && ctx.rkResolveStyle(1).url.indexOf('light_all')>0);
 T('rkMerc 高纬负值（南半球 y>n/2）', ctx.rkMerc(0, -30, 10)[1] > ctx.rkMerc(0, 30, 10)[1]);
 // rkTitleFor 时段标题（对齐 classic RUN_TITLES）
 T('rkTitleFor 半马/全马', ctx.rkTitleFor({dist:21000,date:'2024-01-01T08:00:00Z'})==='半程马拉松' && ctx.rkTitleFor({dist:42000,date:'2024-01-01T08:00:00Z'})==='全程马拉松');
