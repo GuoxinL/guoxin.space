@@ -180,8 +180,8 @@ function rkHeatColor(dist, max, palette){
   var level = Math.ceil(Math.min(dist/max, 1) * 4);
   return (palette||RK_RUN_PAL)[level-1] || (palette||RK_RUN_PAL)[0];
 }
-/* 个人最佳（骑行三项指标：最远距离 / 最高平均时速 / 最高时速）。
-   仅统计骑行（type==="Ride"）；数据无 max_speed 时「最高时速」降级为最高平均时速
+/* 个人最佳（骑行三项指标：最远距离 / 平均时速 / 极限冲刺速度）。
+   仅统计骑行（type==="Ride"）；数据无 max_speed 时「极限冲刺速度」降级为最高平均时速
    并标记 fallback（rkRenderPbs 显示「均速近似」）。 */
 function rkPbs(acts){
   acts = acts || [];
@@ -396,7 +396,7 @@ function rkTrendSVG(vals, counts, labels, title){
 /* ---- 渲染：个人最佳（骑行三项指标） ---- */
 function rkRenderPbs(){
   var pbs = rkPbs(rkActs);
-  var defs = { dist:{ k:"最远距离", u:"km" }, avg:{ k:"最高每小时公里数", u:"km/h" }, speed:{ k:"最高时速", u:"km/h" } };
+  var defs = { dist:{ k:"最远距离", u:"km" }, avg:{ k:"平均时速", u:"km/h" }, speed:{ k:"极限冲刺速度", u:"km/h" } };
   var h = "";
   pbs.forEach(function(p){
     var d = defs[p.key], act = p.act;
