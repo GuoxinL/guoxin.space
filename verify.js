@@ -741,21 +741,21 @@ T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   && src.indexOf('已聚焦最热点区域') >= 0,
   'rkHotSpot/挂载/回退视角/⤢修复');
 
-// 固定规格：长宽固定比例 640:360（16:9）+ 默认视角固定 z8（meta 与热点分支均 setZoom(HP_Z)）
+// 固定规格：长宽固定比例 640:360（16:9）+ 默认视角固定 z9（meta 与热点分支均 setZoom(HP_Z)）
 T('固定比例：.rk-tilemap aspect-ratio 640/360（长宽比与 preview.png 一致）',
   src.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/360') >= 0
   && src.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/420') < 0
   && src.indexOf('.rk-tilemap{position:relative;height:420px') < 0,
   'aspect-ratio 640/360');
-T('初始视角固定 z8：meta 分支 setZoom(HP_Z) 而非 mv.z',
-  src.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
+T('初始视角固定 z9：meta 分支 setZoom(HP_Z) 而非 mv.z',
+  src.indexOf('var mv = metaView || null, HP_Z = 9') >= 0
   && src.indexOf('setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
   && src.indexOf('setZoom(mv.z)') < 0,
-  '固定 z8/meta 中心');
-T('初始视角固定 z8：热点回退分支同样 setZoom(HP_Z)',
+  '固定 z9/meta 中心');
+T('初始视角固定 z9：热点回退分支同样 setZoom(HP_Z)',
   src.indexOf('setZoom(HP_Z); S.cx = hp.cx; S.cy = hp.cy') >= 0
   && src.indexOf('setZoom(hp.z)') < 0,
-  '固定 z8/热点中心');
+  '固定 z9/热点中心');
 T('样式三档固定浅色：按钮 title 无「自动（跟随明暗）」、zoom 显示无「自动·」',
   src.indexOf('title="切换底图样式：浅色 / 明亮 / 暗色"') >= 0
   && src.indexOf('跟随明暗') < 0
@@ -779,8 +779,8 @@ T('渐进加载：rkTracks 代理（preview.png / preview.meta.json）+ phase1 i
 let rkMetaCb = 'unset';
 ctx.rkFetchMeta(function(m){ rkMetaCb = (m === null) ? 'null' : 'obj'; });
 T('rkFetchMeta 无 fetch 同步回调 null', rkMetaCb === 'null', 'metaCb='+rkMetaCb);
-T('rkMapInit metaView 优先分支（有 meta 用固定 z8 + meta 中心，跳过 hotspot）',
-  src.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
+T('rkMapInit metaView 优先分支（有 meta 用固定 z9 + meta 中心，跳过 hotspot）',
+  src.indexOf('var mv = metaView || null, HP_Z = 9') >= 0
   && src.indexOf('S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
   && src.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0,
   'meta优先/回退hotspot');
