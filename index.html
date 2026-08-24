@@ -237,7 +237,8 @@ select.indent{min-height:38px;border:1px solid var(--border2);border-radius:var(
 .markdown-body .anchor:hover{color:var(--primary)}
 .markdown-body .anchor svg{width:14px;height:14px}
 /* 右侧文件树抽屉（有且仅有文件树） */
-.tree-drawer{position:fixed;top:50%;right:0;z-index:85;width:min(280px,86vw);height:min(480px,70vh);background:var(--surface);border-left:1px solid var(--border);border-radius:12px 0 0 12px;box-shadow:-6px 0 18px rgba(16,24,40,.12);display:flex;flex-direction:column;transform:translateY(-50%) translateX(102%);transition:transform .26s ease}
+.tree-drawer{position:fixed;top:50%;right:0;z-index:85;width:min(280px,86vw);height:min(480px,70vh);background:var(--surface);border-left:1px solid var(--border);border-radius:12px 0 0 12px;box-shadow:-6px 0 18px rgba(16,24,40,.12);display:none;flex-direction:column;transform:translateY(-50%) translateX(102%);transition:transform .26s ease}
+.tree-drawer.show{display:flex}
 .tree-drawer.open{transform:translateY(-50%) translateX(0)}
 .tree-tab{position:absolute;left:-34px;top:50%;transform:translateY(-50%);width:34px;height:58px;border:1px solid var(--border);border-right:none;background:var(--surface);border-radius:8px 0 0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);box-shadow:-3px 0 8px rgba(16,24,40,.08);min-width:0;padding:0}
 .tree-tab:hover{color:var(--primary)}
@@ -916,9 +917,9 @@ function navigate(){
   var tabs = document.querySelectorAll("[data-tabpage]");
   for(var k=0;k<tabs.length;k++) tabs[k].classList.toggle("active", tabs[k].getAttribute("data-tabpage") === h);
   if(h === "json"){ renderGutter("L"); renderGutter("R"); }
-  /* skills 二级路由：/skills = 列表，/skills/<dir> = 详情独立页；离开 skills 页收起文件树抽屉 */
+  /* skills 二级路由：/skills = 列表，/skills/<dir> = 详情独立页；离开 skills 页收起并隐藏文件树抽屉 */
   if(h === "skills") skRoute(decodeURIComponent(parts.slice(1).join("/") || ""));
-  else skTreeClose();
+  else { skTreeClose(); skTreeVisible(false); }
   if(h === "running") rkLoad();
 }
 /* 编程式导航：pushState 无刷新切换（file:// 等受限环境回退为仅渲染不换地址） */
@@ -1674,6 +1675,7 @@ function skShowList(){
   var d = $("skDetail"), l = $("skList");
   if(d) d.classList.remove("show");
   if(l) l.classList.add("show");
+  skTreeVisible(false);
   skTreeRender("");
 }
 function skShowDetail(dir){
@@ -1681,6 +1683,7 @@ function skShowDetail(dir){
   for(var i=0;i<skRows.length;i++) if(skRows[i].dir===dir){ row=skRows[i]; break; }
   if(!row) return skShowList();
   skView_ = "detail";
+  skTreeVisible(true);
   skOpenDir = dir;
   var l = $("skList"), d = $("skDetail");
   if(l) l.classList.remove("show");
@@ -1727,6 +1730,8 @@ function skTreeRender(dir){
 function skToggleTree(){ skTreeOpen_ ? skTreeClose() : skTreeOpen(); }
 function skTreeOpen(){ skTreeOpen_ = true; var d = $("skTreeDrawer"); if(d) d.classList.add("open"); }
 function skTreeClose(){ skTreeOpen_ = false; var d = $("skTreeDrawer"); if(d) d.classList.remove("open"); }
+/* 文件树抽屉整体显隐：仅 Skills 详情页显示（含右侧 tab 按钮），其余页面完全隐藏 */
+function skTreeVisible(show){ var d = $("skTreeDrawer"); if(d) d.classList.toggle("show", !!show); }
 function skTreeHtml(dir){
   var files = [];
   (skTreeData && skTreeData.tree || []).forEach(function(t){
