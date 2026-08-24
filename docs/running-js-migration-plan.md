@@ -116,12 +116,15 @@ setup-python 3.11
 
 | 现状（Python） | 改造后（JS） |
 |---|---|
-| `actions/setup-python@v5` + `pip install requests polyline pillow` | `actions/setup-node@v4`（node 20）+ `npm ci`（仅 sharp） |
-| `python scripts/xingzhe_sync.py` | `node scripts/xz-sync.mjs` |
-| `python scripts/xingzhe_fill_polyline.py` | `node scripts/xz-fill.mjs` |
-| `python scripts/prebuild_preview.py` | `node scripts/prebuild-preview.mjs` |
+| `actions/setup-python@v5` + `pip install requests polyline pillow` | `actions/setup-node@v4`（node 20）+ `npm ci`（仅 sharp，**I3 引入时再配**） |
+| `python scripts/xingzhe_sync.py` | `node scripts/xz-sync.js` |
+| `python scripts/xingzhe_fill_polyline.py` | `node scripts/xz-fill.js` |
+| `python scripts/prebuild_preview.py` | `node scripts/prebuild-preview.js` |
 | 凭据 `~/.config/xingzhe/credentials.json` | 不变（JS 读同一路径） |
 | 幂等/原子写/`if: always()` 隔离 | 全部保留 |
+
+> 目标 JS 文件均为 `.js` 后缀（running 仓库 `package.json` 已声明 `"type": "module"`，`.js` 即 ESM）。
+> **迁移期（I1~I3 未完成前）**：`setup-python` 与 pip 依赖保留（fill/preview 步骤仍为 Python），仅已移植步骤切 JS；`xz-sync.js` 零 npm 依赖（仅 node 内置模块），I1 无需 `npm ci`。
 
 > 迁移期可脚本并存：CI 先切 JS，若异常可一键回切 Python（workflow 两行改动）。
 
@@ -144,7 +147,7 @@ setup-python 3.11
 | 迭代 | 内容 | 验收标准 |
 |---|---|---|
 | **I0**（先行，优先级最高） | **技术验证**：① MapCN(CARTO) 瓦片国内可达性实测（curl 延迟/成功率，对比 OSM）；② sharp PNG 幂等性验证（libvips vs PIL 编码参数，固定 `compressionLevel` 等后是否逐字节稳定） | 输出两份验证结论：瓦片可用性决定 I3 瓦片常量（不可达则保留 OSM）；幂等结论决定 sharp 参数与 CI diff 校验策略 |
-| **I1** | `xz-common.js` + `xz-sync.js`，CI 切 JS 同步 | 产物 `activities.json` 与 Python 版**逐字节一致**（diff=0） |
+| **I1** ✅ 已完成 | `xz-common.js` + `xz-sync.js`，CI 切 JS 同步 | 产物 `activities.json` 与 Python 版**逐字节一致**（diff=0）——**已达成**，见 §7.2 |
 | **I2** | `xz-fill.js`（GPX 补全） | polyline 字段与 Python 版解码后逐点一致 |
 | **I3** | `prebuild-preview.js`（preview.json + sharp PNG + **MapCN 瓦片**） | preview.json 逐字节一致；PNG 视觉验收（瓦片为 MapCN 风格）；meta.json 数值一致 |
 | **I4** | `keep-to-xz.js`（本地上传工具） | 本地上传成功 |
@@ -172,6 +175,23 @@ setup-python 3.11
 - PNG chunk 仅 `IHDR pHYs IDAT IEND`，**无 tIME 时间戳**等非确定性元数据
 - 参数：`compressionLevel=9`（66KB）| 6（69KB）| 0（1MB+ 不可用）→ **CI 固定 `compressionLevel=9`**
 - ⚠️ **注意**：sharp 与 PIL 编码器不同，**PNG 字节必然与 Python 版不一致**——diff=0 验收仅适用 JSON/文本产物（I1 的 activities.json、I3 的 preview.json/meta.json）；PNG 验收改为「同编码器两次构建一致 + 视觉验收」
+
+---
+
+### 7.2 I1 验收结论（2026-08-25，diff=0 全绿）
+
+> 实现：`scripts/lib/xz-common.js`（与 `xingzhe_common.py` 逐项核对，**无修改**）+ `scripts/xz-sync.js`（移植自 `xingzhe_sync.py`，含 Map 修复与 `pyRound` 导出）；CI `xingzhe_sync.yml` 已切 sync 步骤为 `node scripts/xz-sync.js`（凭据 JSON 校验同切 node；fill/preview 步骤待 I2/I3 再切，`setup-python` 保留）。
+> 对照测试位于 `scripts/.i1-test/`（`test_py.py` / `test_js.mjs` 双跑镜像，可作回归）。
+
+三项验收全部通过：
+
+1. **mock 双跑对照 diff=0**：5 条 `api_acts`（含 sport=1 过滤项、秒/毫秒时间戳、0 值边界、`detail:null`、浮点/整数 distance）+ 4 组 `api_details` + 格式边界用例（中文/emoji/控制字符/转义/嵌套/空容器），映射→merge→streak→序列化全链路与 Python **逐字节一致**。
+2. **真实文件无损往返 diff=0**：`src/static/activities.json`（161 条 / 828449 字节）经 JS `readActivitiesList` + `pyJsonStringify` 与 Python `json.dump` 输出逐字节一致——真实字段形态与大整数 run_id 完全兼容。
+3. **pyRound 边界 3308 组 0 分叉**：手工半边界 + 3000 随机 + 59×5 精细扰动（`3.6k ± 1e-9 / ±0.0001`），序列化形态（FLOAT_FIELDS 特判 `.0`）与 Python `round` 完全一致。
+
+**过程中发现并修复的真实 bug**：JS 普通对象整数键重排——`run_id` 为数组索引形式（如 `"987654321"`）时按数值升序重排键序，破坏 Python dict 插入序 → `mergeRides` / `main` 全面改用 **Map**（天然严格插入序）。
+
+**CI 说明**：`xz-sync.js` 零 npm 依赖（仅 node 内置模块），I1 无需 `npm ci`；`sharp` 待 I3（prebuild-preview.js）时再配 `scripts/package.json` + `npm ci`。
 
 ---
 
