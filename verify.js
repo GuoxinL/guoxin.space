@@ -661,6 +661,17 @@ T('hash 兼容块仅 replaceState、不立即 navigate()（防 util 加载时序
   && src.indexOf('此处仅规范化地址栏，不立即 navigate()') >= 0,
   hBlk ? hBlk.replace(/\s+/g, ' ').slice(0, 140) : 'hash 块未找到');
 
+// 天气：弃 wttr.in（无 CORS 头，域名下被浏览器拦截）→ geojs.io/ipwho.is 定位 + Open-Meteo 天气（原生 CORS）
+T('天气数据源：弃 wttr.in、geojs.io 定位 + Open-Meteo 天气（CORS）',
+  src.indexOf('wttr.in') < 0
+  && src.indexOf('open-meteo.com') >= 0
+  && src.indexOf('get.geojs.io') >= 0
+  && src.indexOf('ipwho.is') >= 0
+  && src.indexOf('function fetchLoc(') >= 0
+  && src.indexOf('weatherDesc(code)') >= 0
+  && src.indexOf('temperature_2m') >= 0,
+  '天气数据源/CORS 修复');
+
 // 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮（idx=3，MapCN 3 档固定浅色样式）
 T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   src.indexOf('window.rkHotSpot = rkHotSpot') >= 0

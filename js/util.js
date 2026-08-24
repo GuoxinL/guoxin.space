@@ -133,17 +133,9 @@ function renderClock(){
 }
 setInterval(renderClock, 60000);
 
-/* ================= 工作台：天气 ================= */
-var W_MAP = {
-  "Sunny":"晴","Clear":"晴","Clear/Sunny":"晴","Partly cloudy":"多云","Patchy rain possible":"零星小雨",
-  "Cloudy":"阴","Overcast":"阴","Mist":"薄雾","Fog":"雾","Freezing fog":"冻雾","Patchy light drizzle":"毛毛雨",
-  "Light drizzle":"毛毛雨","Light rain":"小雨","Moderate rain":"中雨","Heavy rain":"大雨",
-  "Torrential rain shower":"暴雨","Light rain shower":"阵雨","Moderate or heavy rain shower":"阵雨",
-  "Patchy light rain":"零星小雨","Light sleet":"雨夹雪","Moderate or heavy sleet":"雨夹雪",
-  "Light snow":"小雪","Moderate snow":"中雪","Heavy snow":"大雪","Blizzard":"暴风雪",
-  "Thundery outbreaks possible":"雷阵雨","Light rain with thunder":"雷阵雨","Hail":"冰雹",
-  "Freezing rain":"冻雨","Patchy snow":"零星小雪","Light sleet showers":"雨夹雪"
-};
+/* ================= 工作台：天气 =================
+   数据源：ipwho.is（IP 定位，返回城市/经纬度）+ Open-Meteo（天气，免费无 key，原生支持 CORS）。
+   天气代码采用 WMO weather code（0-99）。 */
 function weatherIcon(code){
   var c = parseInt(code,10);
   var sun='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>';
@@ -153,41 +145,80 @@ function weatherIcon(code){
   var fog='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7a6 6 0 0 1 12 0M3 13h18M5 17h14M7 21h10"/></svg>';
   var bolt='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 16a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4 1.8A3.8 3.8 0 0 0 7 16h10.5z"/><path d="M13 11l-3 4h4l-3 4"/></svg>';
   var part='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="4.5"/><path d="M16 17.5a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4 1.8A3.8 3.8 0 0 0 5 17.5h11z"/></svg>';
-  if(c>=113 && c<=116) return sun;            // sunny
-  if(c===119 || c===122) return part;          // partly cloudy
-  if(c>=124 && c<=128) return cloud;           // cloudy
-  if(c>=143 && c<=260) return fog;             // fog/mist
-  if(c>=263 && c<=332) return rain;            // rain / drizzle
-  if(c>=335 && c<=389) return bolt;            // snow / sleet / thunder
-  if(c>=392 && c<=395) return bolt;
+  if(c===0 || c===1) return sun;               // 晴
+  if(c===2) return part;                       // 多云
+  if(c===3) return cloud;                      // 阴
+  if(c===45 || c===48) return fog;             // 雾
+  if(c>=51 && c<=67) return rain;              // 毛毛雨/雨/冻雨
+  if(c>=71 && c<=77) return snow;              // 雪
+  if(c>=80 && c<=82) return rain;              // 阵雨
+  if(c===85 || c===86) return snow;            // 阵雪
+  if(c>=95) return bolt;                       // 雷暴
   return part;
+}
+/* WMO 天气代码 → 中文描述 */
+function weatherDesc(code){
+  var c = parseInt(code,10);
+  if(c===0 || c===1) return "晴";
+  if(c===2) return "多云";
+  if(c===3) return "阴";
+  if(c===45 || c===48) return "雾";
+  if(c>=51 && c<=55) return "毛毛雨";
+  if(c===56 || c===57) return "冻毛毛雨";
+  if(c>=61 && c<=65) return "雨";
+  if(c===66 || c===67) return "冻雨";
+  if(c>=71 && c<=75) return "雪";
+  if(c===77) return "雪粒";
+  if(c>=80 && c<=82) return "阵雨";
+  if(c===85 || c===86) return "阵雪";
+  if(c>=95) return "雷暴";
+  return "晴";
+}
+/* IP 定位：geojs.io 主源，ipwho.is 兜底（均免费无 key、支持 CORS） */
+function fetchLoc(){
+  function fromGeojs(){
+    return fetch("https://get.geojs.io/v1/ip/geo.json")
+      .then(function(r){ if(!r.ok) throw new Error("g "+r.status); return r.json(); })
+      .then(function(g){
+        if(!g || !g.latitude || !g.longitude) throw new Error("no loc");
+        return { city:g.city || "", region:g.region || "", lat:Number(g.latitude), lon:Number(g.longitude) };
+      });
+  }
+  function fromIpwho(){
+    return fetch("https://ipwho.is/")
+      .then(function(r){ if(!r.ok) throw new Error("i "+r.status); return r.json(); })
+      .then(function(j){
+        if(!j || j.success !== true || !j.latitude || !j.longitude) throw new Error("no loc");
+        return { city:j.city || "", region:j.region || "", lat:Number(j.latitude), lon:Number(j.longitude) };
+      });
+  }
+  return fromGeojs().catch(fromIpwho);
 }
 function loadWeather(manual){
   var box=$("weatherText");
   if(!manual){ box.textContent = "天气获取中…"; }
-  fetch("https://wttr.in/?format=j1")
-    .then(function(r){ if(!r.ok) throw new Error("http "+r.status); return r.json(); })
-    .then(function(j){
-      try{
-        var cur = j.current_condition && j.current_condition[0];
-        var area = j.nearest_area && j.nearest_area[0];
-        if(!cur) throw new Error("no data");
-        var city = (area && area.areaName && area.areaName[0] && area.areaName[0].value) || "";
-        var region = (area && area.region && area.region[0] && area.region[0].value) || "";
-        var descRaw = (cur.weatherDesc && cur.weatherDesc[0] && cur.weatherDesc[0].value) || "";
-        var desc = W_MAP[descRaw] || descRaw || "";
-        var temp = cur.temp_C;
-        var code = cur.weatherCode;
-        $("weatherBox").innerHTML = weatherIcon(code) + "<span id=\"weatherText\">" + esc(city+(region&&region!==city?"·"+region:"")+" · "+desc+" "+temp+"°C") + "</span>" +
-          '<button class="w-refresh" onclick="loadWeather(true)" title="刷新天气"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg></button>';
-        box=$("weatherText");
-        store(KEY_PREFIX+"weather", JSON.stringify({t:Date.now(), txt:box.textContent}));
-      }catch(e){ throw e; }
+  var refreshBtn = '<button class="w-refresh" onclick="loadWeather(true)" title="刷新天气"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg></button>';
+  fetchLoc()
+    .then(function(loc){
+      var city = loc.city, region = loc.region;
+      var m = "https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lon+"&current=temperature_2m,weather_code&timezone=auto";
+      return fetch(m)
+        .then(function(r){ if(!r.ok) throw new Error("w "+r.status); return r.json(); })
+        .then(function(j){
+          var cur = j && j.current;
+          if(!cur) throw new Error("no data");
+          var temp = Math.round(Number(cur.temperature_2m));
+          var code = cur.weather_code;
+          var desc = weatherDesc(code);
+          $("weatherBox").innerHTML = weatherIcon(code) + "<span id=\"weatherText\">" + esc(city+(region&&region!==city?"·"+region:"")+" · "+desc+" "+temp+"°C") + "</span>" + refreshBtn;
+          box=$("weatherText");
+          store(KEY_PREFIX+"weather", JSON.stringify({t:Date.now(), txt:box.textContent}));
+        });
     })
     .catch(function(){
       var cached = load(KEY_PREFIX+"weather");
       if(cached){
-        try{ var c=JSON.parse(cached); $("weatherBox").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 16a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4 1.8A3.8 3.8 0 0 0 7 16h10.5z"/></svg><span id="weatherText">'+esc(c.txt)+'（离线缓存）</span><button class="w-refresh" onclick="loadWeather(true)" title="刷新天气"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg></button>'; }
+        try{ var c=JSON.parse(cached); $("weatherBox").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 16a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.4 1.8A3.8 3.8 0 0 0 7 16h10.5z"/></svg><span id="weatherText">'+esc(c.txt)+'（离线缓存）</span>'+refreshBtn; }
         catch(e){ $("weatherText").textContent="天气获取失败，点击右侧刷新重试"; }
       }else{
         $("weatherText").textContent="天气获取失败（离线），点击右侧刷新重试";

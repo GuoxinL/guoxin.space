@@ -23,6 +23,19 @@
 - **验证**：verify.js 断言 **247 → 252 全绿**（回放 Mercator + 瓦片底图 + 明暗跟随运行时/源码断言 + 挂载断言）；puppeteer `/tmp/rk_darkcheck.cjs` 本地实测 —— 浅色系统 `rkActBgStyle()` → light_all、`emulateMediaFeatures` 模拟暗色系统 → dark_all（`matchMedia` matches=true），零 JS 错误。
 - **提交**：`04d91cf`；已推送 + Pages 部署 + 线上复验。
 
+## 2026-08-25 git remote 修复 + 天气 CORS 修复
+
+- **需求**：① 修复本地 git remote 仍指向旧仓库 `GuoxinL/personal-homepage`（仓库已迁移至 `GuoxinL/guoxin.space`，每次 push 出迁移警告）；② 修复天气接口在 `guoxin.space` 域名下被 CORS 拦截报错。
+- **git 修复**：`git remote set-url origin git@github.com:GuoxinL/guoxin.space.git`，`git ls-remote --heads origin` 验证远程 `main`（`5ffdf9c`）可达。
+- **CORS 修复**（`js/util.js` + `index.html`/`404.html`）：
+  - 弃用 `wttr.in`（不返回 CORS 头，浏览器在自定义域名下拦截）。
+  - IP 定位改用 **geojs.io 主源 + ipwho.is 兜底**（均免费无 key、原生 `access-control-allow-origin: *`），新增 `fetchLoc()` 返回 `{city, region, lat, lon}`，`fromGeojs().catch(fromIpwho)` 双源容错。
+  - 天气改用 **Open-Meteo**（免费无 key、原生 CORS）`current=temperature_2m,weather_code`。
+  - 删除 `W_MAP` 英文→中文字典，`weatherIcon()` 与新增 `weatherDesc()` 改为 **WMO weather code（0-99）** 区间映射（晴/多云/阴/雾/毛毛雨/雨/冻雨/雪/雪粒/阵雨/阵雪/雷暴）。
+  - `index.html`/`404.html` 首页 hint 文案「天气来自 wttr.in」→「天气来自 Open-Meteo」。
+- **验证**：verify.js 新增 1 条天气数据源断言（弃 wttr.in、geojs.io/ipwho.is 定位 + Open-Meteo + WMO 映射），**252 → 253 全绿**；puppeteer 本地实测天气文本 `Tokyo · 晴 24°C`（城市·中文描述·温度），零 JS 错误、零天气请求失败（无 CORS 报错）。
+- **提交**：`<commit>`；已推送 + Pages 部署 + 线上复验。
+
 ## 2026-08-24 迭代十六：拖拽平移路径与地图脱离修复
 
 - **需求**：轨迹地图鼠标/触摸拖动时，路径（SVG 层）与底图（瓦片层）脱离，一拖即分离。
