@@ -163,3 +163,12 @@
 - **验证**：verify.js 新增 4 条固定规格断言（aspect-ratio 640/420 精确匹配、meta/热点分支均 `setZoom(HP_Z)` 非 `mv.z`/`hp.z`、三档样式无「跟随明暗」「S.auto」「自动·」残留），**233/233 全绿**；puppeteer `/tmp/rk_fixed.cjs` 本地 file:// 7/7 ALL PASS（容器比例 1.5238 / 初始 z8·浅色 / light_all 瓦片 / 暗色主题下仍 light_all 不跟随 / 按钮循环 voyager→回浅色 / zoom 无「自动」/ JS 错误 0）；**线上复验同样 7/7 ALL PASS**。
 - **踩坑**：① verify 新增断言误伤 `.editor-wrap{min-height:420px}`（`html.indexOf('height:420px') < 0` 被 min-height 子串命中）→ 改精确匹配 `.rk-tilemap{position:relative;height:420px` 不存在。② running_page push 管道 `| tail` SIGPIPE（exit 137）导致 push 未执行、rebase 被中断——重跑 push 发现远端 daily sync 分叉（8f1b7a2），`git pull --rebase` 后 PNG 二进制冲突（daily sync 也重生成过）→ `git checkout --ours` + 重跑 prebuild 幂等统一 + `GIT_EDITOR=true git rebase --continue`；最终 `8f1b7a2..79f2753` 推送成功。
 - **部署**：双仓库已推送（personal-homepage `bd9d4b2..49729f0`、running_page `8f1b7a2..79f2753`）；CloudStudio 重新部署完成，线上复验 7/7 ALL PASS。
+
+## 2026-08-24 轨迹地图比例微调：32:21 → 16:9（commit bedfc80 / running 0a94e00）
+
+- **需求**：用户反馈 32:21（640:420）高度太高 → 调整为更扁的 **16:9（640:360）**，双端同步。
+- **主页**：`.rk-tilemap` `aspect-ratio:640/420` → `640/360`；相关注释同步（含 RK_PV_URL 处过时的「OSM 瓦片 2x 1280x840」描述改为「浅灰纯色 1x 640x360」）。
+- **running_page（prebuild_preview.py）**：`VIEW_W, VIEW_H = 640, 420` → `640, 360`；docstring/注释 32:21 → 16:9；重新生成 `activities.preview.png`（**640x360 RGB，15 KB**）+ meta（`{"cx":1726132.8,"cy":795046.6,"z":8}` **无 diff**——热点中心与视口无关，幂等验证通过；activities.preview.json 亦无 diff）。
+- **踩坑**：主页仓库 `running/` 是 **submodule**（gitlink 停在上轮之前的 ef95922），`git add` 报 "is in submodule" → 恢复 submodule 内被误覆盖的文件，改走正规流程 `git submodule update --remote running` 推进到 `0a94e00`（running_page 最新），再 `git add running` 更新 gitlink 一并提交。
+- **验证**：verify.js 断言 640/420 → 640/360（并加「无 640/420 残留」反向断言）、mock rect 同步改 640x360，**233/233 全绿**；puppeteer `/tmp/rk_fixed.cjs` 比例断言 1.5238 → 1.7778，本地 + 线上均 **7/7 ALL PASS**（ratio=1.7778 / z8·浅色 / 暗色主题不跟随 / 按钮循环 / 零 JS 错误）。
+- **部署**：running_page `79f2753..0a94e00`、主页 `a5d1902..bedfc80`（含 submodule gitlink）已推送；CloudStudio 重新部署，线上复验 7/7 ALL PASS。
