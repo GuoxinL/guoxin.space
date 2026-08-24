@@ -124,7 +124,7 @@ setup-python 3.11
 | 幂等/原子写/`if: always()` 隔离 | 全部保留 |
 
 > 目标 JS 文件均为 `.js` 后缀（running 仓库 `package.json` 已声明 `"type": "module"`，`.js` 即 ESM）。
-> **迁移期（I1~I3 未完成前）**：`setup-python` 与 pip 依赖保留（fill/preview 步骤仍为 Python），仅已移植步骤切 JS；`xz-sync.js` 零 npm 依赖（仅 node 内置模块），I1 无需 `npm ci`。
+> **迁移期（I3 未完成前）**：`setup-python` 与 pip 依赖保留（仅剩 preview 步骤为 Python），I1/I2 已切 JS 的步骤零 npm 依赖（仅 node 内置模块），无需 `npm ci`；`setup-node@v4`（node 20）已加入。
 
 > 迁移期可脚本并存：CI 先切 JS，若异常可一键回切 Python（workflow 两行改动）。
 
@@ -148,7 +148,7 @@ setup-python 3.11
 |---|---|---|
 | **I0**（先行，优先级最高） | **技术验证**：① MapCN(CARTO) 瓦片国内可达性实测（curl 延迟/成功率，对比 OSM）；② sharp PNG 幂等性验证（libvips vs PIL 编码参数，固定 `compressionLevel` 等后是否逐字节稳定） | 输出两份验证结论：瓦片可用性决定 I3 瓦片常量（不可达则保留 OSM）；幂等结论决定 sharp 参数与 CI diff 校验策略 |
 | **I1** ✅ 已完成 | `xz-common.js` + `xz-sync.js`，CI 切 JS 同步 | 产物 `activities.json` 与 Python 版**逐字节一致**（diff=0）——**已达成**，见 §7.2 |
-| **I2** | `xz-fill.js`（GPX 补全） | polyline 字段与 Python 版解码后逐点一致 |
+| **I2** ✅ 已完成 | `xz-fill.js`（GPX 补全） | polyline 字段与 Python 版**逐点一致**（diff=0）——**已达成**，见 §7.3 |
 | **I3** | `prebuild-preview.js`（preview.json + sharp PNG + **MapCN 瓦片**） | preview.json 逐字节一致；PNG 视觉验收（瓦片为 MapCN 风格）；meta.json 数值一致 |
 | **I4** | `keep-to-xz.js`（本地上传工具） | 本地上传成功 |
 | **I5** | 工作台侧收尾：矢量层换 MapCN 多档 + 主题色轨迹（上一轮方案 A+B） | verify 回归 + puppeteer 双验证 + 线上部署 |
@@ -192,6 +192,23 @@ setup-python 3.11
 **过程中发现并修复的真实 bug**：JS 普通对象整数键重排——`run_id` 为数组索引形式（如 `"987654321"`）时按数值升序重排键序，破坏 Python dict 插入序 → `mergeRides` / `main` 全面改用 **Map**（天然严格插入序）。
 
 **CI 说明**：`xz-sync.js` 零 npm 依赖（仅 node 内置模块），I1 无需 `npm ci`；`sharp` 待 I3（prebuild-preview.js）时再配 `scripts/package.json` + `npm ci`。
+
+---
+
+### 7.3 I2 验收结论（2026-08-25，polyline diff=0 全绿）
+
+> 实现：`scripts/xz-fill.js`（移植自 `xingzhe_fill_polyline.py`，零 npm 依赖——手写 Google Polyline 编码，复用 `xz-sync.js` 的 `readActivitiesList`/`pyJsonStringify` 与 `xz-common.js` 的 `XingzheClient`）；CI `xingzhe_sync.yml` 的 `Fill missing polylines` 步骤已切 `node scripts/xz-fill.js`（`setup-python` 保留至 I3）。
+> 对照测试位于 `scripts/.i2-test/`（`gen_samples.py` 生成 Python 参考 → `check_js.mjs` 对照；`fill_roundtrip_py.py`/`fill_roundtrip.mjs` 双跑写回）。
+
+三项验收全部通过：
+
+1. **真实数据重编码对照 diff=0**：从 `activities.json` 解码全部 161 条 summary_polyline（共 **345,013 个轨迹点**）→ 重建 GPX → Python `polyline.encode` vs JS `gpxToPolyline` 全量一致，sha256 相同。
+2. **合成 `.5` 边界样本 20/20 一致**：lat×1e5 恰为二进制精确半值的坐标（`39.885125`、`-39.885125`、`0.000005` 等 × 20 组合），JS 与 Python 逐字符一致。
+3. **mock roundtrip 写回 diff=0**：缺 polyline 记录补全后 `pyJsonStringify` 与 Python `json.dump(indent=2, ensure_ascii=False)` 逐字节一致（含 19 位大 run_id、已有 polyline 保留、边界坐标补全）。
+
+**过程中发现并修复的真实 bug（关键）**：Python `polyline` 库内部**不用 `round()`**，而是 `_py2_round(x) = int(sign(x) * floor(|x| + 0.5))`——**「half away from zero」**（Python 2 式远离零舍入），**不是** Python 3 `round` 的 banker's 取偶。初版 `pyRoundInt` 误用 banker's，真实数据 345,013 点 0 处分歧（真实坐标极少落在二进制精确 `.5` 上），但合成边界样本立即暴露：`_py2_round(3988512.5) = 3988513`（远离零）vs banker's 的 3988512。修复后边界样本 20/20 一致。
+
+**CI 说明**：fill 步骤与 sync 同为零 npm 依赖；异常时一键回切 `python scripts/xingzhe_fill_polyline.py`。I2 后 pip 依赖（requests/polyline/pillow）仅剩 prebuild_preview 使用，I3 切 sharp 后移除 `setup-python`。
 
 ---
 
