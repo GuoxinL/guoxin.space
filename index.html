@@ -2193,28 +2193,27 @@ document.addEventListener("DOMContentLoaded", init);
 /* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
 var RK_CACHE = "wb_rk_acts_v2";
-/* MapCN（CARTO Basemaps）免费瓦片，无需 token；对齐 running_page MAP_TILE_VENDOR='mapcn'。
-   首档 auto（默认）：亮色模式→light_all 白底，暗色模式→dark_all，跟随页面明暗切换 */
+/* OSM 标准瓦片（WGS-84 标准，国内可达性优于 CARTO；单一样式，无 token） */
 var RK_STYLES = [
-  { k:"auto",    n:"自动", url:"" },
-  { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
-  { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
-  { k:"dark",    n:"暗色", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" }
+  { k:"osm", n:"标准", url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png" }
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
-/* 全量轨迹垫底 SVG（running 仓库构建产物，gzip ~33KB，进入地图立即 <img> 显示路线全貌） */
-var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.svg";
+/* 全量轨迹垫底 PNG（running 仓库构建产物：OSM 瓦片底图 + 全量轨迹，2x 1280x840，
+   位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换） */
+var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png";
+/* 垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom）：
+   矢量层初始视角优先用它，保证垫底与矢量层切换零跳动 */
+var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.meta.json";
 /* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
    所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
 var RK_BASE_Z = 13;
 function rkThemeDark(){
   try{ return !!document.body && document.body.dataset.theme === "dark"; }catch(e){ return false; }
 }
-/* 解析实际生效的样式索引：auto 档按当前明暗模式返回 light_all(1) 或 dark_all(3) */
+/* 解析实际生效的样式（OSM 单样式） */
 function rkResolveStyle(idx){
   var s = RK_STYLES[idx] || RK_STYLES[0];
-  if(s && s.k === "auto") return RK_STYLES[rkThemeDark() ? 3 : 1];
   return s;
 }
 var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_page TYPE_PALETTES.Run */
@@ -2662,8 +2661,9 @@ function rkShowMap(id){
   } else {
     ti.textContent = "全部 " + tracks.length + " 条轨迹 · 已聚焦最热点区域（点击 ⤢ 查看全貌）";
   }
-  /* phase1：垫底 SVG 全貌立即显示（running 仓库预渲染产物，gzip ~33KB，通常比 JSON 先到）；
-     矢量层就绪后无缝切换 —— img onload 门控（缓存命中/测试环境无 img 时同步渲染） */
+  /* phase1：垫底 PNG（OSM 瓦片底图 + 全量轨迹，running 仓库预渲染产物）立即显示，
+     位图秒显不卡；矢量层就绪后无缝切换 —— img onload 门控（缓存命中/无 img 时同步渲染）。
+     视角元数据 fetch 成功后作为矢量层初始视角，与 PNG 完全一致（零跳动） */
   box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\">"
     + "<img class=\"rk-tm-pv\" src=\"" + RK_PV_URL + "\" alt=\"轨迹全貌预览\" decoding=\"async\">"
     + "<div class=\"rk-tm-loading\">轨迹矢量层构建中…</div></div>";
@@ -2673,11 +2673,25 @@ function rkShowMap(id){
   function go(){
     if(once) return;
     once = true;
-    rkMapInit(cnv, tracks, rkMapStyleIdx(), a ? a.id : 0);
+    rkFetchMeta(function(mv){ rkMapInit(cnv, tracks, rkMapStyleIdx(), a ? a.id : 0, mv); });
   }
   if(!img) go();                                   /* 无 img（旧浏览器/测试环境）→ 同步渲染矢量层 */
   else if(img.complete && img.naturalWidth > 0) go();  /* 已缓存 → 垫底已显示，立即接矢量层 */
   else { img.onload = go; img.onerror = go; }      /* 网络加载 → 就绪后再接矢量层 */
+}
+/* 读取垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom）；
+   成功回调 meta 对象；无 fetch（旧浏览器/测试环境）/失败回调 null */
+function rkFetchMeta(cb){
+  var m = null, done = false;
+  function fin(){ if(!done){ done = true; cb(m); } }
+  if(!window.fetch){ fin(); return; }
+  fetch(RK_META_URL)
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      if(j && typeof j.cx === "number" && typeof j.cy === "number" && typeof j.z === "number") m = j;
+    })
+    .catch(function(){})
+    .then(fin);
 }
 /* Web Mercator 投影（verify 可测）：经纬度 <-> 世界像素（256*2^z 见方） */
 function rkMerc(lng, lat, z){
@@ -2759,7 +2773,7 @@ function rkHotSpot(tracks){
   while(z > RK_Z_MIN && (wpx > W - 2 * pad || hpx > H - 2 * pad)){ z--; wpx /= 2; hpx /= 2; }
   return { cx: cx, cy: cy, z: Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, z)) };
 }
-function rkMapInit(container, tracks, styleIdx, selId){
+function rkMapInit(container, tracks, styleIdx, selId, metaView){
   if(!container || !tracks || !tracks.length) return;
   var S = {
     z: 14, cx: 0, cy: 0, tracks: [],
@@ -2804,8 +2818,9 @@ function rkMapInit(container, tracks, styleIdx, selId){
   function tileUrl(tx, ty){
     var n = Math.pow(2, S.z);
     var wx = ((tx % n) + n) % n;
-    var sub = "abcd"[(wx + ty + S.z) % 4];
-    return S.style.url.replace("{s}", sub).replace("{z}", S.z).replace("{x}", wx).replace("{y}", ty);
+    var u = S.style.url.replace("{z}", S.z).replace("{x}", wx).replace("{y}", ty);
+    if(u.indexOf("{s}") >= 0) u = u.replace("{s}", "abcd"[(wx + ty + S.z) % 4]);
+    return u;
   }
   function finishPrepare(){
     S.prep = 0;
@@ -2858,13 +2873,12 @@ function rkMapInit(container, tracks, styleIdx, selId){
   }
   function ctrlHTML(){
     return '<div class="rk-tm-ctrl">'
-      + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
       + '</div>'
       + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>'
-      + '<div class="rk-tm-attr">Map tiles © CARTO · Map data © OpenStreetMap contributors</div>';
+      + '<div class="rk-tm-attr">© OpenStreetMap contributors</div>';
   }
   /* 缩放/平移：仅更新 viewBox 矩阵 + 线宽反算（SVG 内容零重建，345K 点不重绘） */
   function refreshView(){
@@ -3014,14 +3028,20 @@ function rkMapInit(container, tracks, styleIdx, selId){
     var idx = Array.prototype.indexOf.call(c, btn);
     if(idx === 0) zoomBy(1);
     else if(idx === 1) zoomBy(-1);
-    else if(idx === 2 || idx === 3) fit();
+    else if(idx === 2) fit();
   });
-  /* 默认视角：全量模式聚焦轨迹最密集的热点区域（放大展示）；选中模式保持全量 fit */
-  var hp = (!selId) ? rkHotSpot(tracks) : null;
-  if(hp){
-    rect(); S.prep = 1; setZoom(hp.z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
+  /* 默认视角：优先用垫底 PNG 的视角元数据（与 PNG 完全一致，切换零跳动）；
+     无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
+  var mv = metaView || null;
+  if(mv){
+    rect(); S.prep = 1; setZoom(mv.z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
   } else {
-    fit();
+    var hp = (!selId) ? rkHotSpot(tracks) : null;
+    if(hp){
+      rect(); S.prep = 1; setZoom(hp.z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
+    } else {
+      fit();
+    }
   }
 }
 
