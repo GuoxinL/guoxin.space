@@ -458,13 +458,137 @@ await t("OPTIONS preflight → 204 + CORS", async () => {
   assert.strictEqual(resp.status, 204);
   assert.strictEqual(resp.headers.get("Access-Control-Allow-Origin"), "*");
 });
-await t("COLLECT_KEY 校验失败 → 401", async () => {
-  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/health", { method: "GET" }), { GH_TOKEN: "t", COLLECT_REPO: "g/s", COLLECT_KEY: "secret" });
+await t("写通道无 token → 401", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/collect", { method: "POST", body: JSON.stringify({ url: "https://github.com/a/b" }) }), { GH_TOKEN: "t", COLLECT_REPO: "g/s", AUTH_SECRET: "s", ADMIN_LOGIN: "GuoxinL" });
+  assert.strictEqual(resp.status, 401);
+});
+await t("带旧 x-collect-key 但无 Bearer → 401（不兼容共享密钥）", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/collect", { method: "POST", headers: { "x-collect-key": "secret" }, body: JSON.stringify({ url: "https://github.com/a/b" }) }), { GH_TOKEN: "t", COLLECT_REPO: "g/s", AUTH_SECRET: "s", ADMIN_LOGIN: "GuoxinL" });
   assert.strictEqual(resp.status, 401);
 });
 await t("未知路径 → 404", async () => {
   const resp = await w.default.fetch(new Request("https://x.workers.dev/nope", { method: "GET" }), { GH_TOKEN: "t", COLLECT_REPO: "g/s" });
   assert.strictEqual(resp.status, 404);
+});
+
+// ============================================================
+section("OAuth 与轨迹代理");
+const AUTH_ENV = { GH_TOKEN: "t", COLLECT_REPO: "g/s", GITHUB_CLIENT_ID: "cid", GITHUB_CLIENT_SECRET: "csec", ADMIN_LOGIN: "GuoxinL", AUTH_SECRET: "sec", TRACKS_REPO: "g/priv", REDIRECT_URL: "https://guoxin.space" };
+
+await t("signToken / verifyToken 往返", async () => {
+  const tok = await w.signToken("GuoxinL", "sec");
+  const p = await w.verifyToken(tok, "sec");
+  assert.strictEqual(p.login, "GuoxinL");
+  assert.ok(p.exp > p.iat);
+});
+await t("verifyToken 错误密钥 → null", async () => {
+  const tok = await w.signToken("GuoxinL", "sec");
+  assert.strictEqual(await w.verifyToken(tok, "other"), null);
+});
+await t("verifyToken 篡改签名 → null", async () => {
+  const tok = await w.signToken("GuoxinL", "sec");
+  assert.strictEqual(await w.verifyToken(tok.split(".")[0] + ".bad", "sec"), null);
+});
+await t("verifyToken 过期 → null", async () => {
+  const body = Buffer.from(JSON.stringify({ login: "GuoxinL", iat: 1000, exp: 1000 })).toString("base64url");
+  const sig = await w.hmacB64("sec", body);
+  assert.strictEqual(await w.verifyToken(body + "." + sig, "sec"), null);
+});
+
+await t("/api/auth/login 未配置 GITHUB_CLIENT_ID → 500", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/login"), { GH_TOKEN: "t", COLLECT_REPO: "g/s" });
+  assert.strictEqual(resp.status, 500);
+});
+await t("/api/auth/login 302 到 GitHub authorize", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/login"), AUTH_ENV);
+  assert.strictEqual(resp.status, 302);
+  const loc = resp.headers.get("Location") || "";
+  assert.ok(loc.startsWith("https://github.com/login/oauth/authorize"), loc);
+  assert.ok(loc.includes("redirect_uri=" + encodeURIComponent("https://x.workers.dev/api/auth/callback")));
+  assert.ok(loc.includes("scope=read:user"));
+});
+
+await t("/api/auth/callback 缺 code → 400", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?state=s"), AUTH_ENV);
+  assert.strictEqual(resp.status, 400);
+});
+await t("/api/auth/callback 完整流程 → 302 带 token", async () => {
+  setQueue([
+    { path: "/login/oauth/access_token", method: "POST", body: { access_token: "at" } },
+    { path: "/user", body: { login: "GuoxinL" } },
+  ]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?code=c&state=s"), AUTH_ENV);
+  assert.strictEqual(resp.status, 302);
+  const loc = resp.headers.get("Location") || "";
+  assert.ok(loc.startsWith("https://guoxin.space/?auth="), loc);
+  const p = await w.verifyToken(decodeURIComponent(loc.split("auth=")[1]), "sec");
+  assert.strictEqual(p.login, "GuoxinL");
+});
+await t("/api/auth/callback 非 admin 登录 → denied", async () => {
+  setQueue([
+    { path: "/login/oauth/access_token", method: "POST", body: { access_token: "at" } },
+    { path: "/user", body: { login: "someone" } },
+  ]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?code=c&state=s"), AUTH_ENV);
+  assert.strictEqual(resp.status, 302);
+  assert.ok((resp.headers.get("Location") || "").includes("auth=denied"));
+});
+await t("/api/auth/callback token 交换失败 → 400", async () => {
+  setQueue([{ path: "/login/oauth/access_token", method: "POST", body: { error: "bad_verification_code", error_description: "code 无效" } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?code=bad&state=s"), AUTH_ENV);
+  assert.strictEqual(resp.status, 400);
+});
+
+await t("/api/auth/me 无 token → 401", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/me"), AUTH_ENV);
+  assert.strictEqual(resp.status, 401);
+});
+await t("/api/auth/me 有效 token → ok + login", async () => {
+  const tok = await w.signToken("GuoxinL", "sec");
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/me", { headers: { Authorization: "Bearer " + tok } }), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out.login, "GuoxinL");
+});
+
+await t("/api/tracks/raw 未知文件 → 400", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=nope"), AUTH_ENV);
+  assert.strictEqual(resp.status, 400);
+});
+await t("/api/tracks/raw?f=preview.json 游客可读", async () => {
+  setQueue([{ path: "/contents/activities.preview.json", body: { content: b64(JSON.stringify([{ run_id: "1" }])) } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=preview.json"), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out[0].run_id, "1");
+});
+await t("/api/tracks/raw?f=preview.png 返回 image/png", async () => {
+  setQueue([{ path: "/contents/activities.preview.png", body: { content: b64("PNG") } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=preview.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+  assert.strictEqual(resp.headers.get("Content-Type"), "image/png");
+});
+await t("/api/tracks/raw?f=rides.full.json 无 token → 401", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=rides.full.json"), AUTH_ENV);
+  assert.strictEqual(resp.status, 401);
+});
+await t("/api/tracks/raw?f=rides.full.json 非 admin token → 401", async () => {
+  const tok = await w.signToken("other", "sec");
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=rides.full.json", { headers: { Authorization: "Bearer " + tok } }), AUTH_ENV);
+  assert.strictEqual(resp.status, 401);
+});
+await t("/api/tracks/raw?f=rides.full.json 带 admin token → 200", async () => {
+  const tok = await w.signToken("GuoxinL", "sec");
+  setQueue([{ path: "/contents/activities.rides.full.json", body: { content: b64(JSON.stringify([{ run_id: "1", summary_polyline: "abc" }])) } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=rides.full.json", { headers: { Authorization: "Bearer " + tok } }), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out[0].summary_polyline, "abc");
+});
+await t("collect 带有效 admin token → 通过鉴权进入业务层（无 mock 队列 → 500 而非 401）", async () => {
+  const tok = await w.signToken("GuoxinL", "sec");
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/collect", { method: "POST", headers: { Authorization: "Bearer " + tok }, body: JSON.stringify({ url: "https://github.com/a/b" }) }), AUTH_ENV);
+  assert.strictEqual(resp.status, 500);
 });
 
 // ============================================================

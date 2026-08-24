@@ -1,16 +1,18 @@
 # skillboard-collect — Cloudflare Worker 部署指引
 
-个人主页 **Skills 技能夹** 页的 GitHub「写通道」。核心设计：**页面零凭证**——收藏 / 删除 / 同步等写操作全部转发到 Cloudflare Worker，由 Worker 持有 GitHub 细粒度 PAT 完成。
+个人主页的「鉴权 + Skills 写通道 + 轨迹代理」。核心设计：**页面零凭证**——收藏 / 删除 / 同步等写操作与完整轨迹全部转发到 Cloudflare Worker，由 Worker 持有 GitHub 细粒度 PAT 完成。
 
 ```
-┌──────────────┐   fetch（无任何凭证）   ┌──────────────────┐   持 GH_TOKEN    ┌───────────────────┐
-│  index.html  │ ─────────────────────▶ │  Cloudflare      │ ──────────────▶ │  GitHub           │
-│  浏览器本地   │ ◀───────────────────── │  Worker 写通道    │ ◀────────────── │  skill-collection │
-└──────────────┘   CORS 已放行           └──────────────────┘    公开接口读取   └───────────────────┘
+┌──────────────┐   fetch（Bearer token，登录后）  ┌──────────────────┐   持 GH_TOKEN    ┌─────────────────────┐
+│  index.html  │ ─────────────────────────────▶ │  Cloudflare      │ ──────────────▶ │  GitHub             │
+│  浏览器本地   │ ◀───────────────────────────── │  Worker          │ ◀────────────── │  skill-collection   │
+└──────────────┘   CORS 已放行                   └──────────────────┘    公开接口读取   │  running-private    │
+                                                                                        └─────────────────────┘
 ```
 
-- **读取**（列表 / 元数据 / SKILL.md / 图标）：走 GitHub 公开接口，无需任何凭证，仓库须为公开。
-- **写入**（收藏 / 删除 / 同步）：走 Worker 的 4 个 API，Worker 内核对 `GH_TOKEN`。
+- **读取**（技能列表 / 元数据 / SKILL.md / 图标 / 截断轨迹 preview.*）：走 GitHub 公开接口或 Worker 开放代理，无需登录。
+- **写入**（收藏 / 删除 / 同步）与**完整轨迹**（`rides.full.json`）：走 Worker，**必须带 `Authorization: Bearer <token>`**（GitHub 登录后签发，仅站长本人）。
+- **鉴权**：GitHub OAuth 登录 → Worker 校验 `login === ADMIN_LOGIN` → 签发 HMAC 签名 token（7 天有效）。已**彻底移除共享密钥 `x-collect-key`**。
 
 ---
 
@@ -18,55 +20,75 @@
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `GH_TOKEN` | ✅ | 细粒度 PAT，**仅授权 skill-collection 一个仓库**的 Contents 读写 |
+| `GH_TOKEN` | ✅ | 细粒度 PAT，授权 **skill-collection**（Contents 读写）+ **running-private 轨迹私有仓库**（Contents 读） |
 | `COLLECT_REPO` | ✅ | 技能夹仓库，形如 `guoxin/skill-collection` |
 | `COLLECT_BRANCH` | ❌ | 写入分支，默认 `main` |
-| `COLLECT_KEY` | ❌ | 防滥用口令：设置后，所有写请求必须带请求头 `x-collect-key` 且值一致，否则返回 401 |
+| `GITHUB_CLIENT_ID` | ✅ | GitHub OAuth App 的 Client ID |
+| `GITHUB_CLIENT_SECRET` | ✅ | GitHub OAuth App 的 Client Secret |
+| `ADMIN_LOGIN` | ✅ | 站长 GitHub 用户名（admin 判定 = 登录 `login` 与之相等） |
+| `AUTH_SECRET` | ✅ | HMAC 签名密钥（`openssl rand -base64 32` 生成） |
+| `TRACKS_REPO` | ✅ | 轨迹私有仓库，形如 `GuoxinL/running-private` |
+| `REDIRECT_URL` | ❌ | 登录回跳地址，默认 `https://guoxin.space` |
 
 ## 二、API 契约（Worker 已实现，页面已对接）
 
-| 方法 | 路径 | 请求体 | 说明 |
+| 方法 | 路径 | 鉴权 | 说明 |
 |---|---|---|---|
-| GET | `/api/health` | — | 连通性检查：token 有效 + 仓库可达 → `{ok:true, repo, branch, defaultBranch}` |
-| POST | `/api/collect` | `{url, mode}` | 收藏一个 skill。`mode`：`proxy`（默认，写入引用代理 SKILL.md）/ `mirror`（深度镜像，≤60 文件） |
-| POST | `/api/remove` | `{dir}` | 删除目录（**仅限 `fav-*` / `my-*` 前缀**，其余返回 400 拒绝） |
-| POST | `/api/sync` | `{dir, url}` | 仅 proxy 模式：重新探测原仓库，更新代理 SKILL.md 与图标 |
+| GET | `/api/health` | 无 | 连通性检查 → `{ok:true, repo, branch, defaultBranch}` |
+| GET | `/api/auth/login` | 无 | 302 到 GitHub OAuth authorize |
+| GET | `/api/auth/callback?code&state` | 无 | OAuth 回调：验身份 → 签 token → 302 回站 `?auth=<token>` |
+| GET | `/api/auth/me` | Bearer | 校验 token 有效性，返回 `{ok, login, exp}` |
+| GET | `/api/tracks/raw?f=<file>` | 白名单 | 代理轨迹私有仓库。`preview.json/png/meta.json` 游客可读；`rides.full.json`（完整骑行轨迹）需 Bearer |
+| POST | `/api/collect` | **Bearer** | 收藏 skill。`mode`：`proxy` / `mirror`（≤60 文件） |
+| POST | `/api/remove` | **Bearer** | 删除目录（仅 `fav-*` / `my-*` 前缀） |
+| POST | `/api/sync` | **Bearer** | 仅 proxy：重新探测原仓库更新代理文件 |
 
-CORS：`Access-Control-Allow-Origin: *`，允许头 `Content-Type, x-collect-key`，OPTIONS 预检返回 204——浏览器直接跨域调用，无需代理。
+CORS：`Access-Control-Allow-Origin: *`，允许头 `Content-Type, Authorization`，OPTIONS 预检返回 204。
 
 ## 三、部署步骤
 
-### 1. 创建 GitHub 细粒度 PAT（一次）
+### 1. 注册 GitHub OAuth App（一次）
+
+1. GitHub → Settings → **Developer settings** → **OAuth Apps** → **New OAuth App**。
+2. Homepage URL：`https://guoxin.space`。
+3. **Authorization callback URL：`https://skillboard-collect.<你的子域>.workers.dev/api/auth/callback`**（不能是 localhost）。
+4. 记下 **Client ID** 与 **Client Secret**。
+
+### 2. 创建 GitHub 细粒度 PAT（一次）
 
 1. GitHub → Settings → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**。
-2. **Repository access**：选 **Only select repositories**，勾选 `skill-collection`。
-3. **Permissions**：仅勾 **Contents → Read and write**（其余全部留空）。
-4. 生成后**立即复制保存**（只显示一次）。token 形如 `github_pat_...`。
+2. **Repository access**：选 **Only select repositories**，勾选 `skill-collection` **和** `running-private`。
+3. **Permissions**：
+   - `skill-collection`：**Contents → Read and write**；
+   - `running-private`：**Contents → Read**（只读即可）。
+4. 生成后**立即复制保存**。token 形如 `github_pat_...`。
 
-> ⚠️ token 只授权单仓库、单权限，即使泄露也无法操作其他仓库或代码以外的资源。
-
-### 2. 创建 Worker
+### 3. 创建 Worker
 
 1. 打开 https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Create Worker** → 起名如 `skillboard-collect`。
 2. 用编辑器打开本目录下 [`worker.js`](./worker.js)，**全选替换**默认模板代码 → **Deploy**。
 
-### 3. 配置环境变量
+### 4. 配置环境变量
 
 Worker 详情页 → **Settings** → **Variables and Secrets**：
 
 | 名称 | 类型 | 值 |
 |---|---|---|
-| `GH_TOKEN` | **Secret**（加密存储） | 第一步的 `github_pat_...` |
+| `GH_TOKEN` | **Secret**（加密存储） | 第二步的 `github_pat_...` |
 | `COLLECT_REPO` | Text | `guoxin/skill-collection` |
 | `COLLECT_BRANCH` | Text | `main`（可选） |
-| `COLLECT_KEY` | Text（可选） | 自定义一串随机口令，如 `wb-sk-9f3k` |
+| `GITHUB_CLIENT_ID` | Text | OAuth App 的 Client ID |
+| `GITHUB_CLIENT_SECRET` | **Secret** | OAuth App 的 Client Secret |
+| `ADMIN_LOGIN` | Text | `GuoxinL`（你的 GitHub 用户名） |
+| `AUTH_SECRET` | **Secret** | `openssl rand -base64 32` 生成 |
+| `TRACKS_REPO` | Text | `GuoxinL/running-private` |
 
-### 4. 确认 Worker 访问地址
+### 5. 确认 Worker 访问地址
 
-- 默认：`https://skillboard-collect.<你的子域>.workers.dev`（首次部署时若未启用 workers.dev 子域，按提示启用）。
+- 默认：`https://skillboard-collect.<你的子域>.workers.dev`。
 - 可选：**Settings → Domains & Routes** 绑定自定义域名（非必须，CORS 已通配）。
 
-### 5. 页面端接入
+### 6. 页面端接入
 
 打开个人主页 → **Skills 技能夹** → 右上角 **通道设置**：
 
@@ -75,7 +97,6 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 | 技能夹仓库 | `guoxin/skill-collection` |
 | 分支 | `main` |
 | Worker URL | `https://skillboard-collect.<你的子域>.workers.dev` |
-| COLLECT_KEY | 若设置了 `COLLECT_KEY` 则填写，否则留空 |
 
 点 **测试连接**，出现绿色 `✓` 即打通。设置保存在浏览器 localStorage，不上传任何地方。
 
@@ -85,37 +106,54 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 # 1. 健康检查（无需任何凭证）
 curl "https://skillboard-collect.<你的子域>.workers.dev/api/health"
 
-# 2. 收藏一个 skill（引用模式）——带 x-collect-key（若设置了 COLLECT_KEY）
+# 2. 未登录调用写通道 → 401
 curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect" \
   -H "Content-Type: application/json" \
-  -H "x-collect-key: wb-sk-9f3k" \
   -d '{"url":"https://github.com/owner/skill","mode":"proxy"}'
+#   → {"error":"未授权：请先登录 GitHub（仅站长本人可用）"}
 
-# 3. 页面验证：刷新 Skills 页 → 新目录出现 → 点卡片可预览 SKILL.md → 可删除/同步
+# 3. 旧 x-collect-key 不再生效 → 401（无兼容）
+curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect" \
+  -H "Content-Type: application/json" -H "x-collect-key: anything" \
+  -d '{"url":"https://github.com/owner/skill","mode":"proxy"}'
+#   → 401
+
+# 4. 游客读截断轨迹 → 200
+curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=preview.json"
+
+# 5. 游客读完整轨迹 → 401
+curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rides.full.json"
+#   → 401
+
+# 6. 浏览器登录后收藏 / 删除 / 同步（页面已自动带 Bearer header）
+# 页面验证：刷新 Skills 页 → 新目录出现 → 可删除/同步；Running 页登录后显示「完整轨迹」徽标
 ```
 
 ## 五、安全说明
 
 | 问题 | 回答 |
 |---|---|
-| token 存哪？ | 只存 Worker 的 Secret 环境变量，页面代码、localStorage 均无凭证 |
-| Worker 代码泄露会怎样？ | 无 token，只有纯逻辑；写入路径受 `fav-*`/`my-*` 白名单约束 |
-| 别人能乱调 Worker 吗？ | 设置 `COLLECT_KEY` 后未带正确请求头一律 401；读取接口不受影响 |
-| 想撤销能力？ | 删除 Worker 或吊销 PAT 即刻生效，页面只剩只读列表 |
+| token 存哪？ | GitHub PAT 只存 Worker 的 Secret 环境变量；页面 localStorage 只存登录后签发的短期 HMAC token（7 天） |
+| 页面登录 token 泄露会怎样？ | 只有有效期、只对本站 Worker 有效，过期即失效；可手动清除 localStorage 登出 |
+| 别人能乱调 Worker 吗？ | 写通道与完整轨迹必须 Bearer token 且 `login === ADMIN_LOGIN`，未登录一律 401 |
+| 完整轨迹安全吗？ | 轨迹仓库为**私有仓库**，公开 raw 无直连路径，仅 Worker 白名单代理 `rides.full.json`（需登录） |
+| 想撤销能力？ | 删除 Worker / 吊销 PAT / 换 `AUTH_SECRET` 即刻生效，页面只剩只读列表 |
 
 ## 六、页面功能对照
 
 | 页面操作 | 走的通道 | 备注 |
 |---|---|---|
 | 加载技能列表 / 排序 / 预览 SKILL.md / 图标 | GitHub 公开接口 | 仓库须公开 |
-| 收藏（引用 / 深度镜像） | Worker `/api/collect` | 未配置 Worker 时按钮提示先配置 |
-| 删除 / 同步 | Worker `/api/remove` / `/api/sync` | 均有 confirm 确认 |
+| Running 截断轨迹 / 垫底 PNG / meta | Worker `/api/tracks/raw?f=preview.*` | 游客可用，未配置 Worker 时提示 |
+| Running 完整骑行轨迹 | Worker `/api/tracks/raw?f=rides.full.json` | 需登录，显示「完整轨迹」徽标 |
+| 收藏（引用 / 深度镜像） | Worker `/api/collect` | 需登录 GitHub（admin-only 按钮） |
+| 删除 / 同步 | Worker `/api/remove` / `/api/sync` | 需登录 GitHub |
 
 ## 七、本地单测（可选）
 
 ```bash
-node test-worker.mjs   # Worker mock 单测，50 条断言（自动同步 worker.js → worker.test.mjs）
-node verify.js         # 页面回归，86 条断言（vm 模拟 DOM）
+node test-worker.mjs   # Worker mock 单测，80 条断言（自动同步 worker.js → worker.test.mjs）
+node verify.js         # 页面回归，270 条断言（vm 模拟 DOM）
 ```
 
 修改 `worker.js` 后直接重跑 `node test-worker.mjs` 即可，无需手动同步测试副本。

@@ -12,11 +12,13 @@ personal-homepage/
 │   └── style.css       # 全部样式（约 400 行，:root 主题变量 + 各区块样式）
 ├── js/                 # 业务脚本，按模块拆分，加载顺序固定（见下）
 │   ├── util.js         # 常量 + 工具函数 + 主题 + 路由 + 时钟 + 天气
+│   ├── auth.js         # GitHub OAuth 登录态（admin 判定 UI 侧）；token 存 localStorage
 │   ├── json.js         # JSON 工具（双编辑区：格式化/压缩/对比/树形/历史/导入导出）
 │   ├── skills.js       # Skills 技能夹（列表/详情/文件树/MD 渲染/收藏/同步/通道配置）
 │   ├── app.js          # 初始化入口 init() + DOMContentLoaded + window.* 暴露
 │   └── running.js      # Running 骑行/跑步数据（地图/统计/活动卡片/轨迹回放）
-├── worker.js           # Cloudflare Worker 写通道（独立部署，与页面无关）
+├── worker.js           # Cloudflare Worker：鉴权（OAuth + Bearer）+ 收藏写通道 + 轨迹私有仓库代理
+├── AUTH-PERMISSION-DESIGN.md  # 权限控制方案（admin/游客）存档
 ├── verify.js           # 页面 vm 回归测试（254 条断言，Node 直接运行）
 ├── test-worker.mjs     # Worker mock 单测（自动同步 worker.js）
 ├── overview.md         # 迭代交付概览（每次迭代追加章节）
@@ -26,7 +28,7 @@ personal-homepage/
 
 ## 核心约定（拆分后必须遵守）
 
-1. **脚本加载顺序固定**：`index.html` 底部按 `util → json → skills → app → running` 顺序引入。拆分前整体包在一个 IIFE 里，现已**移除 IIFE**，各文件顶层 `var`/`function` 声明**共享全局作用域**（跨文件可直接互相调用）。新增文件务必插在正确位置：被依赖者在前、依赖者在后。
+1. **脚本加载顺序固定**：`index.html` 底部按 `util → auth → json → skills → app → running` 顺序引入。拆分前整体包在一个 IIFE 里，现已**移除 IIFE**，各文件顶层 `var`/`function` 声明**共享全局作用域**（跨文件可直接互相调用）。新增文件务必插在正确位置：被依赖者在前、依赖者在后。
 
 2. **每个 js 文件顶部保留 `"use strict";`**：保持与原 IIFE 严格模式行为一致。
 
@@ -47,7 +49,7 @@ personal-homepage/
 
 ```bash
 # 页面回归测试（改任何 js/css/html 后必跑）
-node verify.js          # 期望：254 / 254 ALL TESTS PASSED
+node verify.js          # 期望：270 / 270 ALL TESTS PASSED
 
 # 本地预览
 python3 -m http.server 8734   # 打开 http://127.0.0.1:8734/index.html#/running

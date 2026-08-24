@@ -10,6 +10,15 @@
 | `test-worker.mjs` | Worker mock 单测 60 条（自动同步 worker.js，改后直接重跑） |
 | `verify.js` | 页面回归 182 条（原 144 + 运动数据 rk 数据层/算法对齐 38：rkParse 规整/过滤、rkMovingSec 3 段/2 段/天、rkFmtDist/rkPace/rkFmtDur/rkFmtClock、rkYears/rkSortDate、rkStats、rkHeatYear 网格/月份、rkHeatColor 4 级色阶边界、rkPbs 窗口+配速过滤、rkDecodePolyline、rkTitleFor 时段、rkMonthDist/rkYearDist、rkComma、rkTrendSVG） |
 
+## 2026-08-25 权限控制：GitHub OAuth 登录（admin/游客）+ 轨迹私有仓库代理
+
+- **需求**：admin = GitHub 登录本人（`ADMIN_LOGIN`）；skills 游客可浏览但收藏/同步/删除仅 admin；骑行轨迹游客渲染掐头去尾、admin 渲染完整（仅骑行）。轨迹产物仓库整体私有。
+- **鉴权**（`worker.js` 新增）：GitHub OAuth code 流 `/api/auth/login` + `/api/auth/callback` + `/api/auth/me`；admin 判定 `login === env.ADMIN_LOGIN`；签发**无状态 HMAC 签名 token**（`base64url(payload).sig`，7 天有效，`AUTH_SECRET` 离线验签，不依赖 KV）；**彻底移除 `x-collect-key`**（worker.js 校验分支、CORS 头、前端 `skKey()`/弹窗输入项/环境变量全删，无兼容；旧 key 请求一律 401）。
+- **轨迹代理**：`GET /api/tracks/raw?f=<白名单>`——`preview.json/png/meta.json` 游客可读、`rides.full.json`（仅骑行完整轨迹）需 Bearer；文件从私有仓库 `TRACKS_REPO` 经 GitHub Contents API 读取。
+- **前端**：新增 `js/auth.js`（`authLogin/authLogout/authToken/authUser/authIsAdmin/authInit`，token 存 `wb_home_auth_token`，`authInit` 消费 URL `?auth=` 并 `replaceState` 清理）；`index.html` 侧栏加登录按钮、skills 4 按钮加 `admin-only`（`body.admin` 显隐）、删 `skCfgKey` 输入项、Running 页加「完整轨迹」徽标；`skills.js` 写接口请求头改 `Authorization: Bearer`；`running.js` 数据源三 URL（RK_URL/RK_PV_URL/RK_META_URL）全部改 `rkTracks()` 代理 + `rkLoadRides()` admin 拉完整轨迹经 `rkPolyFor()` 替换渲染。
+- **验证**：`node verify.js` **270/270**（新增 Auth 10d、权限显隐 10e 两组断言，删 raw 直连断言）；`node test-worker.mjs` **80/80**（新增 OAuth/token/tracks/写通道 401 用例）。
+- **待做**：running 仓库数据管线产出 `activities.rides.full.json` 推私有仓库（submodule 未 clone）；注册 OAuth App 并配置 Worker 环境变量；部署后真机验收。方案与部署指引见 `AUTH-PERMISSION-DESIGN.md`、`DEPLOY-WORKER.md`。
+
 ## 2026-08-25 活动回放底图 MapCN 瓦片 + 跟随系统明暗（commit 04d91cf）
 
 - **需求**：播放路径视频（活动详情弹窗轨迹回放）时，背景从纯色深色块改为 **MapCN（CARTO basemaps）瓦片底图**，且底图样式**跟随系统默认明暗**（浅色系统 → light 瓦片、暗色系统 → dark 瓦片）。

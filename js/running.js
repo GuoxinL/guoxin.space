@@ -1,7 +1,22 @@
 "use strict";
-/* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
-var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
+/* ================= Running (run)：数据源 = 轨迹私有仓库（经 Cloudflare Worker 代理） ================= */
 var RK_CACHE = "wb_rk_acts_v2";
+/* 轨迹数据源：全部经 Cloudflare Worker /api/tracks/raw 白名单代理（轨迹仓库整体私有，
+   preview.* 游客可读、rides.full.json 仅 admin）。Worker URL 复用 Skills 通道配置
+   wb_home_sk_set.worker；未配置返回 ""（running 页将提示先配置）。 */
+function rkTracks(f){
+  var w = "";
+  try{
+    var cfg = JSON.parse(load(KEY_PREFIX + "sk_set") || "null") || {};
+    w = String(cfg.worker || "").trim().replace(/\/+$/, "");
+  }catch(e){}
+  return w ? (w + "/api/tracks/raw?f=" + encodeURIComponent(f)) : "";
+}
+/* 完整骑行轨迹映射（admin）：run_id -> 完整 polyline；游客/未加载时为 null */
+var rkRidesFull = null;
+var RK_CACHE_RIDES = "wb_rk_rides_full";
+/* 当前活动实际渲染的 polyline：admin 且命中完整轨迹 → 用完整版；否则用 preview 截断版 */
+function rkPolyFor(a){ return (rkRidesFull && a && a.poly && rkRidesFull[a.id]) ? rkRidesFull[a.id] : (a ? a.poly : ""); }
 /* MapCN（CARTO Basemaps）免费瓦片，无 token；默认浅色固定（与 running 仓库
    activities.preview.png 生成规格一致：640:360 + z8 + 浅色，不随系统明暗切换），
    用户可手动切 明亮 / 暗色（浅色 / 明亮 / 暗色 三档循环） */
@@ -12,12 +27,10 @@ var RK_STYLES = [
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
-/* 全量轨迹垫底 PNG（running 仓库构建产物：浅灰纯色底图 + 全量轨迹，1x 640x360，
-   位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换） */
-var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png";
+/* 全量轨迹垫底 PNG（轨迹私有仓库构建产物：浅灰纯色底图 + 全量轨迹，1x 640x360，
+   位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换）经 Worker 代理下发 */
 /* 垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom）：
    矢量层初始视角优先用它，保证垫底与矢量层切换零跳动 */
-var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.meta.json";
 /* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
    所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
 var RK_BASE_Z = 13;
@@ -526,7 +539,7 @@ function rkActReplay(a){
   var wrap = rkEl("rkActVideo");
   if(!wrap) return;
   var hint = wrap.querySelector(".rk-act-hint");
-  var coords = rkDecodePolyline(a.poly);
+  var coords = rkDecodePolyline(rkPolyFor(a));
   var oldCv = wrap.querySelector("canvas");
   if(!coords || coords.length < 2){
     if(oldCv) oldCv.remove();
@@ -644,7 +657,7 @@ function rkMapTracks(acts){
   var out = [];
   (acts||[]).forEach(function(a){
     if(!a || !a.poly) return;
-    var coords = rkDecodePolyline(a.poly);
+    var coords = rkDecodePolyline(rkPolyFor(a));
     if(!coords || !coords.length) return;
     out.push({ id:a.id, date:a.date||"", name:a.name||"", dist:a.dist||0, type:a.type||"Run", coords:coords });
   });
@@ -674,11 +687,12 @@ function rkShowMap(id){
   } else {
     ti.textContent = "全部 " + tracks.length + " 条轨迹 · 已聚焦最热点区域（点击 ⤢ 查看全貌）";
   }
-  /* phase1：垫底 PNG（OSM 瓦片底图 + 全量轨迹，running 仓库预渲染产物）立即显示，
+  /* phase1：垫底 PNG（OSM 瓦片底图 + 全量轨迹，轨迹私有仓库预渲染产物）立即显示，
      位图秒显不卡；矢量层就绪后无缝切换 —— img onload 门控（缓存命中/无 img 时同步渲染）。
      视角元数据 fetch 成功后作为矢量层初始视角，与 PNG 完全一致（零跳动） */
+  var pvUrl = rkTracks("preview.png");
   box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\">"
-    + "<img class=\"rk-tm-pv\" src=\"" + RK_PV_URL + "\" alt=\"轨迹全貌预览\" decoding=\"async\">"
+    + "<img class=\"rk-tm-pv\" src=\"" + pvUrl + "\" alt=\"轨迹全貌预览\" decoding=\"async\">"
     + "<div class=\"rk-tm-loading\">轨迹矢量层构建中…</div></div>";
   var cnv = rkEl("rkMapCanvas");
   var img = (cnv && cnv.querySelector) ? cnv.querySelector(".rk-tm-pv") : null;
@@ -698,7 +712,7 @@ function rkFetchMeta(cb){
   var m = null, done = false;
   function fin(){ if(!done){ done = true; cb(m); } }
   if(!window.fetch){ fin(); return; }
-  fetch(RK_META_URL)
+  fetch(rkTracks("preview.meta.json"))
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(j){
       if(j && typeof j.cx === "number" && typeof j.cy === "number" && typeof j.z === "number") m = j;
@@ -1114,24 +1128,31 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
 function rkFetch(){
   rkBar("正在加载数据…");
   var d = rkEl("rkDot"); if(d) d.className = "dot";
-  function viaFetch(url){
-    return fetch(url).then(function(res){
+  var url = rkTracks("preview.json");
+  if(!url){
+    rkBar("未配置 Worker 写通道 · 请先在 Skills「通道设置」填写 Worker URL", "err");
+    var body = rkEl("rkBody");
+    if(body) body.innerHTML = "<div class=\"rk-empty\">Running 数据现经 Cloudflare Worker 代理下发（轨迹仓库为私有仓库），请先在 Skills 页「通道设置」填写 Worker URL 后点击「刷新数据」。</div>";
+    return;
+  }
+  function viaFetch(u){
+    return fetch(u).then(function(res){
       if(!res.ok) throw new Error("HTTP " + res.status);
       return res.text();
     });
   }
   if(window.caches){
     caches.open(RK_CACHE).then(function(c){
-      return c.match(RK_URL).then(function(r){
+      return c.match(url).then(function(r){
         if(r) return r.text();
-        return viaFetch(RK_URL).then(function(txt){
-          c.put(RK_URL, new Response(txt));
+        return viaFetch(url).then(function(txt){
+          c.put(url, new Response(txt));
           return txt;
         });
       });
     }).then(rkOnData).catch(function(e){ rkOnErr(e); });
   } else {
-    viaFetch(RK_URL).then(rkOnData).catch(rkOnErr);
+    viaFetch(url).then(rkOnData).catch(rkOnErr);
   }
 }
 function rkOnData(text){
@@ -1139,18 +1160,61 @@ function rkOnData(text){
     rkActs = rkParse(text);
     window.rkActs = rkActs; /* 挂全局便于控制台调试与外部脚本访问 */
     if(!rkActs.length) throw new Error("数据为空");
-    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running 仓库 preview，本地零存储）", "ok");
+    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（经 Worker 代理 · 本地零存储）", "ok");
     var curYr = String(new Date().getFullYear());
     rkState.year = rkYears(rkActs).indexOf(curYr) >= 0 ? curYr : (rkYears(rkActs)[0] || curYr); // 默认当年（2026）；数据无当年则回退最新年份
     rkState.listYear = "all"; rkState.listN = 30;
     rkRenderAll();
+    rkLoadRides(); /* admin：异步拉取完整骑行轨迹，就绪后重绘 */
   }catch(e){ rkOnErr(e); }
 }
 function rkOnErr(e){
   rkActs = null;
   rkBar("数据加载失败：" + esc(e && e.message ? e.message : e) + " — 可稍后重试", "err");
   var body = rkEl("rkBody");
-  if(body) body.innerHTML = "<div class=\"rk-empty\">无法连接数据源（raw.githubusercontent.com）。请检查网络后点击「刷新数据」重试。</div>";
+  if(body) body.innerHTML = "<div class=\"rk-empty\">无法连接数据源（Cloudflare Worker 代理）。请检查网络后点击「刷新数据」重试。</div>";
+}
+/* admin 完整骑行轨迹：GET <worker>/api/tracks/raw?f=rides.full.json（Bearer token）。
+   成功 → 构建 run_id → 完整 polyline 映射 → 显示「完整轨迹」徽标并重绘地图。
+   失败（401 等）静默：游客/异常时维持截断轨迹渲染。 */
+function rkLoadRides(){
+  if(!authIsAdmin()) return;
+  var url = rkTracks("rides.full.json"), token = authToken();
+  if(!url || !token || !window.fetch) return;
+  var headers = { "Authorization": "Bearer " + token };
+  function apply(j){
+    if(!j || !j.ok || !Array.isArray(j.rides)) return;
+    var m = {};
+    j.rides.forEach(function(r){
+      if(r && r.run_id != null && r.summary_polyline) m[String(r.run_id)] = r.summary_polyline;
+    });
+    rkRidesFull = m;
+    var badge = rkEl("rkFullBadge");
+    if(badge) badge.style.display = "inline-flex";
+    rkShowMap(rkState.selId);
+  }
+  if(window.caches){
+    caches.open(RK_CACHE_RIDES).then(function(c){
+      return c.match(url).then(function(r){
+        if(r) return r.json();
+        return fetch(url, { headers: headers }).then(function(res){
+          if(res.status === 401){ authLogout(); return null; }
+          return res.ok ? res.json() : null;
+        }).then(function(j){
+          if(j){ c.put(url, new Response(JSON.stringify(j))); }
+          return j;
+        });
+      });
+    }).then(apply).catch(function(){});
+  } else {
+    fetch(url, { headers: headers })
+      .then(function(res){
+        if(res.status === 401){ authLogout(); return null; }
+        return res.ok ? res.json() : null;
+      })
+      .then(apply)
+      .catch(function(){});
+  }
 }
 function rkRenderAll(){
   rkRenderStats();
