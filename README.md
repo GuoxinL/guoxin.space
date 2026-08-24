@@ -21,8 +21,8 @@
 | `worker.js` | Cloudflare Worker 写通道：`/api/health`、`/api/collect`、`/api/remove`、`/api/sync` |
 | `verify.js` | 页面回归测试 144 条（Node 直接运行） |
 | `test-worker.mjs` | Worker mock 单测 60 条（自动同步 `worker.js`） |
-| `DEPLOY-WORKER.md` | Worker 部署指引 |
-| `overview.md` | 迭代交付概览 |
+| `docs/DEPLOY-WORKER.md` | Worker 部署指引 |
+| `docs/overview.md` | 迭代交付概览 |
 
 ## 快速开始
 
@@ -40,4 +40,4 @@ node test-worker.mjs
 
 ## 部署
 
-后端为 Cloudflare Worker，部署前需在 Worker 环境变量中配置 `GH_TOKEN`（细粒度 PAT，仅授权目标仓库 Contents 读写）与 `COLLECT_REPO`。详见 [DEPLOY-WORKER.md](./DEPLOY-WORKER.md)。
+后端为 Cloudflare Worker，部署前需在 Worker 环境变量中配置 `GH_TOKEN`（细粒度 PAT，仅授权目标仓库 Contents 读写）与 `COLLECT_REPO`。详见 [DEPLOY-WORKER.md](./docs/DEPLOY-WORKER.md)。

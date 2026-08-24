@@ -2,6 +2,7 @@
 
 > 背景：running 页地图样式与主页不一致 → 探索「基于 MapCN 同源重写」→ 进一步追问「脚本语言是否也切 JS」。
 > 本文档为**方案评审稿**，未动任何代码。审阅通过后按 §9 分步实施。
+> 2026-08-25 更新：融入**产物私有化**链路（`GuoxinL/running-private`）——JS 化的前置条件与消费面均已改写（见 §2.2、§2.3、§8）。
 
 ---
 
@@ -37,19 +38,30 @@ setup-python 3.11
   → python scripts/xingzhe_sync.py          # 数据同步
   → python scripts/xingzhe_fill_polyline.py # 轨迹补全
   → python scripts/prebuild_preview.py      # preview 产物（if: always() 失败不阻断）
-  → 提交 src/static/ 产物
+  → 提交 src/static/ 产物（公开仓库）
+  → push 私有仓库（GuoxinL/running-private，需 Secret TRACKS_PRIVATE_PAT）
 ```
 
-### 2.3 工作台消费面（`personal-homepage/index.html`）
+> **私有化链路（2026-08-25 新增）**：`TRACKS_PRIVATE_PAT` 配置后，CI 末尾将 4 个产物
+> （`activities.preview.json` / `.png` / `.meta.json` / `activities.rides.full.json`）同步推送至
+> `running-private` 私有仓库（默认分支 `master`），工作台经 Cloudflare Worker 代理消费；
+> 公开仓库仅保留数据生产职责。详见 `REPO-PRIVATIZE-PLAN.md` 方案 A。
 
-| 产物 | 消费位置 | 说明 |
-|---|---|---|
-| `activities.json` | `rkOnData` 实时拉取 | 完整数据 |
-| `activities.preview.json` | 矢量渲染全量点位 | 字段与 activities.json 一致，`rkParse` 无需改动 |
-| `activities.preview.png` | 地图加载瞬间垫底图 | 矢量层就绪后无缝切换 |
-| `activities.preview.meta.json` | `rkMapInit` 初始视角 `{cx,cy,z}` | 保证垫底与矢量零跳动 |
+### 2.3 工作台消费面（`personal-homepage/` + Cloudflare Worker 代理）
+
+> **2026-08-25 更新**：消费已从 `raw.githubusercontent.com` 直连改为 **Worker 代理私有仓库**。
+> `js/running.js` 的 `rkTracks()` 动态拼接 `Worker URL + "/api/tracks/raw?f=<file>"`，
+> file 键与 `worker.js` `TRACKS_FILES` 白名单对应（内容经 GitHub API `?ref=master` 拉取）。
+
+| 产物（私库根目录） | file 键 | admin | 消费位置 | 说明 |
+|---|---|---|---|---|
+| `activities.preview.json` | `preview.json` | 否 | 矢量渲染全量点位 | 字段与 activities.json 一致，`rkParse` 无需改动 |
+| `activities.preview.png` | `preview.png` | 否 | 地图加载瞬间垫底图 | 矢量层就绪后无缝切换 |
+| `activities.preview.meta.json` | `preview.meta.json` | 否 | `rkMapInit` 初始视角 `{cx,cy,z}` | 保证垫底与矢量零跳动 |
+| `activities.rides.full.json` | `rides.full.json` | **是** | admin-only（需 Bearer token） | 完整数据，私有化后仅管理员可见 |
 
 > 迁移原则：**产物格式不变**（字段名/PNG 尺寸 640x420/JSON 结构），工作台侧零改动。
+> 完整数据从公开仓库剥离后，工作台访客只消费前三个文件；`rides.full.json` 由 Worker 鉴权保护。
 
 ---
 
@@ -147,3 +159,14 @@ setup-python 3.11
 - **仅要样式统一**（本次诉求核心）：无需动脚本，直接走 I5（工作台 ~30 行）即可，今天可上线。
 - **要全链路 JS 同源**（技术栈统一，工程洁癖）：按 I1→I4 走，总工作量约 1000 行移植 + CI 改造，分 4 轮迭代，每轮独立可回滚。
 - **推荐**：先 I5 拿到样式统一（低风险高收益），再按需推进 I1→I4（JS 化本身不改变任何用户可见效果）。
+
+### 8.1 前置条件：产物私有化（方案 A，已完成评估）
+
+> 2026-08-25 新增。**JS 化推进前先落地产物私有化**，理由：
+
+| 事项 | 说明 |
+|---|---|
+| 为什么先私有化 | 完整数据（`activities.rides.full.json`）不应留在公开仓库；Worker 代理链路（§2.3）先行打通，JS 化只改 CI 内部实现，消费面零感知 |
+| 不做 submodule | GitHub Pages 无法构建私有 submodule（3 个硬性约束，见 `REPO-PRIVATIZE-PLAN.md` §3），running 亦非本仓 submodule（`.gitignore` 忽略的普通 clone） |
+| 落地动作 | CI 末尾新增 push 私库步骤（Secret `TRACKS_PRIVATE_PAT`，尚未配置，配置前跳过推送）；公开仓库剥离完整数据 |
+| 与 JS 化的关系 | 私有化链路（公开仓库 CI 生产 → 私库存储 → Worker 代理消费）与 JS 化**正交**，可独立上线；但推荐私有化先行，避免大改与数据迁移叠加 |

@@ -20,7 +20,7 @@
 
 ## 二、现状盘点
 
-- **主站**：`guoxin.space`，GitHub Pages 纯静态站，原生 HTML/CSS/JS，无后端、无 session、无构建（`AGENTS.md:3`）。
+- **主站**：`guoxin.space`，GitHub Pages 纯静态站，原生 HTML/CSS/JS，无后端、无 session、无构建（`docs/AGENTS.md:3`）。
 - **无任何用户身份**：全仓库无 OAuth / 登录 / 用户态。GitHub 相关代码只有公开 API 读取（`js/skills.js:40`）与 Worker 端 PAT。
 - **Skills 写通道（待移除的缺陷）**：`worker.js:36-41` 仅校验共享密钥 `x-collect-key`——人人共用一个静态 key，无身份绑定、无时效，任何拿到 key 的人都能写收藏仓库，泄露后只能人工更换。`skills.js` 收藏（`skOpenCollect` 508 / `skCollect` 527）、删除（`skRemove` 556）、同步（`skSync` 570）、通道设置（`skOpenCfg` 590）均已实现，其中 `skCollect` / `skRemove` / `skSync` 通过 `skKey(cfg)`（skills.js:537,563）注入 `x-collect-key` 请求头。**以上全部删除**。
 - **Running 数据当前直连公开仓库**：`js/running.js` 三个 URL 全部指向 `raw.githubusercontent.com/GuoxinL/running/...`：
@@ -161,7 +161,7 @@ Authorization: Bearer <token>
 |---|---|
 | `js/auth.js`（新增） | OAuth 登录/登出/token 存取/`authIsAdmin` |
 | `index.html` | 导航栏登录入口 + 用户态；skills 4 个按钮加 `admin-only`；**删除 `skCfgModal` 中的 key 输入项**；running 完整轨迹徽标 |
-| `404.html` | `cp index.html 404.html` 同步（`AGENTS.md:65`） |
+| `404.html` | `cp index.html 404.html` 同步（`docs/AGENTS.md:65`） |
 | `js/skills.js` | **删除 `skKey` 与全部 `x-collect-key` 注入**；`skCfg()` 不再读写 key；请求头统一 `Authorization: Bearer`；按钮按登录态显隐 |
 | `js/running.js` | 三个 URL 改 Worker 代理；admin 拉 `rides.full.json` 替换完整骑行轨迹；未配置 Worker 的提示文案 |
 | `css/style.css` | `.admin-only` 样式（`body.admin` 下显示） |

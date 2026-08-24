@@ -18,12 +18,19 @@ personal-homepage/
 │   ├── app.js          # 初始化入口 init() + DOMContentLoaded + window.* 暴露
 │   └── running.js      # Running 骑行/跑步数据（地图/统计/活动卡片/轨迹回放）
 ├── worker.js           # Cloudflare Worker：鉴权（OAuth + Bearer）+ 收藏写通道 + 轨迹私有仓库代理
-├── AUTH-PERMISSION-DESIGN.md  # 权限控制方案（admin/游客）存档
-├── verify.js           # 页面 vm 回归测试（254 条断言，Node 直接运行）
+├── verify.js           # 页面 vm 回归测试（270 条断言，Node 直接运行）
 ├── test-worker.mjs     # Worker mock 单测（自动同步 worker.js）
-├── overview.md         # 迭代交付概览（每次迭代追加章节）
-├── DEPLOY-GUOXIN-SPACE.md  # GitHub Pages 部署细节
-└── DEPLOY-WORKER.md    # Worker 部署细节
+├── docs/               # 仓库文档（与运行时代码分离，改文档只动这里）
+│   ├── AGENTS.md                 # 本文档
+│   ├── AUTH-PERMISSION-DESIGN.md # 权限控制方案（admin/游客）存档
+│   ├── DEPLOY-GUOXIN-SPACE.md    # GitHub Pages 部署细节
+│   ├── DEPLOY-WORKER.md          # Worker 部署细节
+│   ├── FOLLOWUP-OPERATIONS.md    # 权限系统上线操作清单
+│   ├── overview.md               # 迭代交付概览（每次迭代追加章节）
+│   ├── running-js-migration-plan.md # running 脚本 Python→JS 迁移方案
+│   ├── RUNNING-MAP-FIX-PLAN.md   # 轨迹地图修复计划
+│   └── RUNNING-MAP-PERF.md       # 轨迹地图性能分析
+└── README.md           # 项目简介（留在根目录，GitHub 展示用）
 ```
 
 ## 核心约定（拆分后必须遵守）
@@ -40,10 +47,13 @@ personal-homepage/
 
 ## 数据流
 
-- 前端页面数据（Running 模块）直连 `running` 仓库：
-  - 活动 JSON：`https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json`
-  - 垫底 PNG / 视角元数据：`activities.preview.png`、`activities.preview.meta.json`
-- `running` 仓库的产物由 `scripts/prebuild_preview.py` 生成（地点由 `scripts/geocode_locations.py` 反解后固化进 `locations.json`）。**改 Running 数据链路时，同步改 `running` 仓库，而非在本仓库硬编码。**
+- 前端页面数据（Running 模块）**全部经 Cloudflare Worker 代理**，不直连任何公开 raw URL：
+  - Worker 环境变量 `TRACKS_REPO = GuoxinL/running-private`（**私有**仓库，默认分支 `master`）
+  - 页面从 Skills「通道设置」读 Worker URL，拼接 `/api/tracks/raw?f=<file>`：
+    - `preview.json` / `preview.png` / `preview.meta.json`：游客可读（截断轨迹 + 垫底图 + 视角元数据）
+    - `rides.full.json`：完整轨迹，仅 admin（OAuth 登录后 Bearer token）
+  - 白名单硬编码在 `worker.js` 的 `TRACKS_FILES`（约 585 行），文件名与私库根目录产物**精确匹配**
+- `running` 公开仓库（`GuoxinL/running`）仅承担**数据生产**：`scripts/prebuild_preview.py` 生成产物 → CI（`xingzhe_sync.yml` 每小时）提交公开仓库 src/static/ + 推送 4 个产物到私库根目录（需 Secret `TRACKS_PRIVATE_PAT`）。**改 Running 数据链路时，同步改 `running` 仓库，而非在本仓库硬编码。**
 
 ## 构建与验证
 
