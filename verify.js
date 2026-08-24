@@ -38,6 +38,14 @@ function makeEl(id, cls) {
         case 'select': return () => {};
         case 'appendChild': return () => {};
         case 'removeChild': return () => {};
+        /* Task 17 地图所需 DOM 方法：getBoundingClientRect 固定 640x420；
+           querySelector 返回 null → rkShowMap 中 img=null → 同步 go() 渲染矢量层（测试环境无 img 分支）；
+           setAttribute/removeAttribute 存储属性便于后续断言 */
+        case 'getBoundingClientRect': return () => ({ width: 640, height: 420, left: 0, top: 0 });
+        case 'querySelector': return () => null;
+        case 'querySelectorAll': return () => [];
+        case 'setAttribute': return (k, v) => { (store._attrs = store._attrs || {})[k] = String(v); };
+        case 'removeAttribute': return (k) => { if (store._attrs) delete store._attrs[k]; };
         default: return undefined;
       }
     },
@@ -67,6 +75,7 @@ const documentMock = {
     return elements[id];
   },
   addEventListener() {},
+  removeEventListener() {},
   createElement() { return makeEl('created'); },
   querySelectorAll() { return []; },
   body: makeEl('body'),
@@ -97,8 +106,9 @@ const ctx = {
   location: locationMock,
   history: historyMock,
   console,
-  // 同步化 setTimeout：setSide 的 500ms 防抖保存立即生效，便于断言
-  setTimeout: (fn) => { fn(); return 0; },
+  // 同步化 setTimeout：setSide 的 500ms 防抖保存立即生效，便于断言；
+  // 仅当参数为函数时立即执行（部分调用仅作定时器句柄，字符串/缺参形式直接跳过）
+  setTimeout: (fn) => { if (typeof fn === 'function') { fn(); } return 0; },
   clearTimeout: () => {},
   setInterval: () => 0,
   clearInterval: () => 0,
@@ -562,18 +572,23 @@ ctx.rkActs = [
 ];
 var rkMT = ctx.rkMapTracks(ctx.rkActs);
 T('rkMapTracks 仅含可解码轨迹', rkMT.length===2 && rkMT[0].id===1 && rkMT[1].type==='Ride' && rkMT[0].coords.length>0, 'n='+rkMT.length);
+// rkDecodePolyline 独立解码（Google encoded polyline, precision 5 官方示例 _p~iF~ps|U_ulLnnqC_mqNvxq`@ → 3 点）
+var rkDp = ctx.rkDecodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@');
+T('rkDecodePolyline 独立解码（precision5 官方示例 3 点）', rkDp.length===3 && Math.abs(rkDp[0][0]-38.5)<0.01 && Math.abs(rkDp[0][1]+120.2)<0.01, JSON.stringify(rkDp));
 ctx.rkShowMap(0);
 var rkBoxHtml = el('rkMapBox').innerHTML;
 var rkCanvasHtml = el('rkMapCanvas').innerHTML;
-T('rkShowMap(0) 渲染全部轨迹 polyline 数=2', (rkCanvasHtml.match(/<polyline/g)||[]).length===2, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length);
-T('rkShowMap(0) 无高亮粗线', (rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length===0, 'hl='+(rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length);
+/* phase1：垫底 SVG <img> 立即写入（渐进加载）；测试环境无 img 分支 → go() 同帧同步渲染矢量层 */
+T('rkShowMap(0) phase1 垫底图与加载提示', rkBoxHtml.indexOf('<img class="rk-tm-pv"')>=0 && rkBoxHtml.indexOf('rk-tm-loading')>=0 && rkBoxHtml.indexOf('轨迹矢量层构建中')>=0, rkBoxHtml.slice(0,120));
+T('rkShowMap(0) phase2 矢量层 polyline 数=2', (rkCanvasHtml.match(/<polyline/g)||[]).length===2, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length);
+T('rkShowMap(0) 无高亮（无 #f97316 条带）', (rkCanvasHtml.match(/stroke="#f97316"/g)||[]).length===0, 'hl='+(rkCanvasHtml.match(/stroke="#f97316"/g)||[]).length);
 T('rkShowMap(0) 标题显示全部轨迹', el('rkMapTitle').textContent.indexOf('全部 2 条轨迹')>=0, el('rkMapTitle').textContent);
 var rkCtrlHtml = rkCanvasHtml.slice(rkCanvasHtml.indexOf('rk-tm-ctrl'));
 T('底图样式按钮位于 +/- 上方且独立分组', rkCtrlHtml.indexOf('rkMapStyle()')>=0 && rkCtrlHtml.indexOf('rkMapStyle()')<rkCtrlHtml.indexOf('title="放大"') && rkCtrlHtml.indexOf('rk-tm-style')>=0, rkCtrlHtml.slice(0,100));
 ctx.rkShowMap(1);
 rkBoxHtml = el('rkMapBox').innerHTML;
 rkCanvasHtml = el('rkMapCanvas').innerHTML;
-T('rkShowMap(1) 高亮选中且其余轨迹保留', (rkCanvasHtml.match(/<polyline/g)||[]).length===2 && (rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length===1, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length+' hl='+(rkCanvasHtml.match(/stroke-width="3.5"/g)||[]).length);
+T('rkShowMap(1) 高亮选中且其余轨迹保留', (rkCanvasHtml.match(/<polyline/g)||[]).length===2 && (rkCanvasHtml.match(/stroke="#f97316"/g)||[]).length===1, 'poly='+(rkCanvasHtml.match(/<polyline/g)||[]).length+' hl='+(rkCanvasHtml.match(/stroke="#f97316"/g)||[]).length);
 T('rkShowMap(1) 标题含选中活动与轨迹总数', el('rkMapTitle').textContent.indexOf('晨跑')>=0 && el('rkMapTitle').textContent.indexOf('共 2 条轨迹')>=0, el('rkMapTitle').textContent);
 ctx.rkShowMap(3);
 rkBoxHtml = el('rkMapBox').innerHTML;
@@ -629,6 +644,26 @@ T('热点视角：rkHotSpot 挂载 + 默认聚焦 + ⤢ 按钮修复',
   && html.indexOf('else if(idx === 2 || idx === 3) fit()') >= 0
   && html.indexOf('已聚焦最热点区域') >= 0,
   'rkHotSpot/挂载/默认视角/⤢修复');
+
+// Task 17 渐进式加载 + 固定 zoom13 世界像素投影（垫底 SVG 全貌 → 矢量层就绪切换，缩放零重投影）
+T('渐进加载：RK_PV_URL 垫底常量 + phase1 img 与加载提示',
+  html.indexOf('var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.svg"') >= 0
+  && html.indexOf('<img class=\\"rk-tm-pv\\"') >= 0
+  && html.indexOf('rk-tm-loading') >= 0
+  && html.indexOf('轨迹矢量层构建中') >= 0,
+  '垫底图/加载提示');
+T('固定投影：RK_BASE_Z=13 世界像素投影一次 + viewBox 矩阵缩放',
+  /var RK_BASE_Z = 13/.test(html)
+  && html.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0
+  && html.indexOf('S.k = Math.pow(2, S.z - RK_BASE_Z)') >= 0
+  && html.indexOf('viewBoxArgs') >= 0,
+  '投影基准/缩放矩阵');
+T('缩放零重建：viewBox setAttribute + 线宽反算',
+  html.indexOf('setAttribute("viewBox"') >= 0
+  && html.indexOf('updateStrokeWidths') >= 0
+  && html.indexOf('(1.6 / k).toFixed(2)') >= 0
+  && html.indexOf('(3.5 / k).toFixed(2)') >= 0,
+  '矩阵缩放/线宽反算');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
