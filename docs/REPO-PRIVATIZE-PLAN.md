@@ -61,7 +61,7 @@
 | # | 约束 | 说明 | 影响 |
 |---|---|---|---|
 | 1 | **GitHub Pages 无法拉私有 submodule** | 主仓库 Pages 构建是公开环境，clone 私有 submodule 必须带凭证 → 构建必失败 | **部署直接挂**，除非主站迁移出 GitHub Pages |
-| 2 | **私有仓库 Actions 配额** | 免费账户私库 Actions 仅 **2000 分钟/月**（公开仓库无限）。xingzhe_sync 每小时 1 次 ≈ 720 次/月 × 1~3 分钟 ≈ **720~2160 分钟/月**，已逼近/超过额度 | 若 CI 迁私库，月内可能被限流停摆 |
+| 2 | **私有仓库 Actions 配额（已实测修正）** | 免费账户私库 Actions 仅 **2000 分钟/月**（公开仓库无限）。**2026-08-25 实测**：xingzhe_sync 每次运行仅 ~20s（API runs 时间戳差，最近 6 次 17~21s）。若 CI 迁私库：每小时 1 次 ≈ 720 次/月 × 20s ≈ **240 分钟/月（12%）**，配额内安全；若 JS 化后单次跑满 2 分钟也仅 1440 分钟/月（72%） | 配额本身不构成硬约束；真正硬约束是 #1 Pages 构建与 #3 无免费 Pages |
 | 3 | **私有仓库无免费 Pages** | running 自己的 Pages（gh-pages.yml 构建的 running_page 站）在私库需 GitHub Pro（$4/月） | running 站若要保留公开展示则不可私有化 |
 
 ### 2.3 推荐做法
@@ -136,9 +136,9 @@
 
 | 操作 | 内容 |
 |---|---|
-| 新建 `docs/` | 9 个文档 git mv 移入：AGENTS / AUTH-PERMISSION-DESIGN / DEPLOY-GUOXIN-SPACE / DEPLOY-WORKER / FOLLOWUP-OPERATIONS / overview / running-js-migration-plan / RUNNING-MAP-FIX-PLAN / RUNNING-MAP-PERF |
-| 根目录保留 | `README.md`（GitHub 展示惯例）、`index.html`、`404.html`、`css/`、`js/`、`worker.js`、`verify.js`、`test-worker.mjs` |
-| 引用更新 | `README.md` 链接 → `./docs/...`；`docs/AGENTS.md` 目录结构 + **数据流章节修正**（旧文写「直连 raw」，实为 Worker 代理私库）；`docs/AUTH-PERMISSION-DESIGN.md` 两处 `AGENTS.md` 引用加 `docs/` 前缀 |
+| 新建 `docs/` | 9 个文档 git mv 移入：AUTH-PERMISSION-DESIGN / DEPLOY-GUOXIN-SPACE / DEPLOY-WORKER / FOLLOWUP-OPERATIONS / overview / running-js-migration-plan / RUNNING-MAP-FIX-PLAN / RUNNING-MAP-PERF（**AGENTS.md 留在根目录**，供 AI Agent 自动发现，2026-08-25 用户确认） |
+| 根目录保留 | `AGENTS.md`、`README.md`（GitHub 展示惯例）、`index.html`、`404.html`、`css/`、`js/`、`worker.js`、`verify.js`、`test-worker.mjs` |
+| 引用更新 | `README.md` 链接 → `./docs/...`；`AGENTS.md` 目录结构 + **数据流章节修正**（旧文写「直连 raw」，实为 Worker 代理私库）；`AUTH-PERMISSION-DESIGN.md` 两处 `AGENTS.md` 引用恢复无前缀（文档在 docs/ 内，引用根目录文件不加前缀） |
 | 回归 | `node verify.js` 270/270 全绿（verify 不依赖 md 路径，无破坏） |
 
 ---
