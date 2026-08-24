@@ -10,6 +10,19 @@
 | `test-worker.mjs` | Worker mock 单测 60 条（自动同步 worker.js，改后直接重跑） |
 | `verify.js` | 页面回归 182 条（原 144 + 运动数据 rk 数据层/算法对齐 38：rkParse 规整/过滤、rkMovingSec 3 段/2 段/天、rkFmtDist/rkPace/rkFmtDur/rkFmtClock、rkYears/rkSortDate、rkStats、rkHeatYear 网格/月份、rkHeatColor 4 级色阶边界、rkPbs 窗口+配速过滤、rkDecodePolyline、rkTitleFor 时段、rkMonthDist/rkYearDist、rkComma、rkTrendSVG） |
 
+## 2026-08-25 活动回放底图 MapCN 瓦片 + 跟随系统明暗（commit 04d91cf）
+
+- **需求**：播放路径视频（活动详情弹窗轨迹回放）时，背景从纯色深色块改为 **MapCN（CARTO basemaps）瓦片底图**，且底图样式**跟随系统默认明暗**（浅色系统 → light 瓦片、暗色系统 → dark 瓦片）。
+- **实现**（`js/running.js` + `js/app.js`）：
+  - 回放投影从等距投影（`cosLat` 修正）改为 **Web Mercator**（复用 `rkMerc`），轨迹点 = 世界像素坐标，与瓦片底图严格对齐；zoom 自适应：从 `RK_BASE_Z=13` 起，轨迹像素宽高 < 60% 视口（留 pad 70）则 zoom in、> 视口则 zoom out。
+  - 新增 `rkActBgStyle()`：`matchMedia("(prefers-color-scheme: dark)")` 检测，暗色 → `RK_STYLES[2]`(dark)、否则 → `RK_STYLES[0]`(light)，与运行页地图三档手动切换（固定浅色）**相互独立**，回放底图不做手动切换。
+  - 新增 `rkActLoadBg()`：`new Image()` 异步加载视口内瓦片，`onload` 时 `bgCtx.drawImage` 画入离屏 canvas；`{s}` 子域负载均衡 `"abcd"[(wx+ty+z)%4]`；单块失败保留占位底色、不阻断回放（渐进加载）。
+  - `RK_STYLES` 每档补 `bg` 占位底色（light/voyager `#e9e5dd`、dark `#1a2234`）；`draw()` 每帧先 `ctx.drawImage(bgCv,0,0)` 铺背景再画轨道。
+  - `app.js` 挂载 `window.rkActBgStyle/rkActLoadBg`。
+- **同时纳入脚本拆分外链化**（上轮未提交）：`index.html`/`404.html` 内联 CSS/JS 拆到 `css/style.css` 与 `js/`（util/json/skills/app/running，顺序固定）；修复拆分后 Running 页时序 bug（`util.js` 顶层 hash 块过早 `navigate()` 导致 `skTreeClose is not defined` → 中断 `WEEK` 赋值 → `renderClock()` 抛错 → `navigate()`/`rkLoad()` 未执行，卡片数 0 / clock 缺失 / thumbImgs 0）。
+- **验证**：verify.js 断言 **247 → 252 全绿**（回放 Mercator + 瓦片底图 + 明暗跟随运行时/源码断言 + 挂载断言）；puppeteer `/tmp/rk_darkcheck.cjs` 本地实测 —— 浅色系统 `rkActBgStyle()` → light_all、`emulateMediaFeatures` 模拟暗色系统 → dark_all（`matchMedia` matches=true），零 JS 错误。
+- **提交**：`04d91cf`；已推送 + Pages 部署 + 线上复验。
+
 ## 2026-08-24 迭代十六：拖拽平移路径与地图脱离修复
 
 - **需求**：轨迹地图鼠标/触摸拖动时，路径（SVG 层）与底图（瓦片层）脱离，一拖即分离。

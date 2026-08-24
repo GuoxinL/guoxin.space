@@ -17,7 +17,7 @@ personal-homepage/
 │   ├── app.js          # 初始化入口 init() + DOMContentLoaded + window.* 暴露
 │   └── running.js      # Running 骑行/跑步数据（地图/统计/活动卡片/轨迹回放）
 ├── worker.js           # Cloudflare Worker 写通道（独立部署，与页面无关）
-├── verify.js           # 页面 vm 回归测试（247 条断言，Node 直接运行）
+├── verify.js           # 页面 vm 回归测试（252 条断言，Node 直接运行）
 ├── test-worker.mjs     # Worker mock 单测（自动同步 worker.js）
 ├── overview.md         # 迭代交付概览（每次迭代追加章节）
 ├── DEPLOY-GUOXIN-SPACE.md  # GitHub Pages 部署细节
@@ -47,7 +47,7 @@ personal-homepage/
 
 ```bash
 # 页面回归测试（改任何 js/css/html 后必跑）
-node verify.js          # 期望：247 / 247 ALL TESTS PASSED
+node verify.js          # 期望：252 / 252 ALL TESTS PASSED
 
 # 本地预览
 python3 -m http.server 8734   # 打开 http://127.0.0.1:8734/index.html#/running
