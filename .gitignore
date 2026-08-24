@@ -16,3 +16,6 @@ node_modules/
 
 # 生成物（test-worker.mjs 运行时自动 cp worker.js 生成）
 worker.test.mjs
+
+# running 数据仓库（本地开发用普通 clone 管理，不再作为 submodule 发布到 Pages）
+running/
