@@ -908,8 +908,19 @@ function toggleTheme(){
 function navigate(){
   var raw = String(location.pathname || "/").replace(/^\//,"");
   var parts = raw.split("/"), h = parts[0] || "";
-  /* 兼容旧链接：/run → /running */
-  if(h === "run"){ history.replaceState(null,"","/running" + (parts.length > 1 ? "/" + parts.slice(1).join("/") : "")); return navigate(); }
+  /* 回退：本地 file:// 预览 pathname 为磁盘路径无法解析 → 从旧 hash 链接解析目标页 */
+  if(["home","json","skills","running"].indexOf(h) < 0 && /^#\//.test(location.hash || "")){
+    h = location.hash.replace(/^#\//,"").split("/")[0];
+    parts[0] = h;
+  }
+  /* 兼容旧链接：/run → /running（file:// 下 replaceState 受限时本地修正后继续） */
+  if(h === "run"){
+    var np = "/running" + (parts.length > 1 ? "/" + parts.slice(1).join("/") : "");
+    var replaced = false;
+    try{ history.replaceState(null,"",np); replaced = true; }catch(e){ /* file:// 受限 */ }
+    if(replaced) return navigate();
+    h = "running"; parts[0] = "running";
+  }
   if(["home","json","skills","running"].indexOf(h) < 0) h = "home";
   var pages = document.querySelectorAll(".page");
   for(var i=0;i<pages.length;i++) pages[i].classList.toggle("active", pages[i].id === "page-"+h);
@@ -943,9 +954,10 @@ document.addEventListener("click", function(e){
     go(href);
   }
 });
-/* 兼容旧 hash 链接：#/xxx → /xxx（replaceState 不留历史记录） */
+/* 兼容旧 hash 链接：#/xxx → /xxx（replaceState 不留历史记录；file:// 下受限则忽略并直接导航） */
 if(location.hash && /^#\//.test(location.hash)){
-  history.replaceState(null,"",location.hash.slice(1));
+  try{ history.replaceState(null,"",location.hash.slice(1)); }catch(e){ /* 本地 file:// 预览下 replaceState 受限 */ }
+  navigate();
 }
 
 /* ================= 工作台：日期 + 问候 ================= */
@@ -2193,9 +2205,13 @@ document.addEventListener("DOMContentLoaded", init);
 /* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
 var RK_CACHE = "wb_rk_acts_v2";
-/* OSM 标准瓦片（WGS-84 标准，国内可达性优于 CARTO；单一样式，无 token） */
+/* MapCN（CARTO Basemaps）免费瓦片，无 token；auto 档按明暗跟随，其余三档手动切换。
+   OSM 曾因国内可达性优于 CARTO 而单档替换，现恢复多档并保留明暗跟随（用户可手动切回） */
 var RK_STYLES = [
-  { k:"osm", n:"标准", url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png" }
+  { k:"auto",    n:"自动", url:"" },
+  { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
+  { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
+  { k:"dark",    n:"暗色", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" }
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
@@ -2211,9 +2227,10 @@ var RK_BASE_Z = 13;
 function rkThemeDark(){
   try{ return !!document.body && document.body.dataset.theme === "dark"; }catch(e){ return false; }
 }
-/* 解析实际生效的样式（OSM 单样式） */
+/* 解析实际生效的样式索引：auto 档按当前明暗模式返回 light_all(1) 或 dark_all(3) */
 function rkResolveStyle(idx){
   var s = RK_STYLES[idx] || RK_STYLES[0];
+  if(s && s.k === "auto") return RK_STYLES[rkThemeDark() ? 3 : 1];
   return s;
 }
 var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_page TYPE_PALETTES.Run */
@@ -2873,12 +2890,13 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   }
   function ctrlHTML(){
     return '<div class="rk-tm-ctrl">'
+      + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
       + '</div>'
       + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>'
-      + '<div class="rk-tm-attr">© OpenStreetMap contributors</div>';
+      + '<div class="rk-tm-attr">© OpenStreetMap contributors © CARTO</div>';
   }
   /* 缩放/平移：仅更新 viewBox 矩阵 + 线宽反算（SVG 内容零重建，345K 点不重绘） */
   function refreshView(){
