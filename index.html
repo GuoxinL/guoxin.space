@@ -470,7 +470,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
         <button class="qcard" onclick="go('/running')">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></div>
           <div class="qt">Running</div>
-          <div class="qd">跑步 / 骑行统计 · 直连 running_page</div>
+          <div class="qd">跑步 / 骑行统计 · 直连 running</div>
         </button>
         <div class="qcard dashed">+ 更多卡片<br>（待办 / 打卡 / 记账…）</div>
       </div>
@@ -671,16 +671,16 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
     </div>
   </section>
 
-  <!-- 页面四：Running（running_page 数据直连） -->
+  <!-- 页面四：Running（running 数据直连） -->
   <section class="page" id="page-running">
     <div class="rk-head">
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
         Running
-        <span class="rk-sub">跑步 / 骑行 · 直连 running_page</span>
+        <span class="rk-sub">跑步 / 骑行 · 直连 running</span>
       </h2>
       <div class="toolbar">
-        <button class="btn" onclick="rkRefresh()" title="重新拉取 running_page 仓库的 activities.json">
+        <button class="btn" onclick="rkRefresh()" title="重新拉取 running 仓库的 preview 抽帧数据">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
           刷新数据
         </button>
@@ -2189,9 +2189,9 @@ function init(){
 }
 document.addEventListener("DOMContentLoaded", init);
 
-/* ================= Running (run)：数据源 = running_page 仓库直连 ================= */
-var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running_page/master/src/static/activities.json";
-var RK_CACHE = "wb_rk_acts_v1";
+/* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
+var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
+var RK_CACHE = "wb_rk_acts_v2";
 /* MapCN（CARTO Basemaps）免费瓦片，无需 token；对齐 running_page MAP_TILE_VENDOR='mapcn'。
    首档 auto（默认）：亮色模式→light_all 白底，暗色模式→dark_all，跟随页面明暗切换 */
 var RK_STYLES = [
@@ -2759,11 +2759,11 @@ function rkMapInit(container, tracks, styleIdx, selId){
   }
   function setZoom(nz){
     S.z = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, nz));
-    /* 全局点预算约 9 万，平摊到每条未选中轨迹；选中轨迹保持全精度 */
-    var budget = Math.floor(90000 / Math.max(1, S.tracks.length));
+    /* preview 数据已在构建时 DP 抽稀（平均 ~56 点/条，全量 ~9K 点），
+       运行时直接全量投影，毫秒级，无需再抽稀 */
     S.tracks.forEach(function(t){
       var pts = t.coords.map(function(c){ var p = rkMerc(c[1], c[0], S.z); return [p[0], p[1]]; });
-      t.pts = t.sel ? pts : rkThin(pts, Math.max(8, Math.min(200, budget)));
+      t.pts = pts;
     });
   }
   function bbox(){
@@ -2960,7 +2960,7 @@ function rkOnData(text){
     rkActs = rkParse(text);
     window.rkActs = rkActs; /* 挂全局便于控制台调试与外部脚本访问 */
     if(!rkActs.length) throw new Error("数据为空");
-    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running_page 仓库，本地零存储）", "ok");
+    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（直连 running 仓库 preview，本地零存储）", "ok");
     var curYr = String(new Date().getFullYear());
     rkState.year = rkYears(rkActs).indexOf(curYr) >= 0 ? curYr : (rkYears(rkActs)[0] || curYr); // 默认当年（2026）；数据无当年则回退最新年份
     rkState.listYear = "all"; rkState.listN = 30;
