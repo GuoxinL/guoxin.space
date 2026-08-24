@@ -681,6 +681,14 @@ T('缩放零重建：viewBox setAttribute + 线宽反算',
   && html.indexOf('(1.6 / k).toFixed(2)') >= 0
   && html.indexOf('(3.5 / k).toFixed(2)') >= 0,
   '矩阵缩放/线宽反算');
+T('滚轮灵敏度：累积 deltaY 阈值 120 才缩放（防触控板/高精度滚轮一次跳 N 级）',
+  html.indexOf('wheelAcc') >= 0
+  && html.indexOf('while(wheelAcc <= -120)') >= 0
+  && html.indexOf('while(wheelAcc >= 120)') >= 0
+  && html.indexOf('now - wheelAt > 400') >= 0
+  && html.indexOf('Math.max(-3, Math.min(3, d))') >= 0
+  && html.indexOf('zoomBy(e.deltaY < 0 ? 1 : -1') < 0,
+  '累积阈值/手势超时/限幅3级');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
