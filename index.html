@@ -317,16 +317,25 @@ select.indent{min-height:38px;border:1px solid var(--border2);border-radius:var(
 .rk-pb-item .rk-pb-v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;line-height:1.2}
 .rk-pb-item .rk-pb-d{font-size:11px;color:var(--text3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rk-trend{width:100%;height:auto;display:block}
-.rk-list{display:flex;flex-direction:column}
-.rk-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:var(--radius-s);cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border)}
-.rk-row:hover{background:var(--surface2)}
-.rk-row:last-child{border-bottom:none}
-.rk-row .rk-date{font-size:12px;color:var(--text3);width:86px;flex-shrink:0;font-variant-numeric:tabular-nums}
-.rk-row .rk-name{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rk-row .rk-name .rk-type{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--primary-soft);color:var(--primary-deep);margin-right:6px;vertical-align:1px;flex-shrink:0}
-body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
-.rk-row .rk-num{font-size:12.5px;color:var(--text2);text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
-.rk-row .rk-num b{font-weight:600;color:var(--text);font-size:13.5px}
+.rk-actlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.rk-actcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .16s,box-shadow .16s,border-color .16s;display:flex;flex-direction:column}
+.rk-actcard:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--primary)}
+.rk-act-thumb{position:relative;aspect-ratio:16/9;background:var(--surface2);overflow:hidden}
+.rk-act-thumb img{width:100%;height:100%;object-fit:cover;display:block;background:var(--surface2)}
+.rk-act-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:6px;background:var(--primary-soft);color:var(--primary-deep);font-weight:600}
+body[data-theme="dark"] .rk-act-tag{color:var(--primary)}
+.rk-act-thumb .rk-act-tag{position:absolute;left:8px;top:8px;background:rgba(15,23,42,.55);color:#fff;backdrop-filter:blur(3px)}
+.rk-act-body{padding:12px 14px 13px;display:flex;flex-direction:column;gap:9px;flex:1}
+.rk-act-title{font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px;min-width:0}
+.rk-act-title .rk-act-tag{flex-shrink:0}
+.rk-act-meta{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--text2);line-height:1.5}
+.rk-act-meta .rk-act-loc{display:flex;align-items:center;gap:5px;min-width:0}
+.rk-act-meta .rk-act-loc svg{width:12px;height:12px;flex-shrink:0;color:var(--text3)}
+.rk-act-meta .rk-act-loc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-act-stats{display:flex;gap:6px;border-top:1px solid var(--border);padding-top:10px;margin-top:auto}
+.rk-act-stat{flex:1;text-align:center;min-width:0}
+.rk-act-stat b{display:block;font-size:15.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.2}
+.rk-act-stat span{font-size:10.5px;color:var(--text3)}
 .rk-more{width:100%;padding:10px;text-align:center;color:var(--primary);font-size:13px;cursor:pointer;background:none;border:1px dashed var(--border2);border-radius:var(--radius-s);margin-top:10px}
 .rk-more:hover{border-color:var(--primary)}
 .rk-map{position:relative;width:100%;border-radius:var(--radius-s);overflow:hidden;border:1px solid var(--border);background:var(--surface2)}
@@ -349,8 +358,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-empty{padding:30px 0;text-align:center;color:var(--text3);font-size:13px}
 @media (max-width:768px){
   .rk-cards{grid-template-columns:repeat(2,1fr)}
-  .rk-row .rk-name{font-size:12.5px}
-  .rk-row .rk-date{width:74px}
+  .rk-actlist{grid-template-columns:repeat(2,1fr)}
 }
 
 /* ===== 弹窗 ===== */
@@ -361,6 +369,24 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .modal p{font-size:13px;color:var(--text2);margin-bottom:14px}
 .modal input[type=file]{font-size:13px;margin-bottom:14px;color:var(--text2)}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end}
+
+/* ===== 活动详情弹窗 + 轨迹回放 ===== */
+.rk-act-modal .modal{max-width:720px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh}
+.rk-act-video{position:relative;aspect-ratio:16/9;background:#0f172a;overflow:hidden;flex-shrink:0}
+.rk-act-video canvas{width:100%;height:100%;display:block}
+.rk-act-video .rk-act-hint{position:absolute;left:10px;bottom:10px;font-size:11px;color:rgba(255,255,255,.78);background:rgba(15,23,42,.45);padding:2px 8px;border-radius:8px;z-index:3;pointer-events:none}
+.rk-act-close{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(15,23,42,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center;transition:background .12s}
+.rk-act-close:hover{background:rgba(15,23,42,.8)}
+.rk-act-info{padding:18px 20px 20px;overflow:auto}
+.rk-ai-title{font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:6px;min-width:0}
+.rk-ai-title .rk-ai-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-ai-sub{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.rk-act-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rk-act-cell{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-s);padding:10px 12px}
+.rk-act-cell .rk-k{font-size:11px;color:var(--text3)}
+.rk-act-cell .rk-v{font-size:16.5px;font-weight:700;color:var(--text);margin-top:3px;font-variant-numeric:tabular-nums;line-height:1.25}
+.rk-act-cell .rk-v small{font-size:11px;font-weight:400;color:var(--text3)}
+@media (max-width:560px){ .rk-act-grid{grid-template-columns:repeat(2,1fr)} }
 
 /* ===== 响应式 ===== */
 @media (max-width:900px){
@@ -725,7 +751,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>活动列表</h3>
           <div class="toolbar" id="rkListTools"></div>
         </div>
-        <div class="rk-list" id="rkList"></div>
+        <div class="rk-actlist" id="rkList"></div>
       </div>
     </div>
   </section>
@@ -739,6 +765,17 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
         <button class="btn" onclick="clearHistory()">清空历史</button>
         <button class="btn primary" onclick="closeHist()">关闭</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 活动详情弹窗：轨迹回放视频窗口 + 完整骑行信息 -->
+  <div class="modal-mask rk-act-modal" id="rkActModal" onclick="rkMaskClose(event)">
+    <div class="modal">
+      <div class="rk-act-video" id="rkActVideo">
+        <button class="rk-act-close" onclick="rkCloseAct()" title="关闭" aria-label="关闭">✕</button>
+        <div class="rk-act-hint">轨迹回放</div>
+      </div>
+      <div class="rk-act-info" id="rkActInfo"></div>
     </div>
   </div>
 </main>
@@ -2191,6 +2228,8 @@ function init(){
   window.rkMapStyleIdx = rkMapStyleIdx; window.rkResolveStyle = rkResolveStyle;
   window.rkHeatSel = rkHeatSel; window.rkTrendMode = rkTrendMode;
   window.rkListSel = rkListSel; window.rkMore = rkMore; window.rkShowMap = rkShowMap;
+  window.rkOpenAct = rkOpenAct; window.rkCloseAct = rkCloseAct; window.rkMaskClose = rkMaskClose;
+  window.rkActInfo = rkActInfo; window.rkActReplay = rkActReplay; window.rkActStop = rkActStop;
   window.rkHotSpot = rkHotSpot; window.rkMapTracks = rkMapTracks;
   window.rkMerc = rkMerc; window.rkMercInv = rkMercInv;
   window.rkDecodePolyline = rkDecodePolyline; window.rkThin = rkThin;
@@ -2249,14 +2288,15 @@ function rkParse(json){
   if(!arr || !Array.isArray(arr)) return [];
   return arr.map(function(a){
     return {
-      id: a.run_id != null ? a.run_id : 0,
+      id: a.run_id != null ? String(a.run_id) : "0",
       name: a.name || "",
       dist: Number(a.distance) || 0,
       mt: a.moving_time || "",
       type: a.type || a.subtype || "Run",
       sub: a.subtype || "",
       date: a.start_date_local || a.start_date || "",
-      country: a.location_country || "",
+      city: a.location_city || a.location_country || "",
+      thumb: a.thumbnail || "",
       poly: a.summary_polyline || "",
       hr: Number(a.average_heartrate) || 0,
       spd: Number(a.average_speed) || 0,
@@ -2611,25 +2651,173 @@ function rkRenderList(){
   var acts = rkActs.slice().sort(rkSortDate);
   if(rkState.listYear !== "all") acts = acts.filter(function(a){ return (a.date||"").slice(0,4) === rkState.listYear; });
   var show = acts.slice(0, rkState.listN);
+  var pinIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
   var h = "";
   show.forEach(function(a){
     var d = (a.date||"").slice(0,10);
     var t = rkMovingSec(a.mt);
-    var pace = a.spd ? rkPace(a.spd) : (a.dist > 0 && t > 0 ? rkPace(a.dist/t) : "--");
+    var kmh = a.spd ? (a.spd*3.6) : (a.dist > 0 && t > 0 ? a.dist/t*3.6 : 0);
     var nm = a.name || rkTitleFor(a);
-    h += "<div class=\"rk-row\" onclick=\"rkShowMap(" + a.id + ")\" title=\"点击查看轨迹地图\">";
-    h += "<span class=\"rk-date\">" + d + "</span>";
-    h += "<span class=\"rk-name\"><span class=\"rk-type\">" + rkTypeTag(a.type) + "</span>" + esc(nm) + "</span>";
-    h += "<span class=\"rk-num\"><b>" + (a.dist/1000).toFixed(2) + "</b> km</span>";
-    h += "<span class=\"rk-num\">" + rkFmtDur(t) + "</span>";
-    h += "<span class=\"rk-num\" style=\"min-width:50px\">" + pace + "/km</span>";
+    h += "<div class=\"rk-actcard\" onclick=\"rkOpenAct('" + a.id + "')\" title=\"查看轨迹回放\">";
+    h += "<div class=\"rk-act-thumb\">" + (a.thumb ? "<img src=\"" + esc(a.thumb) + "\" alt=\"\" loading=\"lazy\">" : "") + "<span class=\"rk-act-tag\">" + rkTypeTag(a.type) + "</span></div>";
+    h += "<div class=\"rk-act-body\">";
+    h += "<div class=\"rk-act-title\">" + esc(nm) + "</div>";
+    h += "<div class=\"rk-act-meta\">";
+    h += "<span class=\"rk-act-loc\">" + pinIc + "<span>" + esc(a.city || "未知地点") + "</span></span>";
+    h += "<span>" + d + "</span>";
     h += "</div>";
+    h += "<div class=\"rk-act-stats\">";
+    h += "<div class=\"rk-act-stat\"><b>" + (a.dist/1000).toFixed(1) + "</b><span>公里</span></div>";
+    h += "<div class=\"rk-act-stat\"><b>" + (kmh ? kmh.toFixed(1) : "--") + "</b><span>km/h</span></div>";
+    h += "<div class=\"rk-act-stat\"><b>" + rkFmtDur(t) + "</b><span>时长</span></div>";
+    h += "</div>";
+    h += "</div></div>";
   });
   if(!h) h = "<div class=\"rk-empty\">该年份暂无记录</div>";
   if(acts.length > rkState.listN) h += "<button class=\"rk-more\" onclick=\"rkMore()\">加载更多（已显示 " + rkState.listN + " / " + acts.length + "）</button>";
   e.innerHTML = h;
 }
 function rkMore(){ rkState.listN += 30; rkRenderList(); }
+
+/* ---- 活动详情弹窗 + 轨迹回放动画 ---- */
+var RK_ACT_DUR = 8;          /* 单条轨迹回放时长（秒），循环播放 */
+var rkActAnim = null;        /* 当前回放动画句柄 */
+function rkOpenAct(id){
+  var a = null;
+  (rkActs||[]).forEach(function(x){ if(x.id === id) a = x; });
+  if(!a) return;
+  var m = rkEl("rkActModal");
+  if(m) m.classList.add("show");
+  rkActInfo(a);
+  rkActReplay(a);
+}
+function rkCloseAct(){
+  var m = rkEl("rkActModal");
+  if(m) m.classList.remove("show");
+  rkActStop();
+}
+function rkMaskClose(ev){
+  if(ev && ev.target && ev.target.id === "rkActModal") rkCloseAct();
+}
+function rkActStop(){
+  if(rkActAnim){ cancelAnimationFrame(rkActAnim); rkActAnim = null; }
+}
+function rkActInfo(a){
+  var e = rkEl("rkActInfo");
+  if(!e) return;
+  var t = rkMovingSec(a.mt);
+  var kmh = a.spd ? (a.spd*3.6) : (a.dist > 0 && t > 0 ? a.dist/t*3.6 : 0);
+  var pace = a.spd ? rkPace(a.spd) : (a.dist > 0 && t > 0 ? rkPace(a.dist/t) : "--");
+  var cells = [
+    { k:"距离", v:(a.dist/1000).toFixed(2), u:"km" },
+    { k:"时长", v:rkFmtDur(t), u:"" },
+    { k:"平均时速", v:(kmh ? kmh.toFixed(1) : "--"), u:"km/h" },
+    { k:"平均配速", v:pace, u:"/km" },
+    { k:"累计爬升", v:String(a.elev||0), u:"m" },
+    { k:"平均心率", v:(a.hr ? String(a.hr) : "--"), u:(a.hr ? "bpm" : "") }
+  ];
+  var h = "<div class=\"rk-ai-title\"><span class=\"rk-act-tag\">" + rkTypeTag(a.type) + "</span><span class=\"rk-ai-name\">" + esc(a.name || rkTitleFor(a)) + "</span></div>";
+  h += "<div class=\"rk-ai-sub\"><span>" + esc(a.date || "") + "</span>" + (a.city ? "<span>· " + esc(a.city) + "</span>" : "") + "</div>";
+  h += "<div class=\"rk-act-grid\">";
+  cells.forEach(function(c){
+    h += "<div class=\"rk-act-cell\"><div class=\"rk-k\">" + c.k + "</div><div class=\"rk-v\">" + c.v + (c.u ? " <small>" + c.u + "</small>" : "") + "</div></div>";
+  });
+  h += "</div>";
+  e.innerHTML = h;
+}
+/* 轨迹回放：解码 polyline -> 等距投影到 canvas -> 标记点沿轨迹循环移动，进入即自动播放 */
+function rkActReplay(a){
+  var wrap = rkEl("rkActVideo");
+  if(!wrap) return;
+  var hint = wrap.querySelector(".rk-act-hint");
+  var coords = rkDecodePolyline(a.poly);
+  var oldCv = wrap.querySelector("canvas");
+  if(!coords || coords.length < 2){
+    if(oldCv) oldCv.remove();
+    if(hint) hint.textContent = "无轨迹数据";
+    rkActStop();
+    return;
+  }
+  coords = rkThin(coords, 500);
+  if(!oldCv){
+    oldCv = document.createElement("canvas");
+    oldCv.style.cssText = "width:100%;height:100%;display:block";
+    wrap.insertBefore(oldCv, wrap.firstChild);
+  }
+  if(hint) hint.textContent = "轨迹回放";
+  var W = 1280, H = 720;
+  if(oldCv.width !== W){ oldCv.width = W; oldCv.height = H; }
+  var ctx = oldCv.getContext("2d");
+
+  var lats = coords.map(function(c){ return c[0]; });
+  var lngs = coords.map(function(c){ return c[1]; });
+  var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+  var minLng = Math.min.apply(null, lngs), maxLng = Math.max.apply(null, lngs);
+  var cy = (minLat + maxLat) / 2, cx = (minLng + maxLng) / 2;
+  var cosLat = Math.cos(cy * Math.PI / 180);
+  var pad = 70;
+  var dw = Math.max(maxLng - minLng, 1e-6) * cosLat;
+  var dh = Math.max(maxLat - minLat, 1e-6);
+  var scale = Math.min((W - pad * 2) / dw, (H - pad * 2) / dh);
+  var pts = coords.map(function(c){
+    return [ (c[1] - cx) * cosLat * scale + W / 2, (cy - c[0]) * scale + H / 2 ];
+  });
+
+  var cum = [0], i;
+  for(i = 1; i < pts.length; i++){
+    var dx = pts[i][0] - pts[i-1][0], dy = pts[i][1] - pts[i-1][1];
+    cum.push(cum[i-1] + Math.sqrt(dx*dx + dy*dy));
+  }
+  var total = cum[cum.length - 1] || 1;
+  var col = rkTrackColor(a.type);
+
+  function draw(prog){
+    var d = prog * total, j = 0;
+    while(j < cum.length - 1 && cum[j+1] < d) j++;
+    var seg = (cum[j+1] - cum[j]) || 1;
+    var f = (d - cum[j]) / seg;
+    var curX = pts[j][0] + (pts[j+1][0] - pts[j][0]) * f;
+    var curY = pts[j][1] + (pts[j+1][1] - pts[j][1]) * f;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    ctx.strokeStyle = "rgba(148,163,184,.32)";
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for(var k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+    ctx.stroke();
+
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for(var k2 = 1; k2 <= j; k2++) ctx.lineTo(pts[k2][0], pts[k2][1]);
+    ctx.lineTo(curX, curY);
+    ctx.stroke();
+
+    ctx.fillStyle = "#34d399";
+    ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,.3)";
+    ctx.beginPath(); ctx.arc(curX, curY, 14, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(curX, curY, 3, 0, Math.PI*2); ctx.fill();
+  }
+
+  rkActStop();
+  var t0 = null;
+  function tick(ts){
+    if(rkActAnim === null) return;
+    if(t0 === null) t0 = ts;
+    var prog = ((ts - t0) / 1000) / RK_ACT_DUR;
+    if(prog >= 1){ t0 = ts; prog = 0; }   /* 循环播放 */
+    draw(prog);
+    rkActAnim = requestAnimationFrame(tick);
+  }
+  rkActAnim = requestAnimationFrame(tick);
+}
 
 /* ---- 轨迹地图（MapCN / CARTO 免费瓦片，零外链手写渲染，无需 token） ---- */
 /* 未选中轨迹按类型配色（与 RK_*_PAL 首色一致，弱化显示） */
