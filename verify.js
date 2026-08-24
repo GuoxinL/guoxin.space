@@ -520,10 +520,10 @@ T('rkMerc 北京 x 范围', rkM[0] > 863200 && rkM[0] < 863400, 'x='+rkM[0].toFi
 T('rkMerc 北京 y 范围', rkM[1] > 397200 && rkM[1] < 397450, 'y='+rkM[1].toFixed(1));
 var rkMi = ctx.rkMercInv(rkM[0], rkM[1], 12);
 T('rkMercInv 往返还原', rkMi[0].toFixed(3)==='39.907' && rkMi[1].toFixed(3)==='116.391', JSON.stringify(rkMi.map(function(v){return v.toFixed(4)})));
-T('rkMapStyleIdx 默认 0=auto（无 token 依赖）', ctx.rkMapStyleIdx()===0, 'idx='+ctx.rkMapStyleIdx());
-T('rkResolveStyle auto 档→light 主题解析为浅色 MapCN', ctx.rkResolveStyle(0).k==='light' && ctx.rkResolveStyle(0).url.indexOf('basemaps.cartocdn.com/light_all')>0, 'k='+ctx.rkResolveStyle(0).k);
-T('rkResolveStyle 越界档回退 auto→light 主题实际样式', ctx.rkResolveStyle(9).k==='light' && ctx.rkResolveStyle(9).url.indexOf('light_all')>0, 'k='+ctx.rkResolveStyle(9).k);
-T('rkResolveStyle 手动档原样返回（浅色/明亮/暗色）', ctx.rkResolveStyle(1).k==='light' && ctx.rkResolveStyle(2).k==='voyager' && ctx.rkResolveStyle(3).k==='dark' && ctx.rkResolveStyle(3).url.indexOf('dark_all')>0, [ctx.rkResolveStyle(1).k,ctx.rkResolveStyle(2).k,ctx.rkResolveStyle(3).k].join('/'));
+T('rkMapStyleIdx 默认 0=浅色（固定浅色，不跟随明暗）', ctx.rkMapStyleIdx()===0, 'idx='+ctx.rkMapStyleIdx());
+T('RK_STYLES 三档固定浅色：默认档 light_all（无 auto 档）', ctx.RK_STYLES.length===3 && ctx.RK_STYLES[0].k==='light' && ctx.RK_STYLES[0].url.indexOf('basemaps.cartocdn.com/light_all')>0 && ctx.RK_STYLES.filter(function(s){return s.k==='auto';}).length===0, ctx.RK_STYLES.map(function(s){return s.k;}).join('/'));
+T('rkResolveStyle 越界档回退浅色（light_all）', ctx.rkResolveStyle(9).k==='light' && ctx.rkResolveStyle(9).url.indexOf('light_all')>0, 'k='+ctx.rkResolveStyle(9).k);
+T('rkResolveStyle 三档原样返回（浅色/明亮/暗色）', ctx.rkResolveStyle(0).k==='light' && ctx.rkResolveStyle(1).k==='voyager' && ctx.rkResolveStyle(2).k==='dark' && ctx.rkResolveStyle(2).url.indexOf('dark_all')>0, [ctx.rkResolveStyle(0).k,ctx.rkResolveStyle(1).k,ctx.rkResolveStyle(2).k].join('/'));
 T('rkMerc 高纬负值（南半球 y>n/2）', ctx.rkMerc(0, -30, 10)[1] > ctx.rkMerc(0, 30, 10)[1]);
 // rkTitleFor 时段标题（对齐 classic RUN_TITLES）
 T('rkTitleFor 半马/全马', ctx.rkTitleFor({dist:21000,date:'2024-01-01T08:00:00Z'})==='半程马拉松' && ctx.rkTitleFor({dist:42000,date:'2024-01-01T08:00:00Z'})==='全程马拉松');
@@ -643,7 +643,7 @@ T('路由 /running 全量生效（无 /run 残留）',
   && html.indexOf('h === "run"') >= 0,
   'running 路由 + 旧 run 兼容重定向');
 
-// 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮（idx=3，MapCN 4 档样式切换已恢复）
+// 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮（idx=3，MapCN 3 档固定浅色样式）
 T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   html.indexOf('window.rkHotSpot = rkHotSpot') >= 0
   && html.indexOf('window.rkMercInv = rkMercInv') >= 0
@@ -651,6 +651,27 @@ T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   && html.indexOf('else if(idx === 3) fit()') >= 0
   && html.indexOf('已聚焦最热点区域') >= 0,
   'rkHotSpot/挂载/回退视角/⤢修复');
+
+// 固定规格：长宽固定比例 640:420 + 默认视角固定 z8（meta 与热点分支均 setZoom(HP_Z)）
+T('固定比例：.rk-tilemap aspect-ratio 640/420（长宽比与 preview.png 一致）',
+  html.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/420') >= 0
+  && html.indexOf('.rk-tilemap{position:relative;height:420px') < 0,
+  'aspect-ratio 640/420');
+T('初始视角固定 z8：meta 分支 setZoom(HP_Z) 而非 mv.z',
+  html.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
+  && html.indexOf('setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
+  && html.indexOf('setZoom(mv.z)') < 0,
+  '固定 z8/meta 中心');
+T('初始视角固定 z8：热点回退分支同样 setZoom(HP_Z)',
+  html.indexOf('setZoom(HP_Z); S.cx = hp.cx; S.cy = hp.cy') >= 0
+  && html.indexOf('setZoom(hp.z)') < 0,
+  '固定 z8/热点中心');
+T('样式三档固定浅色：按钮 title 无「自动（跟随明暗）」、zoom 显示无「自动·」',
+  html.indexOf('title="切换底图样式：浅色 / 明亮 / 暗色"') >= 0
+  && html.indexOf('跟随明暗') < 0
+  && html.indexOf('S.auto') < 0
+  && html.indexOf('自动·') < 0,
+  '三档样式/无明暗跟随残留');
 
 // Task 17 渐进式加载 + 固定 zoom13 世界像素投影（垫底 SVG 全貌 → 矢量层就绪切换，缩放零重投影）
 T('渐进加载：RK_PV_URL 垫底 PNG + RK_META_URL 视角元数据 + phase1 img 与加载提示',
@@ -664,9 +685,9 @@ T('渐进加载：RK_PV_URL 垫底 PNG + RK_META_URL 视角元数据 + phase1 im
 let rkMetaCb = 'unset';
 ctx.rkFetchMeta(function(m){ rkMetaCb = (m === null) ? 'null' : 'obj'; });
 T('rkFetchMeta 无 fetch 同步回调 null', rkMetaCb === 'null', 'metaCb='+rkMetaCb);
-T('rkMapInit metaView 优先分支（有 meta 直接 setZoom+setCenter，跳过 hotspot）',
-  html.indexOf('var mv = metaView || null') >= 0
-  && html.indexOf('S.prep = 1; setZoom(mv.z); S.cx = mv.cx; S.cy = mv.cy') >= 0
+T('rkMapInit metaView 优先分支（有 meta 用固定 z8 + meta 中心，跳过 hotspot）',
+  html.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
+  && html.indexOf('S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
   && html.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0,
   'meta优先/回退hotspot');
 T('固定投影：RK_BASE_Z=13 世界像素投影一次 + viewBox 矩阵缩放',

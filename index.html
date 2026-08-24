@@ -333,7 +333,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-map-hint{padding:26px 20px;text-align:center;color:var(--text2);font-size:13px}
 .rk-map-hint .rk-mh-t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
 .rk-map-hint code{background:var(--surface);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
-.rk-tilemap{position:relative;height:420px;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
+.rk-tilemap{position:relative;aspect-ratio:640/420;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
 .rk-tm-pv{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;user-select:none;-webkit-user-drag:none;opacity:1;will-change:transform}
 .rk-tm-tiles{position:absolute;left:0;top:0;will-change:transform}
 .rk-tm-tile{position:absolute;width:256px;height:256px;background-size:cover;background-color:#dfe5ea}
@@ -890,12 +890,7 @@ function applyTheme(t){
   store(KEY_THEME, t);
   var label = $("themeLabel");
   if(label) label.textContent = (t==="dark" ? "亮色模式" : "暗色模式");
-  /* 地图 auto 样式跟随明暗模式：已渲染且处于自动档时重绘底图 */
-  try{
-    if(rkMapStyleIdx && rkMapStyleIdx() === 0 && rkShowMap && rkEl("rkMapCanvas")){
-      rkShowMap(rkState.selId);
-    }
-  }catch(e){}
+  /* 地图样式固定浅色（不随明暗切换），主题切换无需重绘地图 */
 }
 function toggleTheme(){
   applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
@@ -2205,10 +2200,10 @@ document.addEventListener("DOMContentLoaded", init);
 /* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
 var RK_CACHE = "wb_rk_acts_v2";
-/* MapCN（CARTO Basemaps）免费瓦片，无 token；auto 档按明暗跟随，其余三档手动切换。
-   OSM 曾因国内可达性优于 CARTO 而单档替换，现恢复多档并保留明暗跟随（用户可手动切回） */
+/* MapCN（CARTO Basemaps）免费瓦片，无 token；默认浅色固定（与 running 仓库
+   activities.preview.png 生成规格一致：z8 + 浅色，不随系统明暗切换），
+   用户可手动切 明亮 / 暗色（浅色 / 明亮 / 暗色 三档循环） */
 var RK_STYLES = [
-  { k:"auto",    n:"自动", url:"" },
   { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
   { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
   { k:"dark",    n:"暗色", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" }
@@ -2224,14 +2219,9 @@ var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/
 /* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
    所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
 var RK_BASE_Z = 13;
-function rkThemeDark(){
-  try{ return !!document.body && document.body.dataset.theme === "dark"; }catch(e){ return false; }
-}
-/* 解析实际生效的样式索引：auto 档按当前明暗模式返回 light_all(1) 或 dark_all(3) */
+/* 解析实际生效的样式索引：默认浅色固定（三档无 auto，直接返回目标档） */
 function rkResolveStyle(idx){
-  var s = RK_STYLES[idx] || RK_STYLES[0];
-  if(s && s.k === "auto") return RK_STYLES[rkThemeDark() ? 3 : 1];
-  return s;
+  return RK_STYLES[idx] || RK_STYLES[0];
 }
 var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_page TYPE_PALETTES.Run */
 var RK_RIDE_PAL = ["#bfdbfe","#60a5fa","#3b82f6","#2563eb"];
@@ -2240,6 +2230,7 @@ var rkActs = null;               /* 规整后的活动数组 */
 var rkState = { year:String(new Date().getFullYear()), trend:"m", listYear:"all", listN:30, selId:0 };
 
 function rkEl(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
+/* 当前样式索引：默认 0=浅色（固定浅色），用户切换后存 localStorage */
 function rkMapStyleIdx(){
   try{
     var i = parseInt(localStorage.getItem(RK_STYLE_KEY), 10);
@@ -2795,7 +2786,6 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   var S = {
     z: 14, cx: 0, cy: 0, tracks: [],
     style: rkResolveStyle(styleIdx),
-    auto: !!(RK_STYLES[styleIdx] && RK_STYLES[styleIdx].k === "auto"),
     container: container, W: 640, H: 420,
     ox0: 0, oy0: 0,
     selId: selId || 0,
@@ -2890,12 +2880,12 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   }
   function ctrlHTML(){
     return '<div class="rk-tm-ctrl">'
-      + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：自动（跟随明暗） / 浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
+      + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
       + '</div>'
-      + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>'
+      + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + S.style.n + '</div>'
       + '<div class="rk-tm-attr">© OpenStreetMap contributors © CARTO</div>';
   }
   /* 缩放/平移：仅更新 viewBox 矩阵 + 线宽反算（SVG 内容零重建，345K 点不重绘） */
@@ -2905,7 +2895,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
       S.svgEl.setAttribute("viewBox", vb[0] + " " + vb[1] + " " + vb[2] + " " + vb[3]);
       S.svgEl.style.transform = "";
       if(S.tilesEl){ S.tilesEl.outerHTML = tilesHTML(vb[0], vb[1]); S.tilesEl = container.querySelector(".rk-tm-tiles"); }
-      if(S.zoomEl) S.zoomEl.textContent = "z" + S.z + " · " + (S.auto ? ("自动·" + S.style.n) : S.style.n);
+      if(S.zoomEl) S.zoomEl.textContent = "z" + S.z + " · " + S.style.n;
       updateStrokeWidths();
     }
   }
@@ -3066,15 +3056,17 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     else if(idx === 2) zoomBy(-1);
     else if(idx === 3) fit();
   });
-  /* 默认视角：优先用垫底 PNG 的视角元数据（与 PNG 完全一致，切换零跳动）；
+  /* 默认视角固定规格：z=8（与 running 仓库 activities.preview.png 生成规格一致，
+     长宽 640:420 固定、z8 固定浅色）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
+     中心优先用垫底 PNG 视角元数据（热点中心，PNG 与矢量层切换零跳动）；
      无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
-  var mv = metaView || null;
+  var mv = metaView || null, HP_Z = 8;
   if(mv){
-    rect(); S.prep = 1; setZoom(mv.z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
+    rect(); S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
   } else {
     var hp = (!selId) ? rkHotSpot(tracks) : null;
     if(hp){
-      rect(); S.prep = 1; setZoom(hp.z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
+      rect(); S.prep = 1; setZoom(HP_Z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
     } else {
       fit();
     }
