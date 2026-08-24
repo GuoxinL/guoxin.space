@@ -112,3 +112,14 @@
 - **过渡**：COS 静态网站 301 重定向到 workbuddy.link 完整链接。
 - **写通道决策（用户确认）**：**保留 Cloudflare Worker**，CORS `*` 已放行、页面零改动；仅国内访问收藏/同步可能超时（只读功能不受影响），彻底解决留待迁移 EdgeOne/SCF。
 - **交付物**：`DEPLOY-GUOXIN-SPACE.md`（部署手册：前置检查/方案选型/分步操作/验证清单/回滚/时间线）。
+
+## 2026-08-24 轨迹地图样式切换按钮恢复（commit 36182b9）
+
+- **问题**：用户反馈「切换样式按钮怎么没有了」。根因：`0cfc9b5`（OSM 垫底 PNG + meta 视角）为配合 running 仓库的 OSM 垫底图把 `RK_STYLES` 精简为单档 OSM，样式按钮随之从 `ctrlHTML` 移除；该版本未部署线上，**线上仍是 4 档旧版**——用户预览本地（HEAD）看到按钮消失。
+- **恢复方案 A（MapCN 4 档 + 按钮）**：
+  - `RK_STYLES` 恢复 4 档：auto（明暗跟随）/ light_all / voyager / dark_all（CARTO Basemaps 免费瓦片，`{s}` 子域已有逻辑替换）
+  - `rkResolveStyle` 恢复 auto 解析：`s.k === "auto" → RK_STYLES[rkThemeDark() ? 3 : 1]`
+  - `ctrlHTML` 恢复样式按钮：`rk-tm-style` 独立分组置于 +/− 上方（主色描边），署名补 `© CARTO`
+- **顺带修复路由崩溃 bug**：path 路由两处 `replaceState` 未保护（navigate `/run` 兼容 + `#/hash` 兼容块），**file:// 本地预览下抛 SecurityError 中断整段 script**（地图/热力图/数据加载全不执行）。修复：补 try/catch + `navigate()` 内 hash 回退解析（pathname 无效且带 `#/` 时从 hash 取目标页）。
+- **验证**：verify.js 断言同步（4 档解析/越界回退/按钮顺序分组），**224/224 全绿**；puppeteer 本地 + 线上双验证 ALL PASS（按钮存在/顺序/初始 auto 浅色/点击依次浅色→明亮→暗色，瓦片 URL 断言 light_all→voyager→dark_all/暗色主题 auto 自动 dark_all/零 JS 错误）。
+- **遗留**：垫底 PNG 仍 OSM 风格（加载瞬间跳变，方案 C1 接受）；轨迹配色仍橙/蓝/紫（方案 B 未做）；running 仓库脚本 JS 化方案见 `running-js-migration-plan.md`。
