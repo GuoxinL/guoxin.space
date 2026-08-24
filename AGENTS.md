@@ -51,12 +51,14 @@ personal-homepage/
 - 前端页面数据（Running 模块）**全部经 Cloudflare Worker 代理**，不直连任何公开 raw URL：
   - Worker 环境变量 `TRACKS_REPO = GuoxinL/running-private`（**私有**仓库，默认分支 `master`）
   - 页面从 Skills「通道设置」读 Worker URL，拼接 `/api/tracks/raw?f=<file>`：
-    - `preview.json` / `preview.png` / `preview.meta.json`：游客可读（截断轨迹 + 垫底图 + 视角元数据）
+    - `preview.json` / `preview.meta.json`：游客可读（截断轨迹 + 视角元数据）
+    - `previews/light.png` / `previews/dark.png`：总览垫底图双主题（按系统明暗 `rkTheme()` 选图）
+    - `thumb/<run_id>.<light|dark>.png`：活动列表缩略图双主题（自产轨迹图，替换原行者 CDN 图）
     - `rides.full.json`：完整轨迹，仅 admin（OAuth 登录后 Bearer token）
-  - 白名单硬编码在 `worker.js` 的 `TRACKS_FILES`（约 585 行），文件名与私库根目录产物**精确匹配**
+  - 白名单硬编码在 `worker.js` 的 `TRACKS_FILES`（精确映射 + `THUMB_RE` 前缀正则），文件名与私库根目录产物**精确匹配**
 - 数据生产为 **自产自销**，全部在 `running-private` 仓库（`GuoxinL/running-private`）完成，本仓库不参与：
   - workflow `xingzhe_sync.yml`（名称「Xingzhe Sync」）每小时整点 UTC 同步，支持 `workflow_dispatch` 手动触发
-  - 链路：`xz-sync.js` 从行者 OpenAPI 同步到 `src/static/activities.json` → `xz-fill.js` 补齐缺失 polyline → `prebuild-preview.js` 生成 4 个产物（`activities.preview.json`/`.png`/`.meta.json`/`rides.full.json`）→ 复制到仓库根目录 → 提交推送 `master`
+  - 链路：`xz-sync.js` 从行者 OpenAPI 同步到 `src/static/activities.json` → `xz-fill.js` 补齐缺失 polyline → `prebuild-preview.js` 生成产物（`activities.preview.json`/`.meta.json`/`rides.full.json` 三个单文件 + `previews/`、`thumb/` 两个目录，瓦片缓存于 `scripts/.tile-cache`）→ 复制到仓库根目录 → 提交推送 `master`
   - 依赖 Secret：`XINGZHE_CREDENTIALS_JSON`（必填，行者 OAuth2 凭据）；`XINGZHE_PAT`（可选，token 刷新后自动回写 Secret）
   - 获取/刷新行者凭据步骤见 `running-private` 仓库 `docs/GET-XINGZHE-CREDENTIALS.md`（或全局 skill `xz-credentials`）
   - **改 Running 数据链路时，改 `running-private` 仓库而非本仓库；原公开仓库 `GuoxinL/running` 已废弃，不再承担数据生产。**
@@ -65,7 +67,7 @@ personal-homepage/
 
 ```bash
 # 页面回归测试（改任何 js/css/html 后必跑）
-node verify.js          # 期望：270 / 270 ALL TESTS PASSED
+node verify.js          # 期望：289 / 289 ALL TESTS PASSED
 
 # 本地预览
 python3 -m http.server 8734   # 打开 http://127.0.0.1:8734/index.html#/running
