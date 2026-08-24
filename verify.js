@@ -1,8 +1,9 @@
 /* personal-homepage 双编辑区重构 vm 回归测试 */
 const fs = require('fs');
+const path = require('path');
 const vm = require('vm');
 
-const html = fs.readFileSync('/Users/guoxin/code/work/personal-homepage/index.html', 'utf8');
+const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const m = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!m) { console.error('FAIL: 未找到内联脚本'); process.exit(1); }
 let code = m[1].trim();
@@ -67,6 +68,7 @@ const documentMock = {
   },
   addEventListener() {},
   createElement() { return makeEl('created'); },
+  querySelectorAll() { return []; },
   body: makeEl('body'),
   execCommand() { return true; }
 };
@@ -75,13 +77,25 @@ elements.indentSel.value = '2';
 elements.wrapL = makeEl('wrapL', 'editor-wrap');
 elements.wrapR = makeEl('wrapR', 'editor-wrap');
 
-const windowMock = { addEventListener() {}, location: { hash: '#/json' } };
+const locationMock = { pathname: '/json', hash: '', search: '' };
+function applyUrl(url) {
+  if (url == null) return;
+  if (url.charAt(0) === '#') { locationMock.hash = url; }
+  else { locationMock.pathname = url; locationMock.hash = ''; }
+}
+const historyMock = {
+  replaceState(s, t, url) { applyUrl(url); },
+  pushState(s, t, url) { applyUrl(url); },
+  back() {}, go() {}
+};
+const windowMock = { addEventListener() {}, location: locationMock, history: historyMock };
 const ctx = {
   document: documentMock,
   localStorage: localStorageMock,
   navigator: { clipboard: { writeText: () => Promise.resolve() } },
   window: windowMock,
-  location: windowMock.location,
+  location: locationMock,
+  history: historyMock,
   console,
   // 同步化 setTimeout：setSide 的 500ms 防抖保存立即生效，便于断言
   setTimeout: (fn) => { fn(); return 0; },
@@ -324,14 +338,14 @@ ctx.skRows = [
 ];
 ctx.skRepo = 'guoxinl/skill-collection'; ctx.skBranchNow = 'main';
 ctx.skView_ = 'list'; ctx.skPendingFile = ''; ctx.skTreeOpen_ = false;
-// 二级路由 hash 解析
-windowMock.location.hash = '#/json';
+// 二级路由 path 解析（path 路由：#/xxx 已由启动逻辑重定向为 /xxx）
+locationMock.pathname = '/json';
 T('skHashDir 非 skills 页返回空', ctx.skHashDir()==='');
-windowMock.location.hash = '#/skills/fav-x';
-T('skHashDir 提取 #/skills/<dir>', ctx.skHashDir()==='fav-x');
-windowMock.location.hash = '#/skills';
+locationMock.pathname = '/skills/fav-x';
+T('skHashDir 提取 /skills/<dir>', ctx.skHashDir()==='fav-x');
+locationMock.pathname = '/skills';
 T('skHashDir 无目录返回空', ctx.skHashDir()==='');
-windowMock.location.hash = '#/skills/fav-x';
+locationMock.pathname = '/skills/fav-x';
 // 进入详情独立页
 ctx.skRoute('fav-x');
 T('skRoute 进入详情视图（列表隐藏）', ctx.skView_==='detail' && el('skDetail').classList.contains('show') && !el('skList').classList.contains('show'));
@@ -339,33 +353,35 @@ T('详情页填充名称/来源', el('drName').textContent==='Test Skill' && el(
 T('详情页填充简介与 SKILL.md', el('drDesc').textContent==='desc' && el('drMd').textContent==='# Hi');
 T('进详情自动展开文件树抽屉并渲染', ctx.skTreeOpen_===true && el('skTreeDrawer').classList.contains('open') && el('skTreeBody').innerHTML.indexOf('ft-click')>=0);
 T('文件树抽屉有且仅有文件树', el('skTreeBody').innerHTML.indexOf('drMd')<0 && el('skTreeBody').innerHTML.indexOf('drawer-sec')<0);
-// 返回列表：抽屉收起 + 提示
+T('详情页抽屉带 show（仅详情页显示）', el('skTreeDrawer').classList.contains('show'));
+// 返回列表：抽屉收起 + 隐藏 + 提示
 ctx.skShowList();
 T('skShowList 回列表视图', ctx.skView_==='list' && el('skList').classList.contains('show') && !el('skDetail').classList.contains('show'));
 T('列表页收起文件树并显示未选择提示', ctx.skTreeOpen_===false && el('skTreeBody').innerHTML.indexOf('未选择 Skill')>=0);
-// 列表页点文件树条目 → 自动进详情并打开该文件
+T('列表页抽屉去掉 show（不在列表页显示）', !el('skTreeDrawer').classList.contains('show'));
+// 列表页点文件树条目 → 自动进详情并打开该文件（path 路由）
 ctx.skOpenFile('fav-x','scripts/run.sh');
-T('列表页点文件树 → 记录待打开并跳详情 hash', ctx.skPendingFile==='scripts/run.sh' && windowMock.location.hash==='#/skills/fav-x');
-ctx.skRoute('fav-x');
+T('列表页点文件树 → 自动进详情 path', windowMock.location.pathname==='/skills/fav-x' && ctx.skView_==='detail');
 T('进详情自动打开待查看文件', ctx.skOpenFile_==='scripts/run.sh' && el('drFileLabel').textContent==='scripts/run.sh', el('drFileLabel').textContent);
 T('skPendingFile 消费后清空', ctx.skPendingFile==='');
+T('自动进详情后抽屉带 show', el('skTreeDrawer').classList.contains('show'));
 // 抽拉切换（三角形按钮）
 ctx.skToggleTree();
 T('skToggleTree 收起抽屉', ctx.skTreeOpen_===false && !el('skTreeDrawer').classList.contains('open'));
 ctx.skToggleTree();
 T('skToggleTree 再次展开', ctx.skTreeOpen_===true && el('skTreeDrawer').classList.contains('open'));
-// hash 快捷跳转
+// 快捷跳转（path 路由）
 ctx.skBack();
-T('skBack 回列表 hash', windowMock.location.hash==='#/skills');
+T('skBack 回列表 path', windowMock.location.pathname==='/skills');
 ctx.skGoto('fav-x');
-T('skGoto 进详情 hash', windowMock.location.hash==='#/skills/fav-x');
-// 离开 skills 页自动收起文件树抽屉
-documentMock.querySelectorAll = function(){ return { forEach(){}, length:0 }; };
+T('skGoto 进详情 path', windowMock.location.pathname==='/skills/fav-x');
+// 离开 skills 页自动收起并隐藏文件树抽屉
 ctx.skTreeOpen();
-windowMock.location.hash = '#/home';
+locationMock.pathname = '/home';
 ctx.navigate();
 T('离开 skills 页自动收起文件树抽屉', ctx.skTreeOpen_===false && !el('skTreeDrawer').classList.contains('open'));
-windowMock.location.hash = '#/skills/fav-x';
+T('离开 skills 页抽屉去掉 show（完全隐藏）', !el('skTreeDrawer').classList.contains('show'));
+locationMock.pathname = '/skills/fav-x';
 
 /* ========== 10e. Skills：GitHub 风格 MD 渲染 + Preview/Code 切换 ========== */
 console.log('== 10e. MD 渲染与 Preview/Code 切换 ==');
@@ -591,15 +607,14 @@ T('热力图无「全部」tab、无 all 分支残留',
   && html.indexOf('if(rkState.year === "all")') < 0,
   '去除全部聚合视图');
 
-// 路由：#/run → #/running（侧边栏 / 快捷卡 / 底部 tab / 页面 id / 白名单 / rkLoad 触发）
-T('路由 #/running 全量生效（无 #/run 残留）',
-  html.indexOf('href="#/running" data-nav="running"') >= 0
-  && html.indexOf('location.hash=\'#/running\'') >= 0
+// 路由：/run → /running（侧边栏 / 快捷卡 / 底部 tab / 页面 id / 白名单 / rkLoad 触发，path 路由）
+T('路由 /running 全量生效（无 /run 残留）',
+  html.indexOf('href="/running" data-nav="running"') >= 0
   && html.indexOf('id="page-running"') >= 0
-  && html.indexOf('href="#/running" data-tabpage="running"') >= 0
+  && html.indexOf('href="/running" data-tabpage="running"') >= 0
   && html.indexOf('["home","json","skills","running"]') >= 0
   && html.indexOf('if(h === "running") rkLoad();') >= 0
-  && html.indexOf('#/run"') < 0
+  && html.indexOf('href="/run"') < 0
   && html.indexOf('id="page-run"') < 0
   && html.indexOf('data-nav="run"') < 0
   && html.indexOf('data-tabpage="run"') < 0
