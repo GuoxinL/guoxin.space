@@ -703,6 +703,18 @@ T('缩放零重建：viewBox setAttribute + 线宽反算',
   && html.indexOf('(1.6 / k).toFixed(2)') >= 0
   && html.indexOf('(3.5 / k).toFixed(2)') >= 0,
   '矩阵缩放/线宽反算');
+T('投影抽稀：非选中轨迹抽稀到 RK_THIN_MAX（降 SVG 重光栅化成本），选中保留全量',
+  html.indexOf('var RK_THIN_MAX = 500') >= 0
+  && html.indexOf('var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX)') >= 0
+  && html.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0,
+  '抽稀常量/投影抽稀/选中全量');
+T('缩放过渡动画：scale(f) GPU 合成 + settle 结算（动画结束应用真实 viewBox，零跳变）',
+  html.indexOf('function animateZoom(') >= 0
+  && html.indexOf('function settle()') >= 0
+  && html.indexOf('transform 0.2s ease-out') >= 0
+  && html.indexOf('animateZoom(mx, my, Math.pow(2, nz - oldZ))') >= 0
+  && html.indexOf('if(zoomAnimTimer) settle()') >= 0,
+  '过渡动画/结算/连续缩放防叠加');
 T('滚轮灵敏度：累积 deltaY 阈值 120 才缩放（防触控板/高精度滚轮一次跳 N 级）',
   html.indexOf('wheelAcc') >= 0
   && html.indexOf('while(wheelAcc <= -120)') >= 0
