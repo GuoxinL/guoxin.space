@@ -72,6 +72,7 @@ function rkParse(json){
       poly: a.summary_polyline || "",
       hr: Number(a.average_heartrate) || 0,
       spd: Number(a.average_speed) || 0,
+      maxSpd: Number(a.max_speed) || 0,   /* 瞬时最高速度（m/s）；数据侧补产后可用 */
       elev: Number(a.elevation_gain) || 0,
       streak: Number(a.streak) || 0
     };
@@ -179,21 +180,27 @@ function rkHeatColor(dist, max, palette){
   var level = Math.ceil(Math.min(dist/max, 1) * 4);
   return (palette||RK_RUN_PAL)[level-1] || (palette||RK_RUN_PAL)[0];
 }
-/* 个人最佳（对齐 PersonalBest：窗口 + 配速过滤 + 最快 moving_time） */
+/* 个人最佳（骑行三项指标：最远距离 / 最高平均时速 / 最高时速）。
+   仅统计骑行（type==="Ride"）；数据无 max_speed 时「最高时速」降级为最高平均时速
+   并标记 fallback（rkRenderPbs 显示「均速近似」）。 */
 function rkPbs(acts){
-  var runs = (acts||[]).filter(function(a){ return a.type === "Run" && a.poly && a.poly.length > 20; });
-  var win = [ {k:"5K", min:4.8, max:5.5}, {k:"10K", min:9.5, max:11}, {k:"Half", min:20, max:22.5}, {k:"Full", min:41, max:44} ];
-  return win.map(function(w){
-    var best = null, bt = 0;
-    runs.forEach(function(a){
-      var km = a.dist/1000;
-      if(km < w.min || km > w.max) return;
-      var t = rkMovingSec(a.mt), p = km > 0 ? t/km : 0;
-      if(p < 180 || p > 480) return;
-      if(!best || t < bt){ best = a; bt = t; }
-    });
-    return { key:w.k, act:best, time:bt };
+  acts = acts || [];
+  var maxDist = null, maxAvg = null, maxSpd = null;
+  acts.forEach(function(a){
+    if(a.type !== "Ride") return;
+    var km = a.dist/1000;
+    if(!maxDist || km > maxDist.v) maxDist = { v:km, act:a };
+    var kmh = a.spd ? a.spd*3.6 : 0;
+    if(kmh > 0 && (!maxAvg || kmh > maxAvg.v)) maxAvg = { v:kmh, act:a };
+    var mx = a.maxSpd ? a.maxSpd*3.6 : 0;
+    if(mx > 0 && (!maxSpd || mx > maxSpd.v)) maxSpd = { v:mx, act:a };
   });
+  var spd = maxSpd ? maxSpd : maxAvg;
+  return [
+    { key:"dist",  v:maxDist ? maxDist.v : 0, act:maxDist ? maxDist.act : null },
+    { key:"avg",   v:maxAvg ? maxAvg.v : 0,  act:maxAvg ? maxAvg.act : null },
+    { key:"speed", v:spd ? spd.v : 0, act:spd ? spd.act : null, fallback:!maxSpd && !!maxAvg }
+  ];
 }
 /* 月度距离汇总 */
 function rkMonthDist(acts, yr){
@@ -386,17 +393,20 @@ function rkTrendSVG(vals, counts, labels, title){
   return h;
 }
 
-/* ---- 渲染：个人最佳 ---- */
+/* ---- 渲染：个人最佳（骑行三项指标） ---- */
 function rkRenderPbs(){
   var pbs = rkPbs(rkActs);
-  var names = { "5K":"5公里", "10K":"10公里", "Half":"半程马拉松", "Full":"全程马拉松" };
+  var defs = { dist:{ k:"最远距离", u:"km" }, avg:{ k:"最高每小时公里数", u:"km/h" }, speed:{ k:"最高时速", u:"km/h" } };
   var h = "";
   pbs.forEach(function(p){
-    if(p.act){
-      var d = p.act.date ? p.act.date.slice(0,10) : "";
-      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + names[p.key] + "</div><div class=\"rk-pb-v\">" + rkFmtClock(p.time) + "</div><div class=\"rk-pb-d\">" + rkFmtDist(p.act.dist) + " km · " + d + "</div></div>";
+    var d = defs[p.key], act = p.act;
+    if(act){
+      var dt = act.date ? act.date.slice(0,10) : "";
+      var v = p.key === "dist" ? (p.v >= 100 ? p.v.toFixed(0) : p.v.toFixed(1)) : p.v.toFixed(1);
+      var sub = (p.key === "dist" ? "单次骑行 · " : "") + dt + (p.fallback ? " · 均速近似" : "");
+      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + d.k + "</div><div class=\"rk-pb-v\">" + v + " <small>" + d.u + "</small></div><div class=\"rk-pb-d\">" + sub + "</div></div>";
     } else {
-      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + names[p.key] + "</div><div class=\"rk-pb-v\" style=\"font-size:15px;color:var(--text3)\">暂无</div><div class=\"rk-pb-d\">窗口内无符合记录</div></div>";
+      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + d.k + "</div><div class=\"rk-pb-v\" style=\"font-size:15px;color:var(--text3)\">暂无</div><div class=\"rk-pb-d\">无骑行记录</div></div>";
     }
   });
   var e = rkEl("rkPbs"); if(e) e.innerHTML = h;
@@ -481,12 +491,10 @@ function rkActInfo(a){
   if(!e) return;
   var t = rkMovingSec(a.mt);
   var kmh = a.spd ? (a.spd*3.6) : (a.dist > 0 && t > 0 ? a.dist/t*3.6 : 0);
-  var pace = a.spd ? rkPace(a.spd) : (a.dist > 0 && t > 0 ? rkPace(a.dist/t) : "--");
   var cells = [
     { k:"距离", v:(a.dist/1000).toFixed(2), u:"km" },
     { k:"时长", v:rkFmtDur(t), u:"" },
     { k:"平均时速", v:(kmh ? kmh.toFixed(1) : "--"), u:"km/h" },
-    { k:"平均配速", v:pace, u:"/km" },
     { k:"累计爬升", v:String(a.elev||0), u:"m" },
     { k:"平均心率", v:(a.hr ? String(a.hr) : "--"), u:(a.hr ? "bpm" : "") }
   ];
@@ -527,6 +535,41 @@ function rkActLoadBg(bgCtx, z, vx0, vy0, W, H, style){
         img.src = u;
       })(tx, ty);
     }
+  }
+}
+/* 回放 HUD（右下角）：爬升随进度递增（elev×prog 线性近似），时速显示平均时速；
+   maxSpd 存在时附加极速小字。数据无逐点速度/海拔序列，爬升按均匀分布近似展示。 */
+function rkActHud(ctx, a, prog){
+  var W = ctx.canvas.width, H = ctx.canvas.height;
+  var avg = a.spd ? a.spd*3.6 : 0;
+  var elev = Math.round((a.elev||0) * Math.min(Math.max(prog,0),1));
+  var pw = 182, ph = 62, pad = 16;
+  var x0 = W - pad - pw, y0 = H - pad - ph;
+  ctx.fillStyle = "rgba(15,23,42,.62)";
+  ctx.beginPath();
+  ctx.moveTo(x0 + 10, y0);
+  ctx.lineTo(x0 + pw - 10, y0);
+  ctx.quadraticCurveTo(x0 + pw, y0, x0 + pw, y0 + 10);
+  ctx.lineTo(x0 + pw, y0 + ph - 10);
+  ctx.quadraticCurveTo(x0 + pw, y0 + ph, x0 + pw - 10, y0 + ph);
+  ctx.lineTo(x0 + 10, y0 + ph);
+  ctx.quadraticCurveTo(x0, y0 + ph, x0, y0 + ph - 10);
+  ctx.lineTo(x0, y0 + 10);
+  ctx.quadraticCurveTo(x0, y0, x0 + 10, y0);
+  ctx.closePath();
+  ctx.fill();
+  var fS = "-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue',sans-serif";
+  ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillStyle = "rgba(148,163,184,.92)";
+  ctx.font = "500 12px " + fS;
+  ctx.fillText("爬升 " + elev + " m", x0 + 14, y0 + 10);
+  ctx.fillStyle = "#fff";
+  ctx.font = "700 27px " + fS;
+  ctx.fillText((avg ? avg.toFixed(1) : "--") + " km/h", x0 + 14, y0 + 25);
+  if(a.maxSpd){
+    ctx.fillStyle = "rgba(148,163,184,.92)";
+    ctx.font = "500 12px " + fS;
+    ctx.fillText("极速 " + (a.maxSpd*3.6).toFixed(1) + " km/h", x0 + 14, y0 + 43);
   }
 }
 /* 轨迹回放：解码 polyline -> Web Mercator 投影到 canvas（与 MapCN 瓦片底图严格对齐）
@@ -626,6 +669,8 @@ function rkActReplay(a){
     ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.arc(curX, curY, 3, 0, Math.PI*2); ctx.fill();
+
+    rkActHud(ctx, a, prog);   /* 右下角 HUD：动态爬升 + 时速 */
   }
 
   rkActStop();
