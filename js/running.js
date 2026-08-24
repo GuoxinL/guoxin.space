@@ -299,8 +299,9 @@ function rkHeatYearHTML(yr){
   h += "<span style=\"font-size:12px;font-weight:600;color:var(--primary)\">" + yr + "</span>";
   h += "<span style=\"font-size:12px;color:var(--text3)\">" + g.count + " 次 · " + rkFmtDist(g.dist) + " km · " + rkFmtDur(g.sec) + (g.pace > 0 ? " · 均配 " + rkPace(g.pace) : "") + "</span>";
   h += "</div>";
-  /* 月份标签 */
-  h += "<div style=\"display:flex;margin-left:15px\">";
+  /* 月份标签 + 网格：共用横向滚动容器（窄屏对齐滚动，避免撑开页面宽度） */
+  h += "<div class=\"rk-heat-wrap\">";
+  h += "<div class=\"rk-heat-mths\">";
   g.months.forEach(function(m, i){
     var nw = i+1 < g.months.length ? g.months[i+1].w : g.grid.length;
     var span = Math.max(1, nw - m.w);
@@ -319,6 +320,7 @@ function rkHeatYearHTML(yr){
     });
     h += "</div>";
   });
+  h += "</div>";
   h += "</div>";
   h += "<div class=\"rk-legend\"><span>少</span>";
   [0.1, 0.35, 0.6, 0.82, 1].forEach(function(r){

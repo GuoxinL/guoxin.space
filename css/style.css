@@ -295,7 +295,12 @@ select.indent{min-height:38px;border:1px solid var(--border2);border-radius:var(
 .rk-tab{padding:4px 10px;border-radius:6px;font-size:12px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:all .15s}
 .rk-tab:hover{border-color:var(--primary)}
 .rk-tab.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
-.rk-heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
+.rk-heat-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rk-heat-wrap::-webkit-scrollbar{height:7px}
+.rk-heat-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.rk-heat-wrap::-webkit-scrollbar-track{background:transparent}
+.rk-heat-mths{display:flex;margin-left:18px;width:max-content}
+.rk-heat{display:flex;gap:3px;overflow-x:visible;padding-bottom:8px}
 .rk-heat .rk-col{display:flex;flex-direction:column;gap:3px}
 .rk-cell{width:12px;height:12px;border-radius:3px;background:var(--border);flex-shrink:0}
 .rk-cell.act{cursor:pointer}
