@@ -2977,7 +2977,11 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     finishPrepare();
     render();
   }
-  /* 拖拽平移（document 级成对监听，松手即清理，无泄漏） */
+  /* 拖拽平移（document 级成对监听，松手即清理，无泄漏）
+     拖动中视觉反馈：瓦片层 translate(-ox0+dx, -oy0+dy)、SVG 层 translate(dx, dy)，
+     两者增量同为 (+dx,+dy)——内容跟随鼠标右移，与 S.cx 递减、松手 render 后 viewBox
+     左移等价，故拖动全程路径与底图零脱离、松手无跳变。
+     注意：SVG 层绝不能写成 translate(-dx,-dy)（与瓦片反向，一拖即脱离）。 */
   var drag = null;
   function onMove(e){
     if(!drag) return;
@@ -2987,7 +2991,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     if(tiles && svg){
       var nx = S.ox0 - dx, ny = S.oy0 - dy;
       tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";
-      svg.style.transform = "translate(" + (-dx).toFixed(1) + "px," + (-dy).toFixed(1) + "px)";
+      svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";
     }
   }
   function onUp(){
@@ -3022,7 +3026,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
     if(tiles && svg){
       tiles.style.transform = "translate(" + (-(S.ox0 - dx)).toFixed(1) + "px," + (-(S.oy0 - dy)).toFixed(1) + "px)";
-      svg.style.transform = "translate(" + (-dx).toFixed(1) + "px," + (-dy).toFixed(1) + "px)";
+      svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";
     }
     e.preventDefault();
   }, { passive:false });
