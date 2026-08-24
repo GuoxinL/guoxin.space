@@ -38,10 +38,10 @@ function makeEl(id, cls) {
         case 'select': return () => {};
         case 'appendChild': return () => {};
         case 'removeChild': return () => {};
-        /* Task 17 地图所需 DOM 方法：getBoundingClientRect 固定 640x420；
+        /* Task 17 地图所需 DOM 方法：getBoundingClientRect 固定 640x360；
            querySelector 返回 null → rkShowMap 中 img=null → 同步 go() 渲染矢量层（测试环境无 img 分支）；
            setAttribute/removeAttribute 存储属性便于后续断言 */
-        case 'getBoundingClientRect': return () => ({ width: 640, height: 420, left: 0, top: 0 });
+        case 'getBoundingClientRect': return () => ({ width: 640, height: 360, left: 0, top: 0 });
         case 'querySelector': return () => null;
         case 'querySelectorAll': return () => [];
         case 'setAttribute': return (k, v) => { (store._attrs = store._attrs || {})[k] = String(v); };
@@ -652,11 +652,12 @@ T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
   && html.indexOf('已聚焦最热点区域') >= 0,
   'rkHotSpot/挂载/回退视角/⤢修复');
 
-// 固定规格：长宽固定比例 640:420 + 默认视角固定 z8（meta 与热点分支均 setZoom(HP_Z)）
-T('固定比例：.rk-tilemap aspect-ratio 640/420（长宽比与 preview.png 一致）',
-  html.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/420') >= 0
+// 固定规格：长宽固定比例 640:360（16:9）+ 默认视角固定 z8（meta 与热点分支均 setZoom(HP_Z)）
+T('固定比例：.rk-tilemap aspect-ratio 640/360（长宽比与 preview.png 一致）',
+  html.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/360') >= 0
+  && html.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/420') < 0
   && html.indexOf('.rk-tilemap{position:relative;height:420px') < 0,
-  'aspect-ratio 640/420');
+  'aspect-ratio 640/360');
 T('初始视角固定 z8：meta 分支 setZoom(HP_Z) 而非 mv.z',
   html.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
   && html.indexOf('setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
