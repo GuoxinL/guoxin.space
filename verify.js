@@ -4,11 +4,12 @@ const path = require('path');
 const vm = require('vm');
 
 const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
-const m = html.match(/<script>([\s\S]*?)<\/script>/);
-if (!m) { console.error('FAIL: 未找到内联脚本'); process.exit(1); }
-let code = m[1].trim();
-// 去掉 IIFE 包装，让函数进全局（记忆中的教训：整体加载最可靠）
-code = code.replace(/^\(function\(\)\{/, '').replace(/\}\)\(\);\s*$/, '');
+const css = fs.readFileSync(path.join(__dirname, 'css/style.css'), 'utf8');
+// 拆分后 JS 按 index.html 底部 <script src> 顺序加载，此处按同序拼接进同一 vm 上下文
+const JS_FILES = ['js/util.js', 'js/json.js', 'js/skills.js', 'js/app.js', 'js/running.js'];
+let code = JS_FILES.map(function (f) { return fs.readFileSync(path.join(__dirname, f), 'utf8'); }).join('\n');
+// 源码字符串断言统一检索的全文 = HTML + CSS + JS（拆分后 CSS/JS 已移出 index.html）
+const src = html + '\n' + css + '\n' + code;
 
 /* ---------- mock DOM ---------- */
 function makeEl(id, cls) {
@@ -610,200 +611,243 @@ T('rkShowMap(0) 无轨迹显示提示', el('rkMapBox').innerHTML.indexOf('暂无
 ctx.rkActs = null;
 
 // rkBody 模块顺序（轨迹地图 → 年度热力图 → 统计卡 → 趋势 → 个人最佳 → 活动列表）
-var riMap = html.indexOf('id="rkMapSec"');
-var riHeat = html.indexOf('年度热力图');
-var riStats = html.indexOf('id="rkStats"');
-var riTrend = html.indexOf('id="rkTrendOut"');
-var riPbs = html.indexOf('id="rkPbs"');
-var riList = html.indexOf('id="rkList"');
+var riMap = src.indexOf('id="rkMapSec"');
+var riHeat = src.indexOf('年度热力图');
+var riStats = src.indexOf('id="rkStats"');
+var riTrend = src.indexOf('id="rkTrendOut"');
+var riPbs = src.indexOf('id="rkPbs"');
+var riList = src.indexOf('id="rkList"');
 T('rkBody 顺序 统计<地图<个人最佳<热力图<趋势<活动列表',
   riStats >= 0 && riStats < riMap && riMap < riPbs && riPbs < riHeat && riHeat < riTrend && riTrend < riList,
   [riStats, riMap, riPbs, riHeat, riTrend, riList].join(' < '));
 
 // 热力图默认年份：rkOnData 中优先当前公历年（2026），数据无当年则回退最新年份；去掉「全部」聚合 tab
 T('rkHeat 默认当年优先（2026），无当年回退最新',
-  /var curYr = String\(new Date\(\)\.getFullYear\(\)\)/.test(html)
-  && /rkState\.year = rkYears\(rkActs\)\.indexOf\(curYr\) >= 0 \? curYr : \(rkYears\(rkActs\)\[0\] \|\| curYr\)/.test(html)
-  && /year:String\(new Date\(\)\.getFullYear\(\)\)/.test(html),
+  /var curYr = String\(new Date\(\)\.getFullYear\(\)\)/.test(src)
+  && /rkState\.year = rkYears\(rkActs\)\.indexOf\(curYr\) >= 0 \? curYr : \(rkYears\(rkActs\)\[0\] \|\| curYr\)/.test(src)
+  && /year:String\(new Date\(\)\.getFullYear\(\)\)/.test(src),
   '默认年份 = 当年优先');
 T('热力图无「全部」tab、无 all 分支残留',
-  html.indexOf("rkHeatSel('all')") < 0
-  && html.indexOf('rkState.year === "all"') < 0
-  && html.indexOf('if(rkState.year === "all")') < 0,
+  src.indexOf("rkHeatSel('all')") < 0
+  && src.indexOf('rkState.year === "all"') < 0
+  && src.indexOf('if(rkState.year === "all")') < 0,
   '去除全部聚合视图');
 
 // 路由：/run → /running（侧边栏 / 快捷卡 / 底部 tab / 页面 id / 白名单 / rkLoad 触发，path 路由）
 T('路由 /running 全量生效（无 /run 残留）',
-  html.indexOf('href="/running" data-nav="running"') >= 0
-  && html.indexOf('id="page-running"') >= 0
-  && html.indexOf('href="/running" data-tabpage="running"') >= 0
-  && html.indexOf('["home","json","skills","running"]') >= 0
-  && html.indexOf('if(h === "running") rkLoad();') >= 0
-  && html.indexOf('href="/run"') < 0
-  && html.indexOf('id="page-run"') < 0
-  && html.indexOf('data-nav="run"') < 0
-  && html.indexOf('data-tabpage="run"') < 0
-  && html.indexOf('h === "run"') >= 0,
+  src.indexOf('href="/running" data-nav="running"') >= 0
+  && src.indexOf('id="page-running"') >= 0
+  && src.indexOf('href="/running" data-tabpage="running"') >= 0
+  && src.indexOf('["home","json","skills","running"]') >= 0
+  && src.indexOf('if(h === "running") rkLoad();') >= 0
+  && src.indexOf('href="/run"') < 0
+  && src.indexOf('id="page-run"') < 0
+  && src.indexOf('data-nav="run"') < 0
+  && src.indexOf('data-tabpage="run"') < 0
+  && src.indexOf('h === "run"') >= 0,
   'running 路由 + 旧 run 兼容重定向');
+
+// 回归：util.js 顶层 hash 兼容块仅 replaceState 规范化地址栏，不得立即 navigate()——
+// 若在 util.js 加载时提前 navigate()，会因 skills/running 模块尚未定义 skTreeClose/rkLoad 抛
+// ReferenceError，并中断 WEEK 等后续顶层赋值（时钟/路由/卡片全部失效）。首次导航统一由
+// app.js init() 负责（此时所有脚本已加载）。
+var hBlkIdx = src.indexOf('if(location.hash && /^#\\//.test(location.hash))');
+var hBlkEnd = hBlkIdx >= 0 ? src.indexOf('\n}', hBlkIdx) : -1;
+var hBlk = (hBlkIdx >= 0 && hBlkEnd >= 0) ? src.slice(hBlkIdx, hBlkEnd + 2) : '';
+T('hash 兼容块仅 replaceState、不立即 navigate()（防 util 加载时序回归）',
+  hBlk !== ''
+  && hBlk.indexOf('replaceState') >= 0
+  && hBlk.indexOf('navigate()') < 0
+  && src.indexOf('此处仅规范化地址栏，不立即 navigate()') >= 0,
+  hBlk ? hBlk.replace(/\s+/g, ' ').slice(0, 140) : 'hash 块未找到');
 
 // 热点视角（rkHotSpot 挂载 + 默认视角回退调用）+ ⤢ 适应轨迹按钮（idx=3，MapCN 3 档固定浅色样式）
 T('热点视角：rkHotSpot 挂载 + 回退聚焦 + ⤢ 按钮修复',
-  html.indexOf('window.rkHotSpot = rkHotSpot') >= 0
-  && html.indexOf('window.rkMercInv = rkMercInv') >= 0
-  && html.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0
-  && html.indexOf('else if(idx === 3) fit()') >= 0
-  && html.indexOf('已聚焦最热点区域') >= 0,
+  src.indexOf('window.rkHotSpot = rkHotSpot') >= 0
+  && src.indexOf('window.rkMercInv = rkMercInv') >= 0
+  && src.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0
+  && src.indexOf('else if(idx === 3) fit()') >= 0
+  && src.indexOf('已聚焦最热点区域') >= 0,
   'rkHotSpot/挂载/回退视角/⤢修复');
 
 // 固定规格：长宽固定比例 640:360（16:9）+ 默认视角固定 z8（meta 与热点分支均 setZoom(HP_Z)）
 T('固定比例：.rk-tilemap aspect-ratio 640/360（长宽比与 preview.png 一致）',
-  html.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/360') >= 0
-  && html.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/420') < 0
-  && html.indexOf('.rk-tilemap{position:relative;height:420px') < 0,
+  src.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/360') >= 0
+  && src.indexOf('.rk-tilemap{position:relative;aspect-ratio:640/420') < 0
+  && src.indexOf('.rk-tilemap{position:relative;height:420px') < 0,
   'aspect-ratio 640/360');
 T('初始视角固定 z8：meta 分支 setZoom(HP_Z) 而非 mv.z',
-  html.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
-  && html.indexOf('setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
-  && html.indexOf('setZoom(mv.z)') < 0,
+  src.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
+  && src.indexOf('setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
+  && src.indexOf('setZoom(mv.z)') < 0,
   '固定 z8/meta 中心');
 T('初始视角固定 z8：热点回退分支同样 setZoom(HP_Z)',
-  html.indexOf('setZoom(HP_Z); S.cx = hp.cx; S.cy = hp.cy') >= 0
-  && html.indexOf('setZoom(hp.z)') < 0,
+  src.indexOf('setZoom(HP_Z); S.cx = hp.cx; S.cy = hp.cy') >= 0
+  && src.indexOf('setZoom(hp.z)') < 0,
   '固定 z8/热点中心');
 T('样式三档固定浅色：按钮 title 无「自动（跟随明暗）」、zoom 显示无「自动·」',
-  html.indexOf('title="切换底图样式：浅色 / 明亮 / 暗色"') >= 0
-  && html.indexOf('跟随明暗') < 0
-  && html.indexOf('S.auto') < 0
-  && html.indexOf('自动·') < 0,
+  src.indexOf('title="切换底图样式：浅色 / 明亮 / 暗色"') >= 0
+  && src.indexOf('跟随明暗') < 0
+  && src.indexOf('S.auto') < 0
+  && src.indexOf('自动·') < 0,
   '三档样式/无明暗跟随残留');
 
 // Task 17 渐进式加载 + 固定 zoom13 世界像素投影（垫底 SVG 全貌 → 矢量层就绪切换，缩放零重投影）
 T('渐进加载：RK_PV_URL 垫底 PNG + RK_META_URL 视角元数据 + phase1 img 与加载提示',
-  html.indexOf('var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png"') >= 0
-  && html.indexOf('var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.meta.json"') >= 0
-  && html.indexOf('<img class=\\"rk-tm-pv\\"') >= 0
-  && html.indexOf('rk-tm-loading') >= 0
-  && html.indexOf('轨迹矢量层构建中') >= 0,
+  src.indexOf('var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png"') >= 0
+  && src.indexOf('var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.meta.json"') >= 0
+  && src.indexOf('<img class=\\"rk-tm-pv\\"') >= 0
+  && src.indexOf('rk-tm-loading') >= 0
+  && src.indexOf('轨迹矢量层构建中') >= 0,
   '垫底PNG/视角元数据/加载提示');
 // rkFetchMeta：测试环境 windowMock 无 fetch → 同步回调 null（回退 hotspot/fit 视角）
 let rkMetaCb = 'unset';
 ctx.rkFetchMeta(function(m){ rkMetaCb = (m === null) ? 'null' : 'obj'; });
 T('rkFetchMeta 无 fetch 同步回调 null', rkMetaCb === 'null', 'metaCb='+rkMetaCb);
 T('rkMapInit metaView 优先分支（有 meta 用固定 z8 + meta 中心，跳过 hotspot）',
-  html.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
-  && html.indexOf('S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
-  && html.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0,
+  src.indexOf('var mv = metaView || null, HP_Z = 8') >= 0
+  && src.indexOf('S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy') >= 0
+  && src.indexOf('var hp = (!selId) ? rkHotSpot(tracks) : null') >= 0,
   'meta优先/回退hotspot');
 T('固定投影：RK_BASE_Z=13 世界像素投影一次 + viewBox 矩阵缩放',
-  /var RK_BASE_Z = 13/.test(html)
-  && html.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0
-  && html.indexOf('S.k = Math.pow(2, S.z - RK_BASE_Z)') >= 0
-  && html.indexOf('viewBoxArgs') >= 0,
+  /var RK_BASE_Z = 13/.test(src)
+  && src.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0
+  && src.indexOf('S.k = Math.pow(2, S.z - RK_BASE_Z)') >= 0
+  && src.indexOf('viewBoxArgs') >= 0,
   '投影基准/缩放矩阵');
 T('缩放零重建：viewBox setAttribute + 线宽反算',
-  html.indexOf('setAttribute("viewBox"') >= 0
-  && html.indexOf('updateStrokeWidths') >= 0
-  && html.indexOf('(1.6 / k).toFixed(2)') >= 0
-  && html.indexOf('(3.5 / k).toFixed(2)') >= 0,
+  src.indexOf('setAttribute("viewBox"') >= 0
+  && src.indexOf('updateStrokeWidths') >= 0
+  && src.indexOf('(1.6 / k).toFixed(2)') >= 0
+  && src.indexOf('(3.5 / k).toFixed(2)') >= 0,
   '矩阵缩放/线宽反算');
 T('投影抽稀：非选中轨迹抽稀到 RK_THIN_MAX（降 SVG 重光栅化成本），选中保留全量',
-  html.indexOf('var RK_THIN_MAX = 500') >= 0
-  && html.indexOf('var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX)') >= 0
-  && html.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0,
+  src.indexOf('var RK_THIN_MAX = 500') >= 0
+  && src.indexOf('var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX)') >= 0
+  && src.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0,
   '抽稀常量/投影抽稀/选中全量');
 T('缩放过渡动画：scale(f) GPU 合成 + settle 结算（动画结束应用真实 viewBox，零跳变）',
-  html.indexOf('function animateZoom(') >= 0
-  && html.indexOf('function settle()') >= 0
-  && html.indexOf('transform 0.2s ease-out') >= 0
-  && html.indexOf('animateZoom(mx, my, Math.pow(2, nz - oldZ))') >= 0
-  && html.indexOf('if(zoomAnimTimer) settle()') >= 0,
+  src.indexOf('function animateZoom(') >= 0
+  && src.indexOf('function settle()') >= 0
+  && src.indexOf('transform 0.2s ease-out') >= 0
+  && src.indexOf('animateZoom(mx, my, Math.pow(2, nz - oldZ))') >= 0
+  && src.indexOf('if(zoomAnimTimer) settle()') >= 0,
   '过渡动画/结算/连续缩放防叠加');
 T('滚轮灵敏度：累积 deltaY 阈值 120 才缩放（防触控板/高精度滚轮一次跳 N 级）',
-  html.indexOf('wheelAcc') >= 0
-  && html.indexOf('while(wheelAcc <= -120)') >= 0
-  && html.indexOf('while(wheelAcc >= 120)') >= 0
-  && html.indexOf('now - wheelAt > 400') >= 0
-  && html.indexOf('Math.max(-3, Math.min(3, d))') >= 0
-  && html.indexOf('zoomBy(e.deltaY < 0 ? 1 : -1') < 0,
+  src.indexOf('wheelAcc') >= 0
+  && src.indexOf('while(wheelAcc <= -120)') >= 0
+  && src.indexOf('while(wheelAcc >= 120)') >= 0
+  && src.indexOf('now - wheelAt > 400') >= 0
+  && src.indexOf('Math.max(-3, Math.min(3, d))') >= 0
+  && src.indexOf('zoomBy(e.deltaY < 0 ? 1 : -1') < 0,
   '累积阈值/手势超时/限幅3级');
 T('缩放锚点：滚轮围绕鼠标位置（zoomBy 重算中心含 +(S.W/2-mx)/k 修正项，防偏移半屏）',
-  html.indexOf('S.cx = wx + (S.W/2 - mx) / S.k;') >= 0
-  && html.indexOf('S.cy = wy + (S.H/2 - my) / S.k;') >= 0
-  && html.indexOf('S.cx = wx - mx / S.k;') < 0,
+  src.indexOf('S.cx = wx + (S.W/2 - mx) / S.k;') >= 0
+  && src.indexOf('S.cy = wy + (S.H/2 - my) / S.k;') >= 0
+  && src.indexOf('S.cx = wx - mx / S.k;') < 0,
   '锚点公式含视口中心修正');
 T('按钮缩放围绕图片中心：idx=1 放大 / idx=2 缩小 / idx=3 适应轨迹（样式按钮 idx=0 被拦截）',
-  html.indexOf('if(idx === 1) zoomBy(1);') >= 0
-  && html.indexOf('else if(idx === 2) zoomBy(-1);') >= 0
-  && html.indexOf('else if(idx === 3) fit();') >= 0
-  && html.indexOf('if(idx === 0) zoomBy(1)') < 0,
+  src.indexOf('if(idx === 1) zoomBy(1);') >= 0
+  && src.indexOf('else if(idx === 2) zoomBy(-1);') >= 0
+  && src.indexOf('else if(idx === 3) fit();') >= 0
+  && src.indexOf('if(idx === 0) zoomBy(1)') < 0,
   '按钮 idx 映射与顺序一致');
 T('拖拽平移：鼠标 onMove 中 SVG 路径层与瓦片层同向（translate(+dx,+dy) 跟随鼠标，路径与地图零脱离）',
-  html.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
-  && html.indexOf('svg.style.transform = "translate(" + (-dx).toFixed(1)') < 0
-  && html.indexOf('tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";') >= 0,
+  src.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
+  && src.indexOf('svg.style.transform = "translate(" + (-dx).toFixed(1)') < 0
+  && src.indexOf('tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";') >= 0,
   'SVG 增量(+dx,+dy) 与瓦片增量一致');
 T('拖拽平移：触摸 touchmove 中 SVG 层同样 translate(+dx,+dy)（与鼠标路径一致，防移动端脱离）',
-  html.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
-  && html.indexOf('(-(S.ox0 - dx)).toFixed(1)') >= 0
-  && html.indexOf('(-dx).toFixed(1) + "px," + (-dy).toFixed(1)') < 0,
+  src.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
+  && src.indexOf('(-(S.ox0 - dx)).toFixed(1)') >= 0
+  && src.indexOf('(-dx).toFixed(1) + "px," + (-dy).toFixed(1)') < 0,
   'SVG 正向位移、瓦片基线偏移正确');
 
 /* ========== 12. 活动列表卡片网格 + 详情弹窗轨迹回放 ========== */
 console.log('== 12. 活动列表卡片 + 弹窗回放 ==');
 // 卡片网格容器与卡片结构（主图/类型标签/地点 pin/日期/底部三格统计）
 T('卡片网格容器 rkList + .rk-actlist grid',
-  html.indexOf('id="rkList"') >= 0
-  && html.indexOf('.rk-actlist{display:grid') >= 0
-  && html.indexOf('repeat(auto-fill,minmax(230px,1fr))') >= 0,
+  src.indexOf('id="rkList"') >= 0
+  && src.indexOf('.rk-actlist{display:grid') >= 0
+  && src.indexOf('repeat(auto-fill,minmax(230px,1fr))') >= 0,
   '卡片式网格替代行式列表');
 T('卡片渲染：主图 thumb + 类型标签 + 地点 pin + 日期 + 三格统计(公里/kmh/时长)',
-  html.indexOf('class=\\"rk-actcard\\"') >= 0
-  && html.indexOf('class=\\"rk-act-thumb\\"') >= 0
-  && html.indexOf('(a.thumb ? "<img src=\\"" + esc(a.thumb)') >= 0
-  && html.indexOf('rkTypeTag(a.type)') >= 0
-  && html.indexOf('esc(a.city || "未知地点")') >= 0
-  && html.indexOf('(a.dist/1000).toFixed(1)') >= 0
-  && html.indexOf('(kmh ? kmh.toFixed(1) : "--")') >= 0
-  && html.indexOf('rkFmtDur(t)') >= 0,
+  src.indexOf('class=\\"rk-actcard\\"') >= 0
+  && src.indexOf('class=\\"rk-act-thumb\\"') >= 0
+  && src.indexOf('(a.thumb ? "<img src=\\"" + esc(a.thumb)') >= 0
+  && src.indexOf('rkTypeTag(a.type)') >= 0
+  && src.indexOf('esc(a.city || "未知地点")') >= 0
+  && src.indexOf('(a.dist/1000).toFixed(1)') >= 0
+  && src.indexOf('(kmh ? kmh.toFixed(1) : "--")') >= 0
+  && src.indexOf('rkFmtDur(t)') >= 0,
   '卡片字段齐全');
 T('平均时速单位换算 m/s → km/h（spd*3.6）',
-  html.indexOf('a.spd ? (a.spd*3.6)') >= 0,
+  src.indexOf('a.spd ? (a.spd*3.6)') >= 0,
   'spd*3.6 换算');
 T('卡片点击打开弹窗 onclick=rkOpenAct',
-  html.indexOf('onclick=\\"rkOpenAct(\'" + a.id') >= 0,
+  src.indexOf('onclick=\\"rkOpenAct(\'" + a.id') >= 0,
   '卡片→弹窗绑定');
 // 弹窗结构：遮罩置灰 + 视频窗口 + 关闭按钮 + 信息区
 T('弹窗结构：遮罩 + 视频窗口 + 关闭按钮 + 信息区',
-  html.indexOf('id="rkActModal"') >= 0
-  && html.indexOf('onclick="rkMaskClose(event)"') >= 0
-  && html.indexOf('id="rkActVideo"') >= 0
-  && html.indexOf('class="rk-act-close"') >= 0
-  && html.indexOf('id="rkActInfo"') >= 0
-  && html.indexOf('.rk-act-modal .modal{max-width:720px') >= 0
-  && html.indexOf('.rk-act-video{') >= 0,
+  src.indexOf('id="rkActModal"') >= 0
+  && src.indexOf('onclick="rkMaskClose(event)"') >= 0
+  && src.indexOf('id="rkActVideo"') >= 0
+  && src.indexOf('class="rk-act-close"') >= 0
+  && src.indexOf('id="rkActInfo"') >= 0
+  && src.indexOf('.rk-act-modal .modal{max-width:720px') >= 0
+  && src.indexOf('.rk-act-video{') >= 0,
   '弹窗骨架完整');
 T('弹窗遮罩置灰（modal-mask 复用）',
-  html.indexOf('class="modal-mask rk-act-modal"') >= 0,
+  src.indexOf('class="modal-mask rk-act-modal"') >= 0,
   '遮罩置灰');
-// 回放：canvas 等距投影 + 标记点循环移动 + 进入即自动播放
-T('轨迹回放：canvas 等距投影 + 已走轨迹高亮 + 起点/当前标记点',
-  html.indexOf('var RK_ACT_DUR = 8') >= 0
-  && html.indexOf('document.createElement("canvas")') >= 0
-  && html.indexOf('rkDecodePolyline(a.poly)') >= 0
-  && html.indexOf('cosLat = Math.cos(cy * Math.PI / 180)') >= 0
-  && html.indexOf('rkTrackColor(a.type)') >= 0
-  && html.indexOf('ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI*2)') >= 0,
-  '回放绘制逻辑');
+// 回放：canvas Web Mercator 投影 + MapCN 瓦片底图背景 + 标记点循环移动 + 进入即自动播放
+T('轨迹回放：canvas Web Mercator 投影 + 瓦片底图背景 + 已走轨迹高亮 + 起点/当前标记点',
+  src.indexOf('var RK_ACT_DUR = 8') >= 0
+  && src.indexOf('document.createElement("canvas")') >= 0
+  && src.indexOf('rkDecodePolyline(a.poly)') >= 0
+  && src.indexOf('var p = rkMerc(c[1], c[0], z);') >= 0
+  && src.indexOf('return [ p[0] - cx + W/2, p[1] - cy + H/2 ];') >= 0
+  && src.indexOf('ctx.drawImage(bgCv, 0, 0)') >= 0
+  && src.indexOf('function rkActLoadBg(') >= 0
+  && src.indexOf('function rkActBgStyle(') >= 0
+  && src.indexOf('(prefers-color-scheme: dark)') >= 0
+  && src.indexOf('rkTrackColor(a.type)') >= 0
+  && src.indexOf('ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI*2)') >= 0,
+  '回放绘制逻辑（Mercator + 瓦片底图）');
+T('回放底图样式跟随系统默认明暗：matchMedia 检测 + light/dark 档选择 + 占位底色',
+  src.indexOf('window.matchMedia("(prefers-color-scheme: dark)")') >= 0
+  && src.indexOf('return dark ? RK_STYLES[2] : RK_STYLES[0];') >= 0
+  && src.indexOf('bg:"#e9e5dd"') >= 0
+  && src.indexOf('bg:"#1a2234"') >= 0
+  && src.indexOf('bgCtx.fillRect(0, 0, W, H)') >= 0,
+  '明暗检测/档选择/占位底色');
+T('回放底图瓦片加载：离屏 canvas 渐进加载 + {s} 子域 + drawImage 对齐',
+  src.indexOf('img.onload = function(){') >= 0
+  && src.indexOf('bgCtx.drawImage(img, tx*RK_TILE - vx0, ty*RK_TILE - vy0, RK_TILE, RK_TILE)') >= 0
+  && src.indexOf('"abcd"[(wx + ty + z) % 4]') >= 0
+  && src.indexOf('var bgCv = document.createElement("canvas")') >= 0,
+  '离屏渐进加载/子域/drawImage');
+// 回放底图样式运行时：windowMock 无 matchMedia → 默认 light；模拟暗色系统 → dark
+T('rkActBgStyle 无 matchMedia 默认 light（浅色系统）',
+  ctx.rkActBgStyle().k === 'light' && ctx.rkActBgStyle().url.indexOf('light_all') > 0,
+  'k=' + ctx.rkActBgStyle().k);
+windowMock.matchMedia = function () { return { matches: true }; };
+T('rkActBgStyle 暗色系统（prefers-color-scheme: dark）→ dark',
+  ctx.rkActBgStyle().k === 'dark' && ctx.rkActBgStyle().url.indexOf('dark_all') > 0,
+  'k=' + ctx.rkActBgStyle().k);
+delete windowMock.matchMedia;
 T('进入即自动播放 + 循环（requestAnimationFrame + prog 回卷）',
-  html.indexOf('rkActAnim = requestAnimationFrame(tick)') >= 0
-  && html.indexOf('if(prog >= 1){ t0 = ts; prog = 0; }') >= 0,
+  src.indexOf('rkActAnim = requestAnimationFrame(tick)') >= 0
+  && src.indexOf('if(prog >= 1){ t0 = ts; prog = 0; }') >= 0,
   '自动播放循环');
 T('弹窗打开/关闭/遮罩/回放函数挂载到 window',
-  html.indexOf('window.rkOpenAct = rkOpenAct') >= 0
-  && html.indexOf('window.rkCloseAct = rkCloseAct') >= 0
-  && html.indexOf('window.rkMaskClose = rkMaskClose') >= 0
-  && html.indexOf('window.rkActReplay = rkActReplay') >= 0
-  && html.indexOf('window.rkActStop = rkActStop') >= 0,
+  src.indexOf('window.rkOpenAct = rkOpenAct') >= 0
+  && src.indexOf('window.rkCloseAct = rkCloseAct') >= 0
+  && src.indexOf('window.rkMaskClose = rkMaskClose') >= 0
+  && src.indexOf('window.rkActReplay = rkActReplay') >= 0
+  && src.indexOf('window.rkActStop = rkActStop') >= 0
+  && src.indexOf('window.rkActBgStyle = rkActBgStyle') >= 0
+  && src.indexOf('window.rkActLoadBg = rkActLoadBg') >= 0,
   '弹窗函数挂载');
 
 /* ========== 结果 ========== */
