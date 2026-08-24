@@ -317,23 +317,32 @@ select.indent{min-height:38px;border:1px solid var(--border2);border-radius:var(
 .rk-pb-item .rk-pb-v{font-size:20px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;line-height:1.2}
 .rk-pb-item .rk-pb-d{font-size:11px;color:var(--text3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rk-trend{width:100%;height:auto;display:block}
-.rk-list{display:flex;flex-direction:column}
-.rk-row{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:var(--radius-s);cursor:pointer;transition:background .12s;border-bottom:1px solid var(--border)}
-.rk-row:hover{background:var(--surface2)}
-.rk-row:last-child{border-bottom:none}
-.rk-row .rk-date{font-size:12px;color:var(--text3);width:86px;flex-shrink:0;font-variant-numeric:tabular-nums}
-.rk-row .rk-name{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rk-row .rk-name .rk-type{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--primary-soft);color:var(--primary-deep);margin-right:6px;vertical-align:1px;flex-shrink:0}
-body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
-.rk-row .rk-num{font-size:12.5px;color:var(--text2);text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
-.rk-row .rk-num b{font-weight:600;color:var(--text);font-size:13.5px}
+.rk-actlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.rk-actcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .16s,box-shadow .16s,border-color .16s;display:flex;flex-direction:column}
+.rk-actcard:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--primary)}
+.rk-act-thumb{position:relative;aspect-ratio:16/9;background:var(--surface2);overflow:hidden}
+.rk-act-thumb img{width:100%;height:100%;object-fit:cover;display:block;background:var(--surface2)}
+.rk-act-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:6px;background:var(--primary-soft);color:var(--primary-deep);font-weight:600}
+body[data-theme="dark"] .rk-act-tag{color:var(--primary)}
+.rk-act-thumb .rk-act-tag{position:absolute;left:8px;top:8px;background:rgba(15,23,42,.55);color:#fff;backdrop-filter:blur(3px)}
+.rk-act-body{padding:12px 14px 13px;display:flex;flex-direction:column;gap:9px;flex:1}
+.rk-act-title{font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px;min-width:0}
+.rk-act-title .rk-act-tag{flex-shrink:0}
+.rk-act-meta{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--text2);line-height:1.5}
+.rk-act-meta .rk-act-loc{display:flex;align-items:center;gap:5px;min-width:0}
+.rk-act-meta .rk-act-loc svg{width:12px;height:12px;flex-shrink:0;color:var(--text3)}
+.rk-act-meta .rk-act-loc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-act-stats{display:flex;gap:6px;border-top:1px solid var(--border);padding-top:10px;margin-top:auto}
+.rk-act-stat{flex:1;text-align:center;min-width:0}
+.rk-act-stat b{display:block;font-size:15.5px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1.2}
+.rk-act-stat span{font-size:10.5px;color:var(--text3)}
 .rk-more{width:100%;padding:10px;text-align:center;color:var(--primary);font-size:13px;cursor:pointer;background:none;border:1px dashed var(--border2);border-radius:var(--radius-s);margin-top:10px}
 .rk-more:hover{border-color:var(--primary)}
 .rk-map{position:relative;width:100%;border-radius:var(--radius-s);overflow:hidden;border:1px solid var(--border);background:var(--surface2)}
 .rk-map-hint{padding:26px 20px;text-align:center;color:var(--text2);font-size:13px}
 .rk-map-hint .rk-mh-t{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
 .rk-map-hint code{background:var(--surface);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:12px}
-.rk-tilemap{position:relative;height:420px;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
+.rk-tilemap{position:relative;aspect-ratio:640/360;overflow:hidden;background:#dfe5ea;border-radius:var(--radius-s);touch-action:none;user-select:none}
 .rk-tm-pv{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;user-select:none;-webkit-user-drag:none;opacity:1;will-change:transform}
 .rk-tm-tiles{position:absolute;left:0;top:0;will-change:transform}
 .rk-tm-tile{position:absolute;width:256px;height:256px;background-size:cover;background-color:#dfe5ea}
@@ -349,8 +358,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .rk-empty{padding:30px 0;text-align:center;color:var(--text3);font-size:13px}
 @media (max-width:768px){
   .rk-cards{grid-template-columns:repeat(2,1fr)}
-  .rk-row .rk-name{font-size:12.5px}
-  .rk-row .rk-date{width:74px}
+  .rk-actlist{grid-template-columns:repeat(2,1fr)}
 }
 
 /* ===== 弹窗 ===== */
@@ -361,6 +369,24 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
 .modal p{font-size:13px;color:var(--text2);margin-bottom:14px}
 .modal input[type=file]{font-size:13px;margin-bottom:14px;color:var(--text2)}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end}
+
+/* ===== 活动详情弹窗 + 轨迹回放 ===== */
+.rk-act-modal .modal{max-width:720px;padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:90vh}
+.rk-act-video{position:relative;aspect-ratio:16/9;background:#0f172a;overflow:hidden;flex-shrink:0}
+.rk-act-video canvas{width:100%;height:100%;display:block}
+.rk-act-video .rk-act-hint{position:absolute;left:10px;bottom:10px;font-size:11px;color:rgba(255,255,255,.78);background:rgba(15,23,42,.45);padding:2px 8px;border-radius:8px;z-index:3;pointer-events:none}
+.rk-act-close{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(15,23,42,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;z-index:5;display:flex;align-items:center;justify-content:center;transition:background .12s}
+.rk-act-close:hover{background:rgba(15,23,42,.8)}
+.rk-act-info{padding:18px 20px 20px;overflow:auto}
+.rk-ai-title{font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:6px;min-width:0}
+.rk-ai-title .rk-ai-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-ai-sub{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.rk-act-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rk-act-cell{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-s);padding:10px 12px}
+.rk-act-cell .rk-k{font-size:11px;color:var(--text3)}
+.rk-act-cell .rk-v{font-size:16.5px;font-weight:700;color:var(--text);margin-top:3px;font-variant-numeric:tabular-nums;line-height:1.25}
+.rk-act-cell .rk-v small{font-size:11px;font-weight:400;color:var(--text3)}
+@media (max-width:560px){ .rk-act-grid{grid-template-columns:repeat(2,1fr)} }
 
 /* ===== 响应式 ===== */
 @media (max-width:900px){
@@ -725,7 +751,7 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>活动列表</h3>
           <div class="toolbar" id="rkListTools"></div>
         </div>
-        <div class="rk-list" id="rkList"></div>
+        <div class="rk-actlist" id="rkList"></div>
       </div>
     </div>
   </section>
@@ -739,6 +765,17 @@ body[data-theme="dark"] .rk-row .rk-name .rk-type{color:var(--primary)}
         <button class="btn" onclick="clearHistory()">清空历史</button>
         <button class="btn primary" onclick="closeHist()">关闭</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 活动详情弹窗：轨迹回放视频窗口 + 完整骑行信息 -->
+  <div class="modal-mask rk-act-modal" id="rkActModal" onclick="rkMaskClose(event)">
+    <div class="modal">
+      <div class="rk-act-video" id="rkActVideo">
+        <button class="rk-act-close" onclick="rkCloseAct()" title="关闭" aria-label="关闭">✕</button>
+        <div class="rk-act-hint">轨迹回放</div>
+      </div>
+      <div class="rk-act-info" id="rkActInfo"></div>
     </div>
   </div>
 </main>
@@ -890,12 +927,7 @@ function applyTheme(t){
   store(KEY_THEME, t);
   var label = $("themeLabel");
   if(label) label.textContent = (t==="dark" ? "亮色模式" : "暗色模式");
-  /* 地图 auto 样式跟随明暗模式：已渲染且处于自动档时重绘底图 */
-  try{
-    if(rkMapStyleIdx && rkMapStyleIdx() === 0 && rkShowMap && rkEl("rkMapCanvas")){
-      rkShowMap(rkState.selId);
-    }
-  }catch(e){}
+  /* 地图样式固定浅色（不随明暗切换），主题切换无需重绘地图 */
 }
 function toggleTheme(){
   applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
@@ -908,8 +940,19 @@ function toggleTheme(){
 function navigate(){
   var raw = String(location.pathname || "/").replace(/^\//,"");
   var parts = raw.split("/"), h = parts[0] || "";
-  /* 兼容旧链接：/run → /running */
-  if(h === "run"){ history.replaceState(null,"","/running" + (parts.length > 1 ? "/" + parts.slice(1).join("/") : "")); return navigate(); }
+  /* 回退：本地 file:// 预览 pathname 为磁盘路径无法解析 → 从旧 hash 链接解析目标页 */
+  if(["home","json","skills","running"].indexOf(h) < 0 && /^#\//.test(location.hash || "")){
+    h = location.hash.replace(/^#\//,"").split("/")[0];
+    parts[0] = h;
+  }
+  /* 兼容旧链接：/run → /running（file:// 下 replaceState 受限时本地修正后继续） */
+  if(h === "run"){
+    var np = "/running" + (parts.length > 1 ? "/" + parts.slice(1).join("/") : "");
+    var replaced = false;
+    try{ history.replaceState(null,"",np); replaced = true; }catch(e){ /* file:// 受限 */ }
+    if(replaced) return navigate();
+    h = "running"; parts[0] = "running";
+  }
   if(["home","json","skills","running"].indexOf(h) < 0) h = "home";
   var pages = document.querySelectorAll(".page");
   for(var i=0;i<pages.length;i++) pages[i].classList.toggle("active", pages[i].id === "page-"+h);
@@ -943,9 +986,10 @@ document.addEventListener("click", function(e){
     go(href);
   }
 });
-/* 兼容旧 hash 链接：#/xxx → /xxx（replaceState 不留历史记录） */
+/* 兼容旧 hash 链接：#/xxx → /xxx（replaceState 不留历史记录；file:// 下受限则忽略并直接导航） */
 if(location.hash && /^#\//.test(location.hash)){
-  history.replaceState(null,"",location.hash.slice(1));
+  try{ history.replaceState(null,"",location.hash.slice(1)); }catch(e){ /* 本地 file:// 预览下 replaceState 受限 */ }
+  navigate();
 }
 
 /* ================= 工作台：日期 + 问候 ================= */
@@ -2184,6 +2228,8 @@ function init(){
   window.rkMapStyleIdx = rkMapStyleIdx; window.rkResolveStyle = rkResolveStyle;
   window.rkHeatSel = rkHeatSel; window.rkTrendMode = rkTrendMode;
   window.rkListSel = rkListSel; window.rkMore = rkMore; window.rkShowMap = rkShowMap;
+  window.rkOpenAct = rkOpenAct; window.rkCloseAct = rkCloseAct; window.rkMaskClose = rkMaskClose;
+  window.rkActInfo = rkActInfo; window.rkActReplay = rkActReplay; window.rkActStop = rkActStop;
   window.rkHotSpot = rkHotSpot; window.rkMapTracks = rkMapTracks;
   window.rkMerc = rkMerc; window.rkMercInv = rkMercInv;
   window.rkDecodePolyline = rkDecodePolyline; window.rkThin = rkThin;
@@ -2193,13 +2239,17 @@ document.addEventListener("DOMContentLoaded", init);
 /* ================= Running (run)：数据源 = running 仓库直连（preview 抽帧数据） ================= */
 var RK_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.json";
 var RK_CACHE = "wb_rk_acts_v2";
-/* OSM 标准瓦片（WGS-84 标准，国内可达性优于 CARTO；单一样式，无 token） */
+/* MapCN（CARTO Basemaps）免费瓦片，无 token；默认浅色固定（与 running 仓库
+   activities.preview.png 生成规格一致：640:360 + z8 + 浅色，不随系统明暗切换），
+   用户可手动切 明亮 / 暗色（浅色 / 明亮 / 暗色 三档循环） */
 var RK_STYLES = [
-  { k:"osm", n:"标准", url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png" }
+  { k:"light",   n:"浅色", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
+  { k:"voyager", n:"明亮", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
+  { k:"dark",    n:"暗色", url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" }
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
-/* 全量轨迹垫底 PNG（running 仓库构建产物：OSM 瓦片底图 + 全量轨迹，2x 1280x840，
+/* 全量轨迹垫底 PNG（running 仓库构建产物：浅灰纯色底图 + 全量轨迹，1x 640x360，
    位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换） */
 var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png";
 /* 垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom）：
@@ -2208,13 +2258,13 @@ var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/
 /* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
    所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
 var RK_BASE_Z = 13;
-function rkThemeDark(){
-  try{ return !!document.body && document.body.dataset.theme === "dark"; }catch(e){ return false; }
-}
-/* 解析实际生效的样式（OSM 单样式） */
+/* 投影抽稀上限：全量 345K 点在缩放时每次 viewBox 变化都触发整张 SVG 重光栅化，
+   中低端设备（核显/移动端）会明显掉帧。非选中轨迹抽稀到至多 RK_THIN_MAX 点
+   （视觉无差，光栅化成本降 ~4 倍），选中轨迹保留全量（单条放大查看精度不损） */
+var RK_THIN_MAX = 500;
+/* 解析实际生效的样式索引：默认浅色固定（三档无 auto，直接返回目标档） */
 function rkResolveStyle(idx){
-  var s = RK_STYLES[idx] || RK_STYLES[0];
-  return s;
+  return RK_STYLES[idx] || RK_STYLES[0];
 }
 var RK_RUN_PAL = ["#fed7aa","#fb923c","#f97316","#ea580c"];   /* 对齐 running_page TYPE_PALETTES.Run */
 var RK_RIDE_PAL = ["#bfdbfe","#60a5fa","#3b82f6","#2563eb"];
@@ -2223,6 +2273,7 @@ var rkActs = null;               /* 规整后的活动数组 */
 var rkState = { year:String(new Date().getFullYear()), trend:"m", listYear:"all", listN:30, selId:0 };
 
 function rkEl(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
+/* 当前样式索引：默认 0=浅色（固定浅色），用户切换后存 localStorage */
 function rkMapStyleIdx(){
   try{
     var i = parseInt(localStorage.getItem(RK_STYLE_KEY), 10);
@@ -2237,14 +2288,15 @@ function rkParse(json){
   if(!arr || !Array.isArray(arr)) return [];
   return arr.map(function(a){
     return {
-      id: a.run_id != null ? a.run_id : 0,
+      id: a.run_id != null ? String(a.run_id) : "0",
       name: a.name || "",
       dist: Number(a.distance) || 0,
       mt: a.moving_time || "",
       type: a.type || a.subtype || "Run",
       sub: a.subtype || "",
       date: a.start_date_local || a.start_date || "",
-      country: a.location_country || "",
+      city: a.location_city || a.location_country || "",
+      thumb: a.thumbnail || "",
       poly: a.summary_polyline || "",
       hr: Number(a.average_heartrate) || 0,
       spd: Number(a.average_speed) || 0,
@@ -2599,25 +2651,173 @@ function rkRenderList(){
   var acts = rkActs.slice().sort(rkSortDate);
   if(rkState.listYear !== "all") acts = acts.filter(function(a){ return (a.date||"").slice(0,4) === rkState.listYear; });
   var show = acts.slice(0, rkState.listN);
+  var pinIc = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
   var h = "";
   show.forEach(function(a){
     var d = (a.date||"").slice(0,10);
     var t = rkMovingSec(a.mt);
-    var pace = a.spd ? rkPace(a.spd) : (a.dist > 0 && t > 0 ? rkPace(a.dist/t) : "--");
+    var kmh = a.spd ? (a.spd*3.6) : (a.dist > 0 && t > 0 ? a.dist/t*3.6 : 0);
     var nm = a.name || rkTitleFor(a);
-    h += "<div class=\"rk-row\" onclick=\"rkShowMap(" + a.id + ")\" title=\"点击查看轨迹地图\">";
-    h += "<span class=\"rk-date\">" + d + "</span>";
-    h += "<span class=\"rk-name\"><span class=\"rk-type\">" + rkTypeTag(a.type) + "</span>" + esc(nm) + "</span>";
-    h += "<span class=\"rk-num\"><b>" + (a.dist/1000).toFixed(2) + "</b> km</span>";
-    h += "<span class=\"rk-num\">" + rkFmtDur(t) + "</span>";
-    h += "<span class=\"rk-num\" style=\"min-width:50px\">" + pace + "/km</span>";
+    h += "<div class=\"rk-actcard\" onclick=\"rkOpenAct('" + a.id + "')\" title=\"查看轨迹回放\">";
+    h += "<div class=\"rk-act-thumb\">" + (a.thumb ? "<img src=\"" + esc(a.thumb) + "\" alt=\"\" loading=\"lazy\">" : "") + "<span class=\"rk-act-tag\">" + rkTypeTag(a.type) + "</span></div>";
+    h += "<div class=\"rk-act-body\">";
+    h += "<div class=\"rk-act-title\">" + esc(nm) + "</div>";
+    h += "<div class=\"rk-act-meta\">";
+    h += "<span class=\"rk-act-loc\">" + pinIc + "<span>" + esc(a.city || "未知地点") + "</span></span>";
+    h += "<span>" + d + "</span>";
     h += "</div>";
+    h += "<div class=\"rk-act-stats\">";
+    h += "<div class=\"rk-act-stat\"><b>" + (a.dist/1000).toFixed(1) + "</b><span>公里</span></div>";
+    h += "<div class=\"rk-act-stat\"><b>" + (kmh ? kmh.toFixed(1) : "--") + "</b><span>km/h</span></div>";
+    h += "<div class=\"rk-act-stat\"><b>" + rkFmtDur(t) + "</b><span>时长</span></div>";
+    h += "</div>";
+    h += "</div></div>";
   });
   if(!h) h = "<div class=\"rk-empty\">该年份暂无记录</div>";
   if(acts.length > rkState.listN) h += "<button class=\"rk-more\" onclick=\"rkMore()\">加载更多（已显示 " + rkState.listN + " / " + acts.length + "）</button>";
   e.innerHTML = h;
 }
 function rkMore(){ rkState.listN += 30; rkRenderList(); }
+
+/* ---- 活动详情弹窗 + 轨迹回放动画 ---- */
+var RK_ACT_DUR = 8;          /* 单条轨迹回放时长（秒），循环播放 */
+var rkActAnim = null;        /* 当前回放动画句柄 */
+function rkOpenAct(id){
+  var a = null;
+  (rkActs||[]).forEach(function(x){ if(x.id === id) a = x; });
+  if(!a) return;
+  var m = rkEl("rkActModal");
+  if(m) m.classList.add("show");
+  rkActInfo(a);
+  rkActReplay(a);
+}
+function rkCloseAct(){
+  var m = rkEl("rkActModal");
+  if(m) m.classList.remove("show");
+  rkActStop();
+}
+function rkMaskClose(ev){
+  if(ev && ev.target && ev.target.id === "rkActModal") rkCloseAct();
+}
+function rkActStop(){
+  if(rkActAnim){ cancelAnimationFrame(rkActAnim); rkActAnim = null; }
+}
+function rkActInfo(a){
+  var e = rkEl("rkActInfo");
+  if(!e) return;
+  var t = rkMovingSec(a.mt);
+  var kmh = a.spd ? (a.spd*3.6) : (a.dist > 0 && t > 0 ? a.dist/t*3.6 : 0);
+  var pace = a.spd ? rkPace(a.spd) : (a.dist > 0 && t > 0 ? rkPace(a.dist/t) : "--");
+  var cells = [
+    { k:"距离", v:(a.dist/1000).toFixed(2), u:"km" },
+    { k:"时长", v:rkFmtDur(t), u:"" },
+    { k:"平均时速", v:(kmh ? kmh.toFixed(1) : "--"), u:"km/h" },
+    { k:"平均配速", v:pace, u:"/km" },
+    { k:"累计爬升", v:String(a.elev||0), u:"m" },
+    { k:"平均心率", v:(a.hr ? String(a.hr) : "--"), u:(a.hr ? "bpm" : "") }
+  ];
+  var h = "<div class=\"rk-ai-title\"><span class=\"rk-act-tag\">" + rkTypeTag(a.type) + "</span><span class=\"rk-ai-name\">" + esc(a.name || rkTitleFor(a)) + "</span></div>";
+  h += "<div class=\"rk-ai-sub\"><span>" + esc(a.date || "") + "</span>" + (a.city ? "<span>· " + esc(a.city) + "</span>" : "") + "</div>";
+  h += "<div class=\"rk-act-grid\">";
+  cells.forEach(function(c){
+    h += "<div class=\"rk-act-cell\"><div class=\"rk-k\">" + c.k + "</div><div class=\"rk-v\">" + c.v + (c.u ? " <small>" + c.u + "</small>" : "") + "</div></div>";
+  });
+  h += "</div>";
+  e.innerHTML = h;
+}
+/* 轨迹回放：解码 polyline -> 等距投影到 canvas -> 标记点沿轨迹循环移动，进入即自动播放 */
+function rkActReplay(a){
+  var wrap = rkEl("rkActVideo");
+  if(!wrap) return;
+  var hint = wrap.querySelector(".rk-act-hint");
+  var coords = rkDecodePolyline(a.poly);
+  var oldCv = wrap.querySelector("canvas");
+  if(!coords || coords.length < 2){
+    if(oldCv) oldCv.remove();
+    if(hint) hint.textContent = "无轨迹数据";
+    rkActStop();
+    return;
+  }
+  coords = rkThin(coords, 500);
+  if(!oldCv){
+    oldCv = document.createElement("canvas");
+    oldCv.style.cssText = "width:100%;height:100%;display:block";
+    wrap.insertBefore(oldCv, wrap.firstChild);
+  }
+  if(hint) hint.textContent = "轨迹回放";
+  var W = 1280, H = 720;
+  if(oldCv.width !== W){ oldCv.width = W; oldCv.height = H; }
+  var ctx = oldCv.getContext("2d");
+
+  var lats = coords.map(function(c){ return c[0]; });
+  var lngs = coords.map(function(c){ return c[1]; });
+  var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+  var minLng = Math.min.apply(null, lngs), maxLng = Math.max.apply(null, lngs);
+  var cy = (minLat + maxLat) / 2, cx = (minLng + maxLng) / 2;
+  var cosLat = Math.cos(cy * Math.PI / 180);
+  var pad = 70;
+  var dw = Math.max(maxLng - minLng, 1e-6) * cosLat;
+  var dh = Math.max(maxLat - minLat, 1e-6);
+  var scale = Math.min((W - pad * 2) / dw, (H - pad * 2) / dh);
+  var pts = coords.map(function(c){
+    return [ (c[1] - cx) * cosLat * scale + W / 2, (cy - c[0]) * scale + H / 2 ];
+  });
+
+  var cum = [0], i;
+  for(i = 1; i < pts.length; i++){
+    var dx = pts[i][0] - pts[i-1][0], dy = pts[i][1] - pts[i-1][1];
+    cum.push(cum[i-1] + Math.sqrt(dx*dx + dy*dy));
+  }
+  var total = cum[cum.length - 1] || 1;
+  var col = rkTrackColor(a.type);
+
+  function draw(prog){
+    var d = prog * total, j = 0;
+    while(j < cum.length - 1 && cum[j+1] < d) j++;
+    var seg = (cum[j+1] - cum[j]) || 1;
+    var f = (d - cum[j]) / seg;
+    var curX = pts[j][0] + (pts[j+1][0] - pts[j][0]) * f;
+    var curY = pts[j][1] + (pts[j+1][1] - pts[j][1]) * f;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+    ctx.strokeStyle = "rgba(148,163,184,.32)";
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for(var k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+    ctx.stroke();
+
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for(var k2 = 1; k2 <= j; k2++) ctx.lineTo(pts[k2][0], pts[k2][1]);
+    ctx.lineTo(curX, curY);
+    ctx.stroke();
+
+    ctx.fillStyle = "#34d399";
+    ctx.beginPath(); ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,.3)";
+    ctx.beginPath(); ctx.arc(curX, curY, 14, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(curX, curY, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(curX, curY, 3, 0, Math.PI*2); ctx.fill();
+  }
+
+  rkActStop();
+  var t0 = null;
+  function tick(ts){
+    if(rkActAnim === null) return;
+    if(t0 === null) t0 = ts;
+    var prog = ((ts - t0) / 1000) / RK_ACT_DUR;
+    if(prog >= 1){ t0 = ts; prog = 0; }   /* 循环播放 */
+    draw(prog);
+    rkActAnim = requestAnimationFrame(tick);
+  }
+  rkActAnim = requestAnimationFrame(tick);
+}
 
 /* ---- 轨迹地图（MapCN / CARTO 免费瓦片，零外链手写渲染，无需 token） ---- */
 /* 未选中轨迹按类型配色（与 RK_*_PAL 首色一致，弱化显示） */
@@ -2778,7 +2978,6 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   var S = {
     z: 14, cx: 0, cy: 0, tracks: [],
     style: rkResolveStyle(styleIdx),
-    auto: !!(RK_STYLES[styleIdx] && RK_STYLES[styleIdx].k === "auto"),
     container: container, W: 640, H: 420,
     ox0: 0, oy0: 0,
     selId: selId || 0,
@@ -2790,10 +2989,13 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   S.tracks = tracks.map(function(t){
     return { id:t.id, type:t.type||"Run", sel:!!selId && t.id === selId, coords:t.coords, pts:[] };
   });
-  /* 固定基准投影：全部轨迹只在 RK_BASE_Z(13) 世界像素投影一次（345K 点 ~几十 ms），
-     缩放/平移仅改 viewBox 矩阵，零重投影 —— 消除旧架构「每次缩放全量重投影卡顿」 */
+  /* 固定基准投影：全部轨迹只在 RK_BASE_Z(13) 世界像素投影一次，缩放/平移仅改 viewBox
+     矩阵，零重投影 —— 消除旧架构「每次缩放全量重投影卡顿」。
+     另做投影抽稀：非选中轨迹抽稀到 RK_THIN_MAX 点（降 SVG 重光栅化成本），
+     选中轨迹保留全量（单条放大查看精度不损） */
   S.tracks.forEach(function(t){
-    t.pts = t.coords.map(function(c){ var p = rkMerc(c[1], c[0], RK_BASE_Z); return [p[0], p[1]]; });
+    var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX);
+    t.pts = coords.map(function(c){ var p = rkMerc(c[1], c[0], RK_BASE_Z); return [p[0], p[1]]; });
   });
   function rect(){
     try{
@@ -2873,12 +3075,13 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   }
   function ctrlHTML(){
     return '<div class="rk-tm-ctrl">'
+      + '<button class="rk-tm-btn rk-tm-style" onclick="rkMapStyle()" title="切换底图样式：浅色 / 明亮 / 暗色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg></button>'
       + '<button class="rk-tm-btn" title="放大">+</button>'
       + '<button class="rk-tm-btn" title="缩小">−</button>'
       + '<button class="rk-tm-btn" title="适应轨迹">⤢</button>'
       + '</div>'
-      + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + (S.auto ? ("自动·" + S.style.n) : S.style.n) + '</div>'
-      + '<div class="rk-tm-attr">© OpenStreetMap contributors</div>';
+      + '<div class="rk-tm-zoom" id="rkTmZoom">z' + S.z + ' · ' + S.style.n + '</div>'
+      + '<div class="rk-tm-attr">© OpenStreetMap contributors © CARTO</div>';
   }
   /* 缩放/平移：仅更新 viewBox 矩阵 + 线宽反算（SVG 内容零重建，345K 点不重绘） */
   function refreshView(){
@@ -2887,7 +3090,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
       S.svgEl.setAttribute("viewBox", vb[0] + " " + vb[1] + " " + vb[2] + " " + vb[3]);
       S.svgEl.style.transform = "";
       if(S.tilesEl){ S.tilesEl.outerHTML = tilesHTML(vb[0], vb[1]); S.tilesEl = container.querySelector(".rk-tm-tiles"); }
-      if(S.zoomEl) S.zoomEl.textContent = "z" + S.z + " · " + (S.auto ? ("自动·" + S.style.n) : S.style.n);
+      if(S.zoomEl) S.zoomEl.textContent = "z" + S.z + " · " + S.style.n;
       updateStrokeWidths();
     }
   }
@@ -2932,17 +3135,46 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     }
     container.style.cursor = "grab";
   }
+  /* 缩放过渡动画：旧内容（瓦片 + SVG）整体 scale(f) 绕锚点（will-change:transform
+     走 GPU 合成，动画期间不重光栅化 345K 点，丝滑），过渡结束 settle() 应用真实
+     viewBox + 重建瓦片。scale 归 1 时与新 viewBox 渲染结果一致（数学等价），零跳变。
+     连续快速缩放时 zoomBy 先 settle 结算到当前 zoom，再从干净状态起新动画，
+     避免 transform 叠加错乱 */
+  var zoomAnimTimer = null;
+  function settle(){
+    if(zoomAnimTimer){ clearTimeout(zoomAnimTimer); zoomAnimTimer = null; }
+    if(S.svgEl){ S.svgEl.style.transition = "none"; S.svgEl.style.transform = ""; S.svgEl.style.transformOrigin = ""; }
+    if(S.tilesEl){ S.tilesEl.style.transition = "none"; S.tilesEl.style.transform = ""; S.tilesEl.style.transformOrigin = ""; }
+    refreshView();
+  }
+  function animateZoom(ox, oy, f){
+    if(!S.ready || !S.svgEl){ render(); return; }
+    var svg = S.svgEl, tiles = S.tilesEl;
+    svg.style.transition = "transform 0.2s ease-out";
+    svg.style.transformOrigin = ox + "px " + oy + "px";
+    svg.style.transform = "scale(" + f + ")";
+    if(tiles){
+      tiles.style.transition = "transform 0.2s ease-out";
+      tiles.style.transformOrigin = ox + "px " + oy + "px";
+      tiles.style.transform = "translate(" + (-S.ox0).toFixed(1) + "px," + (-S.oy0).toFixed(1) + "px) scale(" + f + ")";
+    }
+    zoomAnimTimer = setTimeout(settle, 210);
+  }
   function zoomBy(d, mx, my){
     var nz = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, S.z + d));
     if(nz === S.z) return;
     if(mx == null){ mx = S.W/2; my = S.H/2; }
-    /* 锚点 = 鼠标位置的 z13 世界像素，缩放前后保持不变（视口左上角 + 鼠标偏移/k） */
+    if(zoomAnimTimer) settle();   /* 有未完成动画 → 先结算到当前 zoom，再起新动画 */
+    var oldZ = S.z;
+    /* 锚点 = 鼠标位置的 z13 世界像素，缩放前后保持不变：
+       要求 cx' - W/(2k') + mx/k' = wx → cx' = wx + (S.W/2 - mx)/k'
+       旧实现 cx' = wx - mx/k' 漏了 +S.W/(2k')，锚点偏移约半屏，滚轮缩放"找不到位置" */
     var wx = S.cx - S.W/(2*S.k) + mx / S.k;
     var wy = S.cy - S.H/(2*S.k) + my / S.k;
     setZoom(nz);
-    S.cx = wx - mx / S.k;
-    S.cy = wy - my / S.k;
-    render();
+    S.cx = wx + (S.W/2 - mx) / S.k;
+    S.cy = wy + (S.H/2 - my) / S.k;
+    animateZoom(mx, my, Math.pow(2, nz - oldZ));
   }
   function fit(){
     rect();
@@ -2957,7 +3189,11 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     finishPrepare();
     render();
   }
-  /* 拖拽平移（document 级成对监听，松手即清理，无泄漏） */
+  /* 拖拽平移（document 级成对监听，松手即清理，无泄漏）
+     拖动中视觉反馈：瓦片层 translate(-ox0+dx, -oy0+dy)、SVG 层 translate(dx, dy)，
+     两者增量同为 (+dx,+dy)——内容跟随鼠标右移，与 S.cx 递减、松手 render 后 viewBox
+     左移等价，故拖动全程路径与底图零脱离、松手无跳变。
+     注意：SVG 层绝不能写成 translate(-dx,-dy)（与瓦片反向，一拖即脱离）。 */
   var drag = null;
   function onMove(e){
     if(!drag) return;
@@ -2967,7 +3203,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     if(tiles && svg){
       var nx = S.ox0 - dx, ny = S.oy0 - dy;
       tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";
-      svg.style.transform = "translate(" + (-dx).toFixed(1) + "px," + (-dy).toFixed(1) + "px)";
+      svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";
     }
   }
   function onUp(){
@@ -2980,6 +3216,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   }
   container.addEventListener("mousedown", function(e){
     if(e.target && e.target.className === "rk-tm-btn") return;
+    if(zoomAnimTimer) settle();   /* 缩放动画未结束时按下 → 先结算，避免拖拽与 scale 叠加 */
     drag = { sx:e.clientX, sy:e.clientY, cx:S.cx, cy:S.cy };
     container.style.cursor = "grabbing";
     document.addEventListener("mousemove", onMove);
@@ -2989,6 +3226,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   /* 触摸：单指拖动（移动端） */
   container.addEventListener("touchstart", function(e){
     if(e.touches.length === 1 && !(e.target && e.target.className === "rk-tm-btn")){
+      if(zoomAnimTimer) settle();   /* 同上：先结算缩放动画 */
       var t = e.touches[0];
       drag = { sx:t.clientX, sy:t.clientY, cx:S.cx, cy:S.cy };
       e.preventDefault();
@@ -3002,7 +3240,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
     if(tiles && svg){
       tiles.style.transform = "translate(" + (-(S.ox0 - dx)).toFixed(1) + "px," + (-(S.oy0 - dy)).toFixed(1) + "px)";
-      svg.style.transform = "translate(" + (-dx).toFixed(1) + "px," + (-dy).toFixed(1) + "px)";
+      svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";
     }
     e.preventDefault();
   }, { passive:false });
@@ -3012,10 +3250,21 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     render();
   });
   /* 滚轮 / 双击 / 控制按钮 */
+  /* 滚轮缩放灵敏度：触控板/高精度滚轮一次手势会拆成大量小 deltaY 事件，
+     直接按事件缩放一次会跳 N 级（找不到位置）。累积 deltaY 到阈值 120
+     （标准一格）才缩放 1 级，手势间隔超 400ms 重置累积，单次手势限幅 3 级 */
+  var wheelAcc = 0, wheelAt = 0;
   container.addEventListener("wheel", function(e){
     e.preventDefault();
     var r = container.getBoundingClientRect();
-    zoomBy(e.deltaY < 0 ? 1 : -1, e.clientX - r.left, e.clientY - r.top);
+    var now = Date.now();
+    if(now - wheelAt > 400) wheelAcc = 0;
+    wheelAt = now;
+    wheelAcc += e.deltaY;
+    var d = 0;
+    while(wheelAcc <= -120){ wheelAcc += 120; d++; }   /* 向上滚=放大 */
+    while(wheelAcc >= 120){ wheelAcc -= 120; d--; }    /* 向下滚=缩小 */
+    if(d) zoomBy(Math.max(-3, Math.min(3, d)), e.clientX - r.left, e.clientY - r.top);
   }, { passive:false });
   container.addEventListener("dblclick", function(e){
     var r = container.getBoundingClientRect();
@@ -3026,19 +3275,22 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     if(!btn || btn.className !== "rk-tm-btn") return;
     var c = container.querySelectorAll(".rk-tm-btn");
     var idx = Array.prototype.indexOf.call(c, btn);
-    if(idx === 0) zoomBy(1);
-    else if(idx === 1) zoomBy(-1);
-    else if(idx === 2) fit();
+    /* 按钮顺序：0=样式切换（className 为两段被上面拦截）、1=放大、2=缩小、3=适应轨迹 */
+    if(idx === 1) zoomBy(1);        /* 默认锚点 S.W/2,S.H/2 = 图片中心 */
+    else if(idx === 2) zoomBy(-1);
+    else if(idx === 3) fit();
   });
-  /* 默认视角：优先用垫底 PNG 的视角元数据（与 PNG 完全一致，切换零跳动）；
+  /* 默认视角固定规格：z=8（与 running 仓库 activities.preview.png 生成规格一致，
+     长宽 640:360（16:9）固定、z8 固定浅色）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
+     中心优先用垫底 PNG 视角元数据（热点中心，PNG 与矢量层切换零跳动）；
      无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
-  var mv = metaView || null;
+  var mv = metaView || null, HP_Z = 8;
   if(mv){
-    rect(); S.prep = 1; setZoom(mv.z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
+    rect(); S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
   } else {
     var hp = (!selId) ? rkHotSpot(tracks) : null;
     if(hp){
-      rect(); S.prep = 1; setZoom(hp.z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
+      rect(); S.prep = 1; setZoom(HP_Z); S.cx = hp.cx; S.cy = hp.cy; finishPrepare(); render();
     } else {
       fit();
     }
