@@ -8,6 +8,25 @@ var $ = function(id){ return document.getElementById(id); };
 
 var J = { hist:[] };
 
+/* ================= 通道配置默认值（Skills / Running / Auth 共用） =================
+   首次访问（localStorage 无 wb_home_sk_set）或配置被清空时，回退到内置默认值：
+   - skills 列表读取走 GitHub 公开 API，不依赖登录与 Worker；
+   - running 预览数据经 Worker 代理下发（preview.* 游客可读），默认 Worker 直连；
+   保证游客打开页面即可看到 skills / running 数据，无需先配置写通道。 */
+var SK_DFLT_REPO   = "guoxinl/skill-collection";
+var SK_DFLT_BRANCH = "main";
+var SK_DFLT_WORKER = "https://skillboard-collect.lgx31.workers.dev";
+/* 读取 Skills 通道配置（wb_home_sk_set）；任一字段为空时回退内置默认值 */
+function skCfg(){
+  var c = {};
+  try{ c = JSON.parse(load(KEY_PREFIX + "sk_set") || "null") || {}; }catch(e){ c = {}; }
+  return {
+    repo:   String(c.repo   || "").trim() || SK_DFLT_REPO,
+    branch: String(c.branch || "").trim() || SK_DFLT_BRANCH,
+    worker: String(c.worker || "").trim().replace(/\/+$/, "") || SK_DFLT_WORKER
+  };
+}
+
 /* ================= 工具函数 ================= */
 function store(key, val){ try{ localStorage.setItem(key, val); }catch(e){} }
 function load(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }

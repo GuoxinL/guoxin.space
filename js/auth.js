@@ -12,12 +12,8 @@ function authUser(){
 }
 function authIsAdmin(){ var u = authUser(); return !!(authToken() && u && u.login); }
 
-function authWorkerUrl(){
-  try{
-    var cfg = JSON.parse(load(KEY_PREFIX + "sk_set") || "null") || {};
-    return String(cfg.worker || "").trim().replace(/\/+$/, "");
-  }catch(e){ return ""; }
-}
+/* Worker URL 复用 Skills 通道配置 wb_home_sk_set.worker（skCfg 未配置时回退内置默认 Worker） */
+function authWorkerUrl(){ return skCfg().worker; }
 
 /* 手写 base64 解码（vm 沙箱/旧浏览器无 atob 时也可用）；payload 为 ASCII JSON，无需 UTF-8 处理 */
 var AUTH_B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
