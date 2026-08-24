@@ -632,6 +632,12 @@ T('热力图无「全部」tab、无 all 分支残留',
   && src.indexOf('rkState.year === "all"') < 0
   && src.indexOf('if(rkState.year === "all")') < 0,
   '去除全部聚合视图');
+T('热力图月份标签 + 网格包入 rk-heat-wrap 滚动容器',
+  src.indexOf('rk-heat-wrap') >= 0
+  && src.indexOf('rk-heat-mths') >= 0
+  && src.indexOf('display:flex;margin-left:15px') < 0
+  && src.indexOf('.rk-heat-wrap{overflow-x:auto') >= 0,
+  '月份标签行不再用无滚动约束的内联 flex');
 
 // 路由：/run → /running（侧边栏 / 快捷卡 / 底部 tab / 页面 id / 白名单 / rkLoad 触发，path 路由）
 T('路由 /running 全量生效（无 /run 残留）',

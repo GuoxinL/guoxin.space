@@ -230,3 +230,13 @@
 - **结果**：161 条，空地点 0；同地单地 95 条、异地 `->` 拼接 66 条、闭环（起终点同坐标）8 条全单地。异地样例：`北京市海淀区 -> 北京市丰台区`、`北京市朝阳区 -> 天津市河东区` 等。
 - **验证**：交叉验证 161/161 全部一致（起终点坐标反查 locations.json 手算期望 vs preview 输出）；前端 puppeteer 注入最新数据复验通过——卡片地点正常显示 `->` 拼接（`.rk-act-loc span` ellipsis 截断）、弹窗副标题 `日期 · 北京市海淀区 -> 北京市丰台区`（`.rk-ai-sub` flex-wrap 换行）、零 JS 错误。
 - **部署**：CI 只跑 `prebuild_preview.py`（不跑 geocode，`locations.json` 本地手动提交）；前端 `RK_URL` 直读 `raw.githubusercontent.com/GuoxinL/running/master/.../activities.preview.json`，推送 master 即生效（CDN 约 5 分钟缓存）。前端代码零改动——长地点由既有 ellipsis/flex-wrap 兜底。
+
+## 2026-08-23 窄屏横向溢出修复：热力图月份标签行包入滚动容器（活动列表/详情适配页面宽度）
+
+- **需求**：Running 页「活动列表、详情」在窄屏（平板/手机）下需适配页面宽度，不出现横向溢出或错位。
+- **根因定位**（puppeteer 遍历 `getBoundingClientRect()` 找 `right > viewport` 元素）：活动列表与详情弹窗本身宽度正常（桌面 720px 居中、移动端 335px 适配、`.rk-act-grid` 3 列/2 列响应式切换）；真正的页面横向溢出源是**年度热力图的月份标签行**——内联 `display:flex` + `flex-shrink:0` 的 span 总宽约 810px、无滚动容器，把 `body` 撑宽到 843px。桌面端被侧栏遮住看不见，窄屏即出现横向滚动。
+- **修复**：
+  - `js/running.js`（`rkHeatYearHTML`）：把「月份标签行 + `.rk-heat` 网格」包进同一个 `.rk-heat-wrap` 滚动容器，删掉原无滚动约束的内联 `display:flex;margin-left:15px`。
+  - `css/style.css`：新增 `.rk-heat-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}` + 滚动条样式；`.rk-heat` 由 `overflow-x:auto` 改 `visible`（滚动交给外层 wrap）；`.rk-heat-mths{display:flex;margin-left:18px;width:max-content}`。**18px 对齐推导**：网格首列偏移 = `.rk-wd` 的 `margin-right:3px` + `.rk-heat` 的 `gap:3px` + 内容左侧 = 18px（原 15px 差 3px），故月份标签 `margin-left:18px` 与网格首列像素对齐。
+- **验证**：verify.js 新增防回归断言（`rk-heat-wrap`/`rk-heat-mths` 存在、无旧内联 flex、`.rk-heat-wrap{overflow-x:auto` 存在），**254/254 全绿**；puppeteer 三视口（1280×800 / 768×900 / 375×812）`scrollWidth === clientWidth` 无横向溢出、热力图 wrap `scrollable:true` 且月份标签与网格首列 `aligned:true`。
+- **部署**：推送 main 触发 GitHub Pages，线上复验窄屏无横向溢出。
