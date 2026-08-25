@@ -54,7 +54,12 @@ personal-homepage/
     - `preview.json` / `preview.png` / `preview.meta.json`：游客可读（截断轨迹 + 垫底图 + 视角元数据）
     - `rides.full.json`：完整轨迹，仅 admin（OAuth 登录后 Bearer token）
   - 白名单硬编码在 `worker.js` 的 `TRACKS_FILES`（约 585 行），文件名与私库根目录产物**精确匹配**
-- `running` 公开仓库（`GuoxinL/running`）仅承担**数据生产**：`scripts/prebuild_preview.py` 生成产物 → CI（`xingzhe_sync.yml` 每小时）提交公开仓库 src/static/ + 推送 4 个产物到私库根目录（需 Secret `TRACKS_PRIVATE_PAT`）。**改 Running 数据链路时，同步改 `running` 仓库，而非在本仓库硬编码。**
+- 数据生产为 **自产自销**，全部在 `running-private` 仓库（`GuoxinL/running-private`）完成，本仓库不参与：
+  - workflow `xingzhe_sync.yml`（名称「Xingzhe Sync」）每小时整点 UTC 同步，支持 `workflow_dispatch` 手动触发
+  - 链路：`xz-sync.js` 从行者 OpenAPI 同步到 `src/static/activities.json` → `xz-fill.js` 补齐缺失 polyline → `prebuild-preview.js` 生成 4 个产物（`activities.preview.json`/`.png`/`.meta.json`/`rides.full.json`）→ 复制到仓库根目录 → 提交推送 `master`
+  - 依赖 Secret：`XINGZHE_CREDENTIALS_JSON`（必填，行者 OAuth2 凭据）；`XINGZHE_PAT`（可选，token 刷新后自动回写 Secret）
+  - 获取/刷新行者凭据步骤见 `running-private` 仓库 `docs/GET-XINGZHE-CREDENTIALS.md`（或全局 skill `xz-credentials`）
+  - **改 Running 数据链路时，改 `running-private` 仓库而非本仓库；原公开仓库 `GuoxinL/running` 已废弃，不再承担数据生产。**
 
 ## 构建与验证
 
@@ -97,4 +102,4 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 - **改 HTML 结构**（新增/删除 `id`、`data-*`、`onclick`）→ 同步 `404.html`，并在 `verify.js` 补对应断言。
 - **改 CSS** → 只改 `css/style.css`，不要回写 `index.html`。
 - **改 JS** → 只改对应 `js/*.js`，不要回写 `index.html`；跑 `node verify.js`。
-- **GitHub Pages 缓存**：raw.githubusercontent.com 约 5 分钟 CDN 缓存，改 `running` 仓库数据后浏览器需强制刷新。
+- **GitHub Pages 缓存**：raw.githubusercontent.com 约 5 分钟 CDN 缓存，改 `running-private` 仓库产物后浏览器需强制刷新。
