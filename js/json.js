@@ -33,6 +33,7 @@ function setSide(side, t){
   renderGutter(side);
   scheduleSave(side);
   validateSide(side);
+  updateToolBtns(side);
 }
 function scheduleSave(side){
   clearTimeout(saveTimer[side]);
@@ -117,6 +118,7 @@ function changeLang(side, sel){
     /* 按旧语言解析失败：回退语言，避免破坏内容 */
     sel.value = oldLang;
     sel.setAttribute("data-cur", oldLang);
+    updateToolBtns(side); /* 语言回退后刷新按钮显隐 */
     flashStatus(sideName(side)+"内容不是 "+oldLang.toUpperCase()+"，已保持原语言："+p.err.message,"err");
     return;
   }
@@ -126,6 +128,7 @@ function changeLang(side, sel){
   }catch(e){
     sel.value = oldLang;
     sel.setAttribute("data-cur", oldLang);
+    updateToolBtns(side);
     flashStatus(sideName(side)+"转换为 "+newLang.toUpperCase()+" 失败："+e.message+"，已保持原语言","err");
     return;
   }
@@ -239,13 +242,27 @@ function unescSide(side){
   setSide(side, p.val);
   flashStatus("已去转义还原为原始文本 · "+raw.length+" 字符 → "+p.val.length+" 字符","ok");
 }
-/* 合并按钮：文本→转义 / JSON 字符串→去转义（自动判向） */
-function toggleEscSide(side){
+/* 按钮按能力显隐：转义 / 去转义 / 压缩
+   - 内容为空 → 三个按钮全部隐藏
+   - 内容是合法 JSON 字符串字面量（已转义）→ 显示「去转义」，隐藏「转义」
+   - 否则 → 显示「转义」，隐藏「去转义」
+   - 内容可被当前语言解析 → 显示「压缩」；否则隐藏 */
+function updateToolBtns(side){
+  var escBtn = $("escBtn"+side), unescBtn = $("unescBtn"+side), minBtn = $("minBtn"+side);
+  if(!escBtn || !unescBtn || !minBtn) return;
   var raw = readSide(side);
-  if(!raw.trim()){ flashStatus(sideName(side)+"内容为空，无法操作","err"); return; }
+  if(!raw.trim()){
+    escBtn.style.display = "none";
+    unescBtn.style.display = "none";
+    minBtn.style.display = "none";
+    return;
+  }
   var p = parseJson(raw);
-  if(p.ok && typeof p.val === "string"){ unescSide(side); return; }
-  escSide(side);
+  var isEscaped = p.ok && typeof p.val === "string";
+  escBtn.style.display = isEscaped ? "none" : "";
+  unescBtn.style.display = isEscaped ? "" : "none";
+  var pp = parseByLang(raw, langOf(side));
+  minBtn.style.display = pp.ok ? "" : "none";
 }
 function showErr(side, err){
   P[side].err = err;
@@ -574,6 +591,7 @@ function bindEditor(side){
     renderGutter(side);
     drawSquiggle(side); /* 内容变化立即按新内容重绘（位置随光标行内容变化） */
     scheduleSave(side);
+    updateToolBtns(side); /* 输入即刷新按钮显隐（不等 500ms 防抖） */
     clearTimeout(valTimer[side]);
     valTimer[side] = setTimeout(function(){ validateSide(side); }, 500);
   });
@@ -605,6 +623,8 @@ function initEditor(){
   bindEditor("R");
   validateSide("L");
   validateSide("R");
+  updateToolBtns("L");
+  updateToolBtns("R");
   applyView("L");
   applyView("R");
 }

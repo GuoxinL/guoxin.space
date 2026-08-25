@@ -301,10 +301,13 @@ console.log('== 10a. 多语言与 JSONPath 结构与函数 ==');
 // 结构断言（源码全文检索）
 T('左侧语言选择存在', src.indexOf('id="langSelL"') >= 0);
 T('右侧语言选择存在', src.indexOf('id="langSelR"') >= 0);
-T('左侧转义⇄去按钮（合并）', src.indexOf("onclick=\"toggleEscSide('L')\"") >= 0);
-T('右侧转义⇄去按钮（合并）', src.indexOf("onclick=\"toggleEscSide('R')\"") >= 0);
-T('无独立转义按钮（已合并）', src.indexOf('onclick="escSide(') < 0);
-T('无独立去转义按钮（已合并）', src.indexOf('onclick="unescSide(') < 0);
+T('左侧转义按钮（独立）', src.indexOf("onclick=\"escSide('L')\"") >= 0 && src.indexOf('id="escBtnL"') >= 0);
+T('右侧转义按钮（独立）', src.indexOf("onclick=\"escSide('R')\"") >= 0 && src.indexOf('id="escBtnR"') >= 0);
+T('左侧去转义按钮（独立）', src.indexOf("onclick=\"unescSide('L')\"") >= 0 && src.indexOf('id="unescBtnL"') >= 0);
+T('右侧去转义按钮（独立）', src.indexOf("onclick=\"unescSide('R')\"") >= 0 && src.indexOf('id="unescBtnR"') >= 0);
+T('无合并转义⇄去按钮', src.indexOf('toggleEscSide') < 0);
+T('左侧压缩按钮有 id', src.indexOf('id="minBtnL"') >= 0);
+T('右侧压缩按钮有 id', src.indexOf('id="minBtnR"') >= 0);
 T('左侧 JSONPath 输入框存在', src.indexOf('id="jpInputL"') >= 0);
 T('右侧 JSONPath 输入框存在', src.indexOf('id="jpInputR"') >= 0);
 T('左侧 jp 结果视图容器存在', src.indexOf('id="jpL"') >= 0);
@@ -312,7 +315,7 @@ T('右侧 jp 结果视图容器存在', src.indexOf('id="jpR"') >= 0);
 T('vendor 库已引入（js-yaml UMD）', src.indexOf('/js/vendor/js-yaml.min.js') >= 0);
 T('vendor 桥接模块已引入（bundle）', src.indexOf('/js/vendor/lang-libs.bundle.js') >= 0);
 // 函数导出断言
-['langOf','parseByLang','dumpByLang','toggleEscSide','runJsonPath','clearJsonPath','jpHighlight'].forEach(fn => {
+['langOf','parseByLang','dumpByLang','updateToolBtns','runJsonPath','clearJsonPath','jpHighlight'].forEach(fn => {
   T('window.' + fn + ' 可调用', typeof ctx[fn] === 'function');
 });
 // 行为断言：langOf 默认回退 json
@@ -322,13 +325,33 @@ var _pj = ctx.parseByLang('{"a":1}', 'json');
 T('parseByLang(json) 成功', _pj.ok === true && _pj.val.a === 1, JSON.stringify(_pj));
 var _pj2 = ctx.parseByLang('not json', 'json');
 T('parseByLang(json) 非法返回 ok=false', _pj2.ok === false);
-// 行为断言：toggleEscSide 对普通文本 → 转义（包成字符串字面量）
+// 行为断言：updateToolBtns 按能力显隐
+// 场景1：普通文本 → 显示转义，隐藏去转义（压缩：非 JSON 不可压缩 → 隐藏）
 el('jsonInputL').value = 'hello\nworld';
-ctx.toggleEscSide('L');
-T('toggleEscSide 文本→转义', el('jsonInputL').value === '"hello\\nworld"', el('jsonInputL').value);
-// 行为断言：toggleEscSide 对已转义字符串 → 去转义
-ctx.toggleEscSide('L');
-T('toggleEscSide 字符串→去转义', el('jsonInputL').value === 'hello\nworld', JSON.stringify(el('jsonInputL').value));
+ctx.updateToolBtns('L');
+T('普通文本 → 转义按钮显示', el('escBtnL').style.display !== 'none');
+T('普通文本 → 去转义按钮隐藏', el('unescBtnL').style.display === 'none');
+T('普通文本(json) → 压缩按钮隐藏', el('minBtnL').style.display === 'none');
+// 场景1b：合法 JSON → 压缩按钮显示
+el('jsonInputL').value = '{"a":1}';
+ctx.updateToolBtns('L');
+T('合法 JSON → 压缩按钮显示', el('minBtnL').style.display !== 'none');
+// 场景2：已转义 JSON 字符串 → 显示去转义，隐藏转义
+el('jsonInputL').value = '"hello\\nworld"';
+ctx.updateToolBtns('L');
+T('已转义字符串 → 转义按钮隐藏', el('escBtnL').style.display === 'none');
+T('已转义字符串 → 去转义按钮显示', el('unescBtnL').style.display !== 'none');
+// 场景3：内容为空 → 三个按钮全隐藏
+el('jsonInputL').value = '';
+ctx.updateToolBtns('L');
+T('空内容 → 转义按钮隐藏', el('escBtnL').style.display === 'none');
+T('空内容 → 去转义按钮隐藏', el('unescBtnL').style.display === 'none');
+T('空内容 → 压缩按钮隐藏', el('minBtnL').style.display === 'none');
+// 场景4：非法 JSON → 压缩按钮隐藏
+el('jsonInputL').value = '{"broken":';
+ctx.updateToolBtns('L');
+T('非法 JSON → 压缩按钮隐藏', el('minBtnL').style.display === 'none');
+T('非法 JSON → 转义按钮显示', el('escBtnL').style.display !== 'none');
 // 行为断言：runJsonPath 无库时安全退出（vm 无 LIBS）
 el('jpInputL').value = '$.a';
 el('jsonInputL').value = '{"a":1}';

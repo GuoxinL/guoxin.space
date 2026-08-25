@@ -137,13 +137,17 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
                 格式化
               </button>
-              <button class="btn" onclick="minSide('L')">
+              <button class="btn" onclick="minSide('L')" id="minBtnL">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l6 3-6 3V9zM14 15l6 3V6l-6 3"/></svg>
                 压缩
               </button>
-              <button class="btn" onclick="toggleEscSide('L')" id="escBtnL" title="智能转义：文本→JSON字符串 / JSON字符串→文本（自动判断方向）">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h7M7 12h10M7 17h6"/><path d="m14 4 3 3-3 3"/><path d="m17 14-3 3 3 3"/></svg>
-                转义⇄去
+              <button class="btn" onclick="escSide('L')" id="escBtnL" title="把文本转义为 JSON 字符串字面量">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 12.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg>
+                转义
+              </button>
+              <button class="btn" onclick="unescSide('L')" id="unescBtnL" title="把 JSON 字符串字面量还原为文本">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 19.5 12.5H13l1.5 9.5L5 10.5h6.5L11 2z"/></svg>
+                去转义
               </button>
               <button class="btn" onclick="toggleTree('L')" id="treeBtnL">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h9M5 18h6"/><circle cx="19" cy="12" r="1.6"/><circle cx="17" cy="18" r="1.6"/><circle cx="21" cy="6" r="1.6"/></svg>
@@ -188,13 +192,17 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
                 格式化
               </button>
-              <button class="btn" onclick="minSide('R')">
+              <button class="btn" onclick="minSide('R')" id="minBtnR">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l6 3-6 3V9zM14 15l6 3V6l-6 3"/></svg>
                 压缩
               </button>
-              <button class="btn" onclick="toggleEscSide('R')" id="escBtnR" title="智能转义：文本→JSON字符串 / JSON字符串→文本（自动判断方向）">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h7M7 12h10M7 17h6"/><path d="m14 4 3 3-3 3"/><path d="m17 14-3 3 3 3"/></svg>
-                转义⇄去
+              <button class="btn" onclick="escSide('R')" id="escBtnR" title="把文本转义为 JSON 字符串字面量">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 12.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg>
+                转义
+              </button>
+              <button class="btn" onclick="unescSide('R')" id="unescBtnR" title="把 JSON 字符串字面量还原为文本">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 19.5 12.5H13l1.5 9.5L5 10.5h6.5L11 2z"/></svg>
+                去转义
               </button>
               <button class="btn" onclick="toggleTree('R')" id="treeBtnR">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h9M5 18h6"/><circle cx="19" cy="12" r="1.6"/><circle cx="17" cy="18" r="1.6"/><circle cx="21" cy="6" r="1.6"/></svg>
