@@ -126,7 +126,7 @@
           </div>
           <div class="editor-wrap" id="wrapL">
             <div class="ed-toolbar" data-side="L">
-              <select class="lang-sel" id="langSelL" title="本侧数据语言">
+              <select class="lang-sel" id="langSelL" title="本侧数据语言（切换即自动转换内容）" data-cur="json" onchange="changeLang('L', this)">
                 <option value="json">JSON</option>
                 <option value="json5">JSON5</option>
                 <option value="yaml">YAML</option>
@@ -177,7 +177,7 @@
           </div>
           <div class="editor-wrap" id="wrapR">
             <div class="ed-toolbar" data-side="R">
-              <select class="lang-sel" id="langSelR" title="本侧数据语言">
+              <select class="lang-sel" id="langSelR" title="本侧数据语言（切换即自动转换内容）" data-cur="json" onchange="changeLang('R', this)">
                 <option value="json">JSON</option>
                 <option value="json5">JSON5</option>
                 <option value="yaml">YAML</option>

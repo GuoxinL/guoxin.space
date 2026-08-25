@@ -46,6 +46,7 @@ function makeEl(id, cls) {
         case 'querySelector': return () => null;
         case 'querySelectorAll': return () => [];
         case 'setAttribute': return (k, v) => { (store._attrs = store._attrs || {})[k] = String(v); };
+        case 'getAttribute': return (k) => { return store._attrs ? store._attrs[k] : null; };
         case 'removeAttribute': return (k) => { if (store._attrs) delete store._attrs[k]; };
         default: return undefined;
       }
@@ -336,6 +337,23 @@ T('runJsonPath 无库时安全不崩溃', true);
 // 行为断言：clearJsonPath 恢复编辑视图
 ctx.clearJsonPath('L');
 T('clearJsonPath 关闭 jp 视图态', ctx.P.L.jp === false);
+// 行为断言：切换语言自动转换（JSON → JSON5 不依赖 LIBS，vm 可测）
+el('langSelL').setAttribute('data-cur', 'json');
+el('langSelL').value = 'json5';
+el('jsonInputL').value = '{"a":1}';
+ctx.changeLang('L', el('langSelL'));
+T('changeLang JSON→JSON5 转换输出', el('jsonInputL').value.indexOf('"a": 1') >= 0, JSON.stringify(el('jsonInputL').value));
+T('changeLang 更新 data-cur', el('langSelL').getAttribute('data-cur') === 'json5');
+// 行为断言：内容不符合旧语言时回退
+el('langSelL').setAttribute('data-cur', 'json');
+el('langSelL').value = 'yaml';
+el('jsonInputL').value = 'not a json';
+ctx.changeLang('L', el('langSelL'));
+T('changeLang 解析失败回退语言', el('langSelL').value === 'json', el('langSelL').value);
+T('changeLang 解析失败保留内容', el('jsonInputL').value === 'not a json');
+T('changeLang 函数可调用', typeof ctx.changeLang === 'function');
+T('左侧语言 select 绑定 onchange', src.indexOf("onchange=\"changeLang('L', this)\"") >= 0);
+T('右侧语言 select 绑定 onchange', src.indexOf("onchange=\"changeLang('R', this)\"") >= 0);
 
 /* ========== 10b. skTest 输入框优先（未保存配置也能测） ========== */
 console.log('== 10b. skTest 输入框优先 ==');
