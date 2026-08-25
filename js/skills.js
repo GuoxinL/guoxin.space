@@ -4,7 +4,6 @@ var KEY_SK_SET = KEY_PREFIX + "sk_set";
 var SK_DEFAULTS = {repo:"guoxinl/skill-collection", branch:"main", worker:"https://skillboard-collect.lgx31.workers.dev"};
 function skCfg(){ try{ return JSON.parse(load(KEY_SK_SET)||"null") || {}; }catch(e){ return {}; } }
 function saveSkCfg(c){ store(KEY_SK_SET, JSON.stringify(c)); }
-function skKey(cfg){ return String(cfg.collectKey||"").trim(); }
 function skWorkerUrl(cfg){ return String(cfg.worker||"").trim().replace(/\/+$/,""); }
 var skRepo = "", skBranchNow = "main", skTreeData = null, skRows = [], skOpenDir = "";
 
@@ -534,7 +533,9 @@ async function skCollect(){
   msg.className = "form-msg"; msg.textContent = "收藏中…";
   try{
     var headers = {"Content-Type":"application/json"};
-    if(skKey(cfg)) headers["x-collect-key"] = skKey(cfg);
+    var tok = authToken();
+    if(!tok){ msg.className="form-msg err"; msg.textContent="请先登录 GitHub（收藏为站长功能）"; return; }
+    headers["Authorization"] = "Bearer " + tok;
     var res = await fetch(worker+"/api/collect", {method:"POST", headers:headers, body:JSON.stringify({url:url, mode:skMode})});
     var j = await res.json().catch(function(){ return {}; });
     if(res.ok && j.ok){
@@ -560,7 +561,9 @@ async function skRemove(){
   if(!worker){ alert("未配置 Worker 写通道"); return; }
   try{
     var headers = {"Content-Type":"application/json"};
-    if(skKey(cfg)) headers["x-collect-key"] = skKey(cfg);
+    var tok = authToken();
+    if(!tok){ alert("请先登录 GitHub（删除为站长功能）"); return; }
+    headers["Authorization"] = "Bearer " + tok;
     var res = await fetch(worker+"/api/remove", {method:"POST", headers:headers, body:JSON.stringify({dir:skOpenDir})});
     var j = await res.json().catch(function(){ return {}; });
     if(res.ok && j.ok){ alert("已删除 "+j.removed+" 个文件"); skBack(); skLoad(); }
@@ -578,7 +581,9 @@ async function skSync(){
   if(!confirm("重新探测原仓库并更新代理 SKILL.md / 图标？")) return;
   try{
     var headers = {"Content-Type":"application/json"};
-    if(skKey(cfg)) headers["x-collect-key"] = skKey(cfg);
+    var tok = authToken();
+    if(!tok){ alert("请先登录 GitHub（同步为站长功能）"); return; }
+    headers["Authorization"] = "Bearer " + tok;
     var res = await fetch(worker+"/api/sync", {method:"POST", headers:headers, body:JSON.stringify({dir:skOpenDir, url:row.source})});
     var j = await res.json().catch(function(){ return {}; });
     if(res.ok && j.ok){ alert("✓ 已同步 "+j.name+"（更新 "+j.written+" 个文件）"); skLoad(); }
@@ -592,7 +597,6 @@ function skOpenCfg(){
   $("skCfgRepo").value = cfg.repo || SK_DEFAULTS.repo;
   $("skCfgBranch").value = cfg.branch || SK_DEFAULTS.branch;
   $("skCfgWorker").value = cfg.worker || SK_DEFAULTS.worker;
-  $("skCfgKey").value = cfg.collectKey || "";
   $("skCfgMsg").className = "form-msg";
   $("skCfgMsg").textContent = "";
   $("skCfgModal").classList.add("show");
@@ -602,13 +606,12 @@ function skSaveCfg(){
   var repo = $("skCfgRepo").value.trim();
   var branch = $("skCfgBranch").value.trim() || "main";
   var worker = $("skCfgWorker").value.trim().replace(/\/+$/,"");
-  var key = $("skCfgKey").value.trim();
   var msg = $("skCfgMsg");
   var norm = repo.replace(/^https?:\/\/(www\.)?github\.com\//,"").replace(/\/$/,"").replace(/\.git$/,"");
   if(!/^[\w.-]+\/[\w.-]+$/.test(norm)){
     msg.className="form-msg err"; msg.textContent="仓库格式应为 owner/repo 或 github.com/owner/repo"; return;
   }
-  saveSkCfg({repo:norm, branch:branch, worker:worker, collectKey:key});
+  saveSkCfg({repo:norm, branch:branch, worker:worker});
   msg.className="form-msg ok"; msg.textContent="✓ 已保存";
   skCloseCfg();
   skLoad();
@@ -617,14 +620,11 @@ async function skTest(){
   var cfg = skCfg();
   // 优先取输入框当前值（未保存也能测），回退到已保存配置，再回退到内置默认
   var worker = String($("skCfgWorker").value||"").trim().replace(/\/+$/,"") || skWorkerUrl(cfg) || SK_DEFAULTS.worker;
-  var key = String($("skCfgKey").value||"").trim() || skKey(cfg);
   var msg = $("skCfgMsg");
   if(!worker){ msg.className="form-msg err"; msg.textContent="请先填写 Worker URL"; return; }
   msg.className = "form-msg"; msg.textContent = "测试中…";
   try{
-    var headers = {};
-    if(key) headers["x-collect-key"] = key;
-    var res = await fetch(worker+"/api/health", {method:"GET", headers:headers});
+    var res = await fetch(worker+"/api/health", {method:"GET"});
     var j = await res.json().catch(function(){ return {}; });
     if(j.ok){ msg.className="form-msg ok"; msg.textContent="✓ Worker 连通 · 仓库 "+j.repo+"（默认分支 "+j.default_branch+" · 私有:"+(j.private?"是":"否")+"）"; }
     else{ msg.className="form-msg err"; msg.textContent="✖ "+(j.error||("HTTP "+res.status)); }

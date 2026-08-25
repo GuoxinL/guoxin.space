@@ -56,6 +56,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
         导出备份
       </button>
+      <button class="side-btn" id="authBtn" title="登录 GitHub（站长功能）">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="M6 12l6 6 6-6"/><path d="M4 21h16"/></svg>
+        <span>登录 GitHub</span>
+      </button>
     </div>
   </aside>
 
@@ -242,11 +246,11 @@
           Skills
         </h2>
         <div class="toolbar">
-          <button class="btn" onclick="skOpenCfg()" title="配置收藏仓库与写通道">
+          <button class="btn admin-only" onclick="skOpenCfg()" title="配置收藏仓库与写通道">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             通道设置
           </button>
-          <button class="btn primary" onclick="skOpenCollect()">
+          <button class="btn primary admin-only" onclick="skOpenCollect()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             收藏 Skill
           </button>
@@ -272,11 +276,11 @@
           <div class="sk-src" id="drSrc"></div>
         </div>
         <div class="sk-detail-actions">
-          <button class="btn" onclick="skSync()" title="重新探测原仓库并更新代理文件（引用模式）">
+          <button class="btn admin-only" onclick="skSync()" title="重新探测原仓库并更新代理文件（引用模式）">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
             同步
           </button>
-          <button class="btn danger" onclick="skRemove()" title="删除该技能目录">
+          <button class="btn danger admin-only" onclick="skRemove()" title="删除该技能目录">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             删除
           </button>
@@ -306,10 +310,14 @@
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
         Running
-        <span class="rk-sub">跑步 / 骑行 · 直连 running</span>
+        <span class="rk-sub">跑步 / 骑行 · 轨迹私有仓库经 Worker 代理</span>
       </h2>
       <div class="toolbar">
-        <button class="btn" onclick="rkRefresh()" title="重新拉取 running 仓库的 preview 抽帧数据">
+        <span class="rk-full-badge" id="rkFullBadge" style="display:none" title="已加载完整骑行轨迹（仅站长可见）">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          完整轨迹
+        </span>
+        <button class="btn" onclick="rkRefresh()" title="重新拉取轨迹私有仓库的 preview 抽帧数据">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
           刷新数据
         </button>
@@ -415,7 +423,7 @@
       <button class="btn" onclick="skCloseCollect()">取消</button>
       <button class="btn primary" onclick="skCollect()">收藏</button>
     </div>
-    <div class="form-hint">引用模式：收藏仓库内仅写入自动生成的代理 SKILL.md（含原仓库链接）+ 图标，点开条目实时拉取原仓库；镜像模式：全文件复制进收藏仓库。写入需先配置 Worker 写通道。</div>
+    <div class="form-hint">引用模式：收藏仓库内仅写入自动生成的代理 SKILL.md（含原仓库链接）+ 图标，点开条目实时拉取原仓库；镜像模式：全文件复制进收藏仓库。写入需先配置 Worker 写通道并登录 GitHub（仅站长本人）。</div>
   </div>
 </div>
 
@@ -435,10 +443,6 @@
       <label>Worker 写通道 URL（部署 Cloudflare Worker 后的地址）</label>
       <input type="url" id="skCfgWorker" placeholder="https://skillboard-collect.lgx31.workers.dev" spellcheck="false">
     </div>
-    <div class="form-row">
-      <label>COLLECT_KEY（可选，与 Worker 环境变量一致）</label>
-      <input type="password" id="skCfgKey" placeholder="留空表示未设置" spellcheck="false">
-    </div>
     <div class="form-msg" id="skCfgMsg"></div>
     <div class="form-hint" style="margin-bottom:10px">填好后可直接点「测试连接」（读取当前输入框，无需先保存）；测试通过后再点「保存」。</div>
     <div class="modal-actions">
@@ -446,7 +450,7 @@
       <button class="btn" onclick="skTest()">测试连接</button>
       <button class="btn primary" onclick="skSaveCfg()">保存</button>
     </div>
-    <div class="form-hint">读取列表走 GitHub 公开接口（技能夹仓库需公开）；收藏 / 删除 / 同步走 Worker。Worker 部署：把 worker.js 粘贴到 Cloudflare Workers，配置环境变量 GH_TOKEN（细粒度 PAT，仅授权 skill-collection 仓库 Contents 读写）、COLLECT_REPO、COLLECT_BRANCH，可加 COLLECT_KEY 防滥用。</div>
+    <div class="form-hint">读取列表走 GitHub 公开接口（技能夹仓库需公开）；收藏 / 删除 / 同步走 Worker，需先登录 GitHub（仅站长本人）。Worker 部署：把 worker.js 粘贴到 Cloudflare Workers，配置环境变量 GH_TOKEN、COLLECT_REPO、GITHUB_CLIENT_ID、GITHUB_CLIENT_SECRET、ADMIN_LOGIN、AUTH_SECRET、TRACKS_REPO。</div>
   </div>
 </div>
 
@@ -475,6 +479,7 @@
 <input type="file" id="fileImportBackup" accept=".json,application/json" style="display:none">
 
 <script src="/js/util.js"></script>
+<script src="/js/auth.js"></script>
 <script src="/js/json.js"></script>
 <script src="/js/skills.js"></script>
 <script src="/js/app.js"></script>

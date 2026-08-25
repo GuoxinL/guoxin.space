@@ -36,6 +36,10 @@ function init(){
   renderClock();
   loadWeather(false);
   initEditor();
+  window.authLogin = authLogin; window.authLogout = authLogout; window.authSave = authSave;
+  window.authApply = authApply; window.authInit = authInit; window.authVerify = authVerify;
+  window.authToken = authToken; window.authUser = authUser; window.authIsAdmin = authIsAdmin;
+  authInit();
   navigate();
   setInterval(function(){ loadWeather(false); }, 30*60*1000);
   $("histModal").addEventListener("click", function(e){ if(e.target === this) closeHist(); });

@@ -1,18 +1,31 @@
 // ============================================================
 // skillboard-collect — Cloudflare Worker
-// 个人主页 Skills 页的 GitHub「写通道」：页面不接触任何凭证
+// 个人主页的「鉴权 + 写通道 + 轨迹代理」：页面不接触任何凭证
 // ============================================================
 // 部署：dash.cloudflare.com → Workers & Pages → 新建 Worker → 粘贴本文件 → Deploy
 // 环境变量（Settings → Variables）：
-//   GH_TOKEN       必填  细粒度 PAT，仅授权 skill-collection 一个仓库的 Contents 读写
-//   COLLECT_REPO   必填  形如 guoxin/skill-collection
-//   COLLECT_BRANCH 选填  默认 main
-//   COLLECT_KEY    选填  设置后请求必须带 header x-collect-key 匹配（防滥用）
+//   GH_TOKEN            必填  细粒度 PAT，授权 skill-collection（Contents 读写）+
+//                             running-private 轨迹私有仓库（Contents 读）
+//   COLLECT_REPO        必填  形如 guoxin/skill-collection
+//   COLLECT_BRANCH      选填  默认 main
+//   GITHUB_CLIENT_ID    必填  GitHub OAuth App 的 Client ID
+//   GITHUB_CLIENT_SECRET 必填  GitHub OAuth App 的 Client Secret
+//   ADMIN_LOGIN         必填  管理员 GitHub 用户名（admin 判定 = login 与之相等）
+//   AUTH_SECRET         必填  HMAC 签名密钥（openssl rand -base64 32）
+//   TRACKS_REPO         必填  轨迹私有仓库，形如 GuoxinL/running-private
+//   REDIRECT_URL        选填  登录回跳地址，默认 https://guoxin.space
+// 鉴权：写通道（collect/remove/sync）与完整轨迹（tracks/raw?f=rides.full.json）
+//      统一要求 Authorization: Bearer <token>，token 为 HMAC 签名、7 天有效；
+//      不再使用共享密钥 x-collect-key（已彻底移除）。
 // API：
-//   GET  /api/health              检查 token 与仓库连通性（返回 empty 表示空仓库）
-//   POST /api/collect {url,mode}  收藏一个 skill（mode: proxy|mirror，默认 proxy）
-//   POST /api/remove  {dir}       删除收藏目录（仅 fav-*/my-*）
-//   POST /api/sync    {dir,url}   重新探测原仓库并更新代理文件（proxy）
+//   GET  /api/health                    检查 token 与收藏仓库连通性
+//   GET  /api/auth/login                302 到 GitHub OAuth authorize
+//   GET  /api/auth/callback?code&state  OAuth 回调：验身份 → 签 token → 302 回站
+//   GET  /api/auth/me                   Bearer 校验，返回当前登录用户
+//   GET  /api/tracks/raw?f=<file>       代理轨迹私有仓库文件（白名单；rides.full.json 需 Bearer）
+//   POST /api/collect {url,mode}        收藏一个 skill（mode: proxy|mirror，默认 proxy）
+//   POST /api/remove  {dir}             删除收藏目录（仅 fav-*/my-*）
+//   POST /api/sync    {dir,url}         重新探测原仓库并更新代理文件（proxy）
 // 空仓库：写通道遇 size=0 仓库会自动初始化（Git Data API 建初始提交）后重试，无需手工建 README
 // ============================================================
 
@@ -27,7 +40,7 @@ export default {
     const cors = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, x-collect-key",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
       "Content-Type": "application/json; charset=utf-8",
     };
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -36,17 +49,25 @@ export default {
       if (!env.GH_TOKEN || !env.COLLECT_REPO) {
         return json(cors, 500, { error: "Worker 未配置环境变量 GH_TOKEN / COLLECT_REPO" });
       }
-      if (env.COLLECT_KEY && request.headers.get("x-collect-key") !== env.COLLECT_KEY) {
-        return json(cors, 401, { error: "x-collect-key 不匹配" });
-      }
       const repo = parseRepo(env.COLLECT_REPO);
       if (!repo) return json(cors, 500, { error: "COLLECT_REPO 格式应为 owner/repo" });
       const branch = env.COLLECT_BRANCH || "main";
 
+      if (url.pathname === "/api/auth/login" && request.method === "GET") return await authLogin(request, env, cors);
+      if (url.pathname === "/api/auth/callback" && request.method === "GET") return await authCallback(request, env, cors);
+      if (url.pathname === "/api/auth/me" && request.method === "GET") return await authMe(request, env, cors);
+      if (url.pathname === "/api/tracks/raw" && request.method === "GET") return await tracksRaw(request, env, cors);
       if (url.pathname === "/api/health" && request.method === "GET") return await health(env, repo, branch, cors);
-      if (url.pathname === "/api/collect" && request.method === "POST") return await collect(env, repo, branch, await request.json(), cors);
-      if (url.pathname === "/api/remove" && request.method === "POST") return await remove(env, repo, branch, await request.json(), cors);
-      if (url.pathname === "/api/sync" && request.method === "POST") return await sync(env, repo, branch, await request.json(), cors);
+
+      // 写通道（collect/remove/sync）：仅限 GitHub 登录本人（Bearer token 校验）
+      const isWrite = url.pathname === "/api/collect" || url.pathname === "/api/remove" || url.pathname === "/api/sync";
+      if (isWrite) {
+        const admin = await requireAdmin(request, env, cors);
+        if (!admin.ok) return json(cors, 401, { error: "未授权：请先登录 GitHub（仅站长本人可用）" });
+        if (url.pathname === "/api/collect" && request.method === "POST") return await collect(env, repo, branch, await request.json(), cors);
+        if (url.pathname === "/api/remove" && request.method === "POST") return await remove(env, repo, branch, await request.json(), cors);
+        if (url.pathname === "/api/sync" && request.method === "POST") return await sync(env, repo, branch, await request.json(), cors);
+      }
       return json(cors, 404, { error: "Not Found: " + url.pathname });
     } catch (e) {
       return json(cors, 500, { error: String((e && e.message) || e) });
@@ -442,4 +463,156 @@ export async function sync(env, repo, branch, body, cors) {
     if (ok2) written++;
   }
   return json(cors, 200, { ok: true, dir, name, written });
+}
+
+// ---------- 鉴权：GitHub OAuth + 无状态 HMAC 签名 token ----------
+// token = base64url(payload) + "." + HMAC_SHA256(base64url(payload), AUTH_SECRET)
+// payload = { login, iat, exp }（exp = iat + 7d）
+
+const TOKEN_TTL = 7 * 24 * 3600;
+
+function randomId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function b64urlEncode(s) {
+  const bytes = new TextEncoder().encode(String(s));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64urlDecode(s) {
+  s = String(s || "").replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+export async function hmacB64(secret, data) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(secret || "")), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(data)));
+  const bytes = new Uint8Array(sig);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export async function signToken(login, secret) {
+  const iat = Math.floor(Date.now() / 1000);
+  const body = b64urlEncode(JSON.stringify({ login, iat, exp: iat + TOKEN_TTL }));
+  return body + "." + (await hmacB64(secret, body));
+}
+
+export async function verifyToken(token, secret) {
+  if (!token) return null;
+  const parts = String(token).split(".");
+  if (parts.length !== 2) return null;
+  const want = await hmacB64(secret, parts[0]);
+  if (want !== parts[1]) return null;
+  try {
+    const payload = JSON.parse(b64urlDecode(parts[0]));
+    if (!payload || !payload.login || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch (e) { return null; }
+}
+
+// 写通道 / 完整轨迹的统一管理员校验：Authorization: Bearer <token> 且 login === ADMIN_LOGIN
+async function requireAdmin(request, env, cors) {
+  const h = request.headers.get("Authorization") || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+  const payload = await verifyToken(token, env.AUTH_SECRET);
+  if (!payload || payload.login !== env.ADMIN_LOGIN) return { ok: false };
+  return { ok: true, payload };
+}
+
+async function authLogin(request, env, cors) {
+  if (!env.GITHUB_CLIENT_ID) return json(cors, 500, { error: "Worker 未配置 GITHUB_CLIENT_ID" });
+  const origin = new URL(request.url).origin;
+  const u = "https://github.com/login/oauth/authorize?client_id=" + encodeURIComponent(env.GITHUB_CLIENT_ID)
+    + "&redirect_uri=" + encodeURIComponent(origin + "/api/auth/callback")
+    + "&scope=read:user&state=" + encodeURIComponent(randomId());
+  return new Response(null, { status: 302, headers: { Location: u, "Access-Control-Allow-Origin": "*" } });
+}
+
+async function authCallback(request, env, cors) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const home = env.REDIRECT_URL || "https://guoxin.space";
+  if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+    return json(cors, 500, { error: "Worker 未配置 GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET" });
+  }
+  if (!code) return json(cors, 400, { error: "缺少 code" });
+  if (!state) return json(cors, 400, { error: "缺少 state" });
+  try {
+    const redirectUri = url.origin + "/api/auth/callback";
+    const tok = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ client_id: env.GITHUB_CLIENT_ID, client_secret: env.GITHUB_CLIENT_SECRET, code, redirect_uri: redirectUri }),
+    }).then(r => r.json());
+    if (!tok.access_token) {
+      return json(cors, 400, { error: "换取 access_token 失败：" + (tok.error_description || tok.error || "unknown") });
+    }
+    const user = await fetch("https://api.github.com/user", {
+      headers: { "Authorization": "Bearer " + tok.access_token, "User-Agent": "skillboard-collect", "Accept": "application/vnd.github+json" },
+    }).then(r => r.json());
+    if (!user || user.login !== env.ADMIN_LOGIN) {
+      return new Response(null, { status: 302, headers: { Location: home + "/?auth=denied", "Access-Control-Allow-Origin": "*" } });
+    }
+    const token = await signToken(user.login, env.AUTH_SECRET);
+    return new Response(null, { status: 302, headers: { Location: home + "/?auth=" + encodeURIComponent(token), "Access-Control-Allow-Origin": "*" } });
+  } catch (e) {
+    return json(cors, 500, { error: String((e && e.message) || e) });
+  }
+}
+
+async function authMe(request, env, cors) {
+  const h = request.headers.get("Authorization") || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+  const payload = await verifyToken(token, env.AUTH_SECRET);
+  if (!payload) return json(cors, 401, { error: "未授权或已过期" });
+  return json(cors, 200, { ok: true, login: payload.login, exp: payload.exp });
+}
+
+// ---------- 轨迹私有仓库代理（白名单） ----------
+// preview.*（掐头去尾 + 底图 + meta）游客可读；rides.full.json（完整轨迹）仅 admin
+const TRACKS_FILES = {
+  "preview.json":      { file: "activities.preview.json",      admin: false },
+  "preview.png":       { file: "activities.preview.png",       admin: false, mime: "image/png" },
+  "preview.meta.json": { file: "activities.preview.meta.json", admin: false },
+  "rides.full.json":   { file: "activities.rides.full.json",   admin: true },
+};
+
+async function tracksRaw(request, env, cors) {
+  const url = new URL(request.url);
+  const f = url.searchParams.get("f");
+  const spec = TRACKS_FILES[f];
+  if (!spec) return json(cors, 400, { error: "未知文件：" + f });
+  if (!env.TRACKS_REPO) return json(cors, 500, { error: "Worker 未配置 TRACKS_REPO" });
+  const repo = parseRepo(env.TRACKS_REPO);
+  if (!repo) return json(cors, 500, { error: "TRACKS_REPO 格式应为 owner/repo" });
+
+  if (spec.admin) {
+    const auth = await requireAdmin(request, env, cors);
+    if (!auth.ok) return json(cors, 401, { error: "未授权：完整轨迹仅站长本人可见" });
+  }
+
+  const r = await gh(env.GH_TOKEN, "/repos/" + repo.owner + "/" + repo.repo + "/contents/" + enc(spec.file) + "?ref=master");
+  if (r.status !== 200 || !r.data || !r.data.content) {
+    return json(cors, 404, { error: "私有仓库文件不存在或不可访问：" + spec.file });
+  }
+  let bytes;
+  try { bytes = atob(r.data.content); } catch (e) { bytes = String(r.data.content); }
+  if (spec.mime === "image/png") {
+    return new Response(Uint8Array.from(bytes, c => c.charCodeAt(0)), {
+      status: 200,
+      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "image/png" },
+    });
+  }
+  return new Response(decodeUtf8(bytes), { status: 200, headers: cors });
 }

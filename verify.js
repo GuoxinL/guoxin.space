@@ -6,7 +6,7 @@ const vm = require('vm');
 const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(__dirname, 'css/style.css'), 'utf8');
 // 拆分后 JS 按 index.html 底部 <script src> 顺序加载，此处按同序拼接进同一 vm 上下文
-const JS_FILES = ['js/util.js', 'js/json.js', 'js/skills.js', 'js/app.js', 'js/running.js'];
+const JS_FILES = ['js/util.js', 'js/auth.js', 'js/json.js', 'js/skills.js', 'js/app.js', 'js/running.js'];
 let code = JS_FILES.map(function (f) { return fs.readFileSync(path.join(__dirname, f), 'utf8'); }).join('\n');
 // 源码字符串断言统一检索的全文 = HTML + CSS + JS（拆分后 CSS/JS 已移出 index.html）
 const src = html + '\n' + css + '\n' + code;
@@ -315,6 +315,60 @@ ctx.skOpenCfg();
 T('skOpenCfg 未配置时预填默认仓库', el('skCfgRepo').value === 'guoxinl/skill-collection', el('skCfgRepo').value);
 T('skOpenCfg 未配置时预填默认分支', el('skCfgBranch').value === 'main', el('skCfgBranch').value);
 T('skOpenCfg 未配置时预填默认 Worker', el('skCfgWorker').value === 'https://skillboard-collect.lgx31.workers.dev', el('skCfgWorker').value);
+
+/* ========== 10d. Auth：GitHub 登录态 / admin 权限 ========== */
+console.log('== 10d. Auth 登录态 ==');
+T('auth 模块全部函数存在', typeof ctx.authToken === 'function' && typeof ctx.authUser === 'function'
+  && typeof ctx.authIsAdmin === 'function' && typeof ctx.authLogin === 'function'
+  && typeof ctx.authLogout === 'function' && typeof ctx.authApply === 'function'
+  && typeof ctx.authInit === 'function' && typeof ctx.authVerify === 'function');
+T('auth.js 关键逻辑（token 存取 / OAuth 跳转 / URL 回调清理 / Bearer）',
+  src.indexOf('var KEY_AUTH_TOKEN = KEY_PREFIX + "auth_token"') >= 0
+  && src.indexOf('function authLogin(){') >= 0
+  && src.indexOf('location.href = worker + "/api/auth/login"') >= 0
+  && src.indexOf('history.replaceState(null, "", location.pathname + location.hash)') >= 0
+  && src.indexOf('Bearer " + authToken()') >= 0
+  && src.indexOf('authDecodeLogin') >= 0);
+T('app.js init 挂载并初始化 auth', src.indexOf('window.authIsAdmin = authIsAdmin') >= 0 && src.indexOf('authInit();') >= 0);
+T('index：auth.js 在 util.js 之后引入', src.indexOf('<script src="/js/util.js"></script>') < src.indexOf('<script src="/js/auth.js"></script>'));
+T('未登录：authIsAdmin 为 false', ctx.authIsAdmin() === false);
+T('authSave 非法 token → false', ctx.authSave('bad.token') === false);
+const AUTH_PAYLOAD = Buffer.from(JSON.stringify({ login: 'GuoxinL', iat: 1, exp: 9999999999 })).toString('base64url');
+const AUTH_FAKE = AUTH_PAYLOAD + '.fakesig';
+T('authSave 合法 token → true 且解码 login', ctx.authSave(AUTH_FAKE) === true && ctx.authUser().login === 'GuoxinL');
+T('登录后 authIsAdmin 为 true', ctx.authIsAdmin() === true);
+ctx.authApply();
+T('authApply 设置 body.admin（admin-only 显隐开关）', ctx.document.body.classList.contains('admin'));
+ctx.authLogout();
+T('authLogout 清除登录态并移除 body.admin', ctx.authIsAdmin() === false && ctx.document.body.classList.contains('admin') === false);
+locationMock.search = '?auth=' + encodeURIComponent(AUTH_FAKE);
+ctx.authInit();
+T('authInit 消费 URL ?auth= 建立登录态', ctx.authIsAdmin() === true && ctx.authUser().login === 'GuoxinL');
+locationMock.search = '';
+ctx.authLogout();
+
+/* ========== 10e. 权限显隐：skills 按钮 / running 徽标 / 无共享密钥残留 ========== */
+console.log('== 10e. 权限显隐 ==');
+T('index：登录按钮 + admin-only 按钮 + 完整轨迹徽标，无 key 输入项',
+  src.indexOf('id="authBtn"') >= 0
+  && src.indexOf('class="btn admin-only" onclick="skOpenCfg()"') >= 0
+  && src.indexOf('class="btn primary admin-only" onclick="skOpenCollect()"') >= 0
+  && src.indexOf('class="btn admin-only" onclick="skSync()"') >= 0
+  && src.indexOf('class="btn danger admin-only" onclick="skRemove()"') >= 0
+  && src.indexOf('id="rkFullBadge"') >= 0
+  && src.indexOf('skCfgKey') < 0);
+T('css：admin-only 默认隐藏、body.admin 下显示', src.indexOf('.admin-only{display:none!important}') >= 0 && src.indexOf('body.admin .admin-only{display:inline-flex!important}') >= 0);
+T('x-collect-key 彻底移除（HTML/CSS/JS 无残留）', src.indexOf('x-collect-key') < 0 && src.indexOf('skKey(') < 0 && src.indexOf('collectKey') < 0 && src.indexOf('COLLECT_KEY') < 0);
+T('skills 写接口改 Bearer 鉴权', src.indexOf('headers["Authorization"] = "Bearer " + tok') >= 0);
+T('running：rkTracks 代理 + 完整轨迹映射 + rkLoadRides',
+  src.indexOf('function rkTracks(') >= 0
+  && src.indexOf('rkTracks("preview.json")') >= 0
+  && src.indexOf('var RK_CACHE_RIDES') >= 0
+  && src.indexOf('function rkPolyFor(') >= 0
+  && src.indexOf('function rkLoadRides(){') >= 0
+  && src.indexOf('rkFullBadge') >= 0
+  && src.indexOf('rides.full.json') >= 0
+  && src.indexOf('raw.githubusercontent.com/GuoxinL/running') < 0);
 
 /* ========== 10c. Skills：来源解析 / 文件树可点击 ========== */
 console.log('== 10c. Skills 镜像元信息与文件树 ==');
@@ -709,14 +763,18 @@ T('样式三档固定浅色：按钮 title 无「自动（跟随明暗）」、z
   && src.indexOf('自动·') < 0,
   '三档样式/无明暗跟随残留');
 
-// Task 17 渐进式加载 + 固定 zoom13 世界像素投影（垫底 SVG 全貌 → 矢量层就绪切换，缩放零重投影）
-T('渐进加载：RK_PV_URL 垫底 PNG + RK_META_URL 视角元数据 + phase1 img 与加载提示',
-  src.indexOf('var RK_PV_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.png"') >= 0
-  && src.indexOf('var RK_META_URL = "https://raw.githubusercontent.com/GuoxinL/running/master/src/static/activities.preview.meta.json"') >= 0
+// Task 17 渐进式加载 + 固定 zoom13 世界像素投影（垫底 PNG 全貌 → 矢量层就绪切换，缩放零重投影）
+// 轨迹数据源已迁移：不再直连 raw.githubusercontent.com，统一经 Worker /api/tracks/raw 白名单代理
+T('渐进加载：rkTracks 代理（preview.png / preview.meta.json）+ phase1 img 与加载提示',
+  src.indexOf('function rkTracks(') >= 0
+  && src.indexOf('w + "/api/tracks/raw?f=" + encodeURIComponent(f)') >= 0
+  && src.indexOf('rkTracks("preview.png")') >= 0
+  && src.indexOf('rkTracks("preview.meta.json")') >= 0
   && src.indexOf('<img class=\\"rk-tm-pv\\"') >= 0
   && src.indexOf('rk-tm-loading') >= 0
-  && src.indexOf('轨迹矢量层构建中') >= 0,
-  '垫底PNG/视角元数据/加载提示');
+  && src.indexOf('轨迹矢量层构建中') >= 0
+  && src.indexOf('raw.githubusercontent.com/GuoxinL/running') < 0,
+  '代理URL/垫底PNG/视角元数据/加载提示');
 // rkFetchMeta：测试环境 windowMock 无 fetch → 同步回调 null（回退 hotspot/fit 视角）
 let rkMetaCb = 'unset';
 ctx.rkFetchMeta(function(m){ rkMetaCb = (m === null) ? 'null' : 'obj'; });
@@ -821,7 +879,7 @@ T('弹窗遮罩置灰（modal-mask 复用）',
 T('轨迹回放：canvas Web Mercator 投影 + 瓦片底图背景 + 已走轨迹高亮 + 起点/当前标记点',
   src.indexOf('var RK_ACT_DUR = 8') >= 0
   && src.indexOf('document.createElement("canvas")') >= 0
-  && src.indexOf('rkDecodePolyline(a.poly)') >= 0
+  && src.indexOf('rkDecodePolyline(rkPolyFor(a))') >= 0
   && src.indexOf('var p = rkMerc(c[1], c[0], z);') >= 0
   && src.indexOf('return [ p[0] - cx + W/2, p[1] - cy + H/2 ];') >= 0
   && src.indexOf('ctx.drawImage(bgCv, 0, 0)') >= 0
