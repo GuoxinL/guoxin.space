@@ -155,6 +155,24 @@ setup-python 3.11
 > I3 依赖 I0① 瓦片可达性结论（不可达则保留 OSM 常量）；I1/I3 的 diff=0 验收依赖 I0② 幂等结论。
 > I3 完成即意味着「脚本 JS 化」+「垫底 PNG 换 MapCN」两项同时落地。
 
+### 7.1 I0 技术验证结论（2026-08-25 实测）
+
+> 两项验证均已执行，结论如下（详见 `.workbuddy/memory/2026-08-25.md` 与验证脚本 `sharp-verify/idempotency.mjs`）：
+
+**① MapCN(CARTO) 瓦片国内可达性 —— ✅ 通过，I3 可安全切瓦片**
+
+- 实测：洛阳/北京/上海 × z11~z13 共 10 组瓦片请求（本地网络模拟国内访问）
+- CARTO（`{a,b,c}.basemaps.cartocdn.com/light_all`）与 OSM（`tile.openstreetmap.org`）**均 100% HTTP 200**
+- 延迟：OSM 0.28~0.60s，CARTO 0.28~0.64s，**无实质差异**
+- running 旧注释「OSM 国内可达性优于 CARTO」在当前网络环境**不成立**；CI 运行于 GitHub（海外）可达性只会更好
+
+**② sharp PNG 幂等性 —— ✅ 通过，diff=0 可达成**
+
+- 同 SVG（真实轨迹 6 条 + 背景，640x420）渲染两次：字节数相同、md5 一致 → **逐字节稳定**
+- PNG chunk 仅 `IHDR pHYs IDAT IEND`，**无 tIME 时间戳**等非确定性元数据
+- 参数：`compressionLevel=9`（66KB）| 6（69KB）| 0（1MB+ 不可用）→ **CI 固定 `compressionLevel=9`**
+- ⚠️ **注意**：sharp 与 PIL 编码器不同，**PNG 字节必然与 Python 版不一致**——diff=0 验收仅适用 JSON/文本产物（I1 的 activities.json、I3 的 preview.json/meta.json）；PNG 验收改为「同编码器两次构建一致 + 视觉验收」
+
 ---
 
 ## 8. 决策（2026-08-25 已定稿）
