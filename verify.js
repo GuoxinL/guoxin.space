@@ -940,6 +940,21 @@ T('弹窗打开/关闭/遮罩/回放函数挂载到 window',
   && src.indexOf('window.rkActBgStyle = rkActBgStyle') >= 0
   && src.indexOf('window.rkActLoadBg = rkActLoadBg') >= 0,
   '弹窗函数挂载');
+// 骑行改版：回放 HUD（动态爬升 + 时速）与个人最佳骑行指标（无「平均配速」残留）
+T('回放 HUD：右下角叠加动态爬升 + 时速（draw 内调用 rkActHud）',
+  src.indexOf('function rkActHud(ctx, a, prog)') >= 0
+  && src.indexOf('rkActHud(ctx, a, prog)') >= 0
+  && src.indexOf('爬升 " + elev + " m') >= 0
+  && src.indexOf('km/h') >= 0,
+  'HUD 函数与调用');
+T('骑行改版：个人最佳三项指标渲染 + maxSpd 解析',
+  src.indexOf('最远距离') >= 0
+  && src.indexOf('最高每小时公里数') >= 0
+  && src.indexOf('最高时速') >= 0
+  && src.indexOf('maxSpd: Number(a.max_speed)') >= 0
+  && src.indexOf('均速近似') >= 0,
+  '骑行指标');
+T('骑行改版：无「平均配速」残留（源码全文检索）', src.indexOf('平均配速') < 0, '无配速残留');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
