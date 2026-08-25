@@ -1,6 +1,6 @@
 "use strict";
 /* ================= Running (run)：数据源 = 轨迹私有仓库（经 Cloudflare Worker 代理） ================= */
-var RK_CACHE = "wb_rk_acts_v2";
+var RK_CACHE = "wb_rk_acts_v3";
 /* 轨迹数据源：全部经 Cloudflare Worker /api/tracks/raw 白名单代理（轨迹仓库整体私有，
    preview.* 游客可读、rides.full.json 仅 admin）。Worker URL 复用 Skills 通道配置
    wb_home_sk_set.worker；未配置时由 skCfg 回退内置默认 Worker（游客免配置即可看预览）。 */
@@ -13,9 +13,10 @@ var rkRidesFull = null;
 var RK_CACHE_RIDES = "wb_rk_rides_full";
 /* 当前活动实际渲染的 polyline：admin 且命中完整轨迹 → 用完整版；否则用 preview 截断版 */
 function rkPolyFor(a){ return (rkRidesFull && a && a.poly && rkRidesFull[a.id]) ? rkRidesFull[a.id] : (a ? a.poly : ""); }
-/* MapCN（CARTO Basemaps）免费瓦片，无 token；默认浅色固定（与 running 仓库
-   activities.preview.png 生成规格一致：640:360 + z8 + 浅色，不随系统明暗切换），
-   用户可手动切 明亮 / 暗色（浅色 / 明亮 / 暗色 三档循环） */
+/* MapCN（CARTO Basemaps）免费瓦片，无 token；三档手动切换：浅色 / 明亮 / 暗色。
+   垫底 PNG 与活动缩略图为轨迹私有仓库预渲染双主题产物（previews/light|dark.png、
+   thumb/<run_id>.<light|dark>.png，均 16:9 与页面一致），按系统明暗（rkTheme）选图；
+   矢量层瓦片样式仍可手动三档循环（voyager 档无对应垫底，垫底沿用 light 版短暂过渡） */
 var RK_STYLES = [
   { k:"light",   n:"浅色", bg:"#e9e5dd", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
   { k:"voyager", n:"明亮", bg:"#e9e5dd", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
@@ -23,9 +24,10 @@ var RK_STYLES = [
 ];
 var RK_STYLE_KEY = "wb_run_map_style";
 var RK_TILE = 256, RK_Z_MIN = 3, RK_Z_MAX = 18;
-/* 全量轨迹垫底 PNG（轨迹私有仓库构建产物：浅灰纯色底图 + 全量轨迹，1x 640x360，
-   位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换）经 Worker 代理下发 */
-/* 垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom）：
+/* 全量轨迹垫底 PNG（轨迹私有仓库构建产物：双主题瓦片底图 previews/light|dark.png +
+   全量轨迹，1x 640x360，位图解码 + GPU 合成秒显不卡，矢量层就绪后无缝切换）经 Worker 代理下发；
+   活动缩略图 thumb/<run_id>.<theme>.png（480x270 16:9，fit 视角）同源自产，替换原行者 CDN 图 */
+/* 垫底 PNG 的视角元数据（cx/cy 为 z13 世界像素中心，z 为 zoom，s 为底图主题标记）：
    矢量层初始视角优先用它，保证垫底与矢量层切换零跳动 */
 /* 固定投影基准 zoom：与 running/scripts/prebuild_preview.py 的 RK_Z 一致。
    所有轨迹只在此 zoom 的世界像素投影一次，缩放/平移仅改 viewBox（零重投影） */
@@ -68,7 +70,6 @@ function rkParse(json){
       sub: a.subtype || "",
       date: a.start_date_local || a.start_date || "",
       city: a.location_city || a.location_country || "",
-      thumb: a.thumbnail || "",
       poly: a.summary_polyline || "",
       hr: Number(a.average_heartrate) || 0,
       spd: Number(a.average_speed) || 0,
@@ -439,7 +440,7 @@ function rkRenderList(){
     var kmh = a.spd ? (a.spd*3.6) : (a.dist > 0 && t > 0 ? a.dist/t*3.6 : 0);
     var nm = a.name || rkTitleFor(a);
     h += "<div class=\"rk-actcard\" onclick=\"rkOpenAct('" + a.id + "')\" title=\"查看轨迹回放\">";
-    h += "<div class=\"rk-act-thumb\">" + (a.thumb ? "<img src=\"" + esc(a.thumb) + "\" alt=\"\" loading=\"lazy\">" : "") + "<span class=\"rk-act-tag\">" + rkTypeTag(a.type) + "</span></div>";
+    h += "<div class=\"rk-act-thumb\">" + (a.poly ? "<img src=\"" + rkTracks("thumb/" + a.id + "." + rkTheme() + ".png") + "\" alt=\"\" loading=\"lazy\">" : "") + "<span class=\"rk-act-tag\">" + rkTypeTag(a.type) + "</span></div>";
     h += "<div class=\"rk-act-body\">";
     h += "<div class=\"rk-act-title\">" + esc(nm) + "</div>";
     h += "<div class=\"rk-act-meta\">";
@@ -503,14 +504,19 @@ function rkActInfo(a){
   h += "</div>";
   e.innerHTML = h;
 }
-/* 回放底图样式：跟随系统默认明暗（浅色系统 → light，暗色系统 → dark）。
-   与运行页地图三档手动切换相互独立，回放底图不做手动切换。 */
-function rkActBgStyle(){
+/* 系统明暗主题（"light"|"dark"）：垫底 PNG / 活动缩略图双主题选择依据。
+   浅色系统 → light，暗色系统 → dark（与回放底图 rkActBgStyle 同源） */
+function rkTheme(){
   var dark = false;
   try{
     if(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) dark = true;
   }catch(e){}
-  return dark ? RK_STYLES[2] : RK_STYLES[0];
+  return dark ? "dark" : "light";
+}
+/* 回放底图样式：跟随系统默认明暗（浅色系统 → light，暗色系统 → dark）。
+   与运行页地图三档手动切换相互独立，回放底图不做手动切换。 */
+function rkActBgStyle(){
+  return rkTheme() === "dark" ? RK_STYLES[2] : RK_STYLES[0];
 }
 /* 把视口内瓦片异步画到离屏 canvas（bgCtx）作为回放底图；单块加载失败保留占位底色，
    不阻断回放动画（渐进加载，加载完成即随下一帧呈现）。 */
@@ -724,10 +730,11 @@ function rkShowMap(id){
   } else {
     ti.textContent = "全部 " + tracks.length + " 条轨迹 · 已聚焦最热点区域（点击 ⤢ 查看全貌）";
   }
-  /* phase1：垫底 PNG（OSM 瓦片底图 + 全量轨迹，轨迹私有仓库预渲染产物）立即显示，
+  /* phase1：垫底 PNG（双主题 previews/light|dark.png，轨迹私有仓库预渲染产物）立即显示，
      位图秒显不卡；矢量层就绪后无缝切换 —— img onload 门控（缓存命中/无 img 时同步渲染）。
+     垫底按系统明暗选图（rkTheme），与矢量层视角元数据完全一致（零跳动）。
      视角元数据 fetch 成功后作为矢量层初始视角，与 PNG 完全一致（零跳动） */
-  var pvUrl = rkTracks("preview.png");
+  var pvUrl = rkTracks("previews/" + rkTheme() + ".png");
   box.innerHTML = "<div class=\"rk-tilemap\" id=\"rkMapCanvas\">"
     + "<img class=\"rk-tm-pv\" src=\"" + pvUrl + "\" alt=\"轨迹全貌预览\" decoding=\"async\">"
     + "<div class=\"rk-tm-loading\">轨迹矢量层构建中…</div></div>";
@@ -1144,8 +1151,8 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     else if(idx === 2) zoomBy(-1);
     else if(idx === 3) fit();
   });
-  /* 默认视角固定规格：z=8（与 running 仓库 activities.preview.png 生成规格一致，
-     长宽 640:360（16:9）固定、z8 固定浅色）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
+  /* 默认视角固定规格：z=9（与轨迹私有仓库垫底 PNG previews/{light,dark}.png 生成规格一致，
+     长宽 640:360（16:9）固定、z9 固定、双主题共用同一视角）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
      中心优先用垫底 PNG 视角元数据（热点中心，PNG 与矢量层切换零跳动）；
      无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
   var mv = metaView || null, HP_Z = 9; /* 初始视角固定 z9: 与垫底 PNG (MapCN light_all z9) 零跳动 */

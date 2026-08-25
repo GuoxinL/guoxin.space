@@ -581,17 +581,25 @@ async function authMe(request, env, cors) {
 
 // ---------- 轨迹私有仓库代理（白名单） ----------
 // preview.*（掐头去尾 + 底图 + meta）游客可读；rides.full.json（完整轨迹）仅 admin
+// previews/{light,dark}.png 总览垫底双主题（亮/暗模式各取其一）;
+// thumb/<run_id>.<light|dark>.png 每活动双主题缩略图（run_id 纯数字 + 固定后缀, 防路径注入）。
 const TRACKS_FILES = {
   "preview.json":      { file: "activities.preview.json",      admin: false },
-  "preview.png":       { file: "activities.preview.png",       admin: false, mime: "image/png" },
   "preview.meta.json": { file: "activities.preview.meta.json", admin: false },
   "rides.full.json":   { file: "activities.rides.full.json",   admin: true },
+  "previews/light.png": { file: "previews/light.png",         admin: false, mime: "image/png" },
+  "previews/dark.png":  { file: "previews/dark.png",          admin: false, mime: "image/png" },
 };
+const THUMB_RE = /^thumb\/(\d+)\.(light|dark)\.png$/;
 
 async function tracksRaw(request, env, cors) {
   const url = new URL(request.url);
   const f = url.searchParams.get("f");
-  const spec = TRACKS_FILES[f];
+  let spec = TRACKS_FILES[f];
+  if (!spec) {
+    const m = THUMB_RE.exec(f || "");
+    if (m) spec = { file: f, admin: false, mime: "image/png" };
+  }
   if (!spec) return json(cors, 400, { error: "未知文件：" + f });
   if (!env.TRACKS_REPO) return json(cors, 500, { error: "Worker 未配置 TRACKS_REPO" });
   const repo = parseRepo(env.TRACKS_REPO);

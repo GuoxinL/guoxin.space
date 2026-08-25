@@ -562,11 +562,39 @@ await t("/api/tracks/raw?f=preview.json 游客可读", async () => {
   const out = await resp.json();
   assert.strictEqual(out[0].run_id, "1");
 });
-await t("/api/tracks/raw?f=preview.png 返回 image/png", async () => {
-  setQueue([{ path: "/contents/activities.preview.png", body: { content: b64("PNG") } }]);
-  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=preview.png"), AUTH_ENV);
+await t("/api/tracks/raw?f=previews/light.png 返回 image/png（双主题垫底）", async () => {
+  setQueue([{ path: "/contents/previews/light.png", body: { content: b64("PNG") } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=previews/light.png"), AUTH_ENV);
   assert.strictEqual(resp.status, 200);
   assert.strictEqual(resp.headers.get("Content-Type"), "image/png");
+});
+await t("/api/tracks/raw?f=previews/dark.png 游客可读", async () => {
+  setQueue([{ path: "/contents/previews/dark.png", body: { content: b64("PNG") } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=previews/dark.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+});
+await t("/api/tracks/raw?f=thumb/123.light.png 返回 image/png（活动缩略图）", async () => {
+  setQueue([{ path: "/contents/thumb/123.light.png", body: { content: b64("PNG") } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=thumb/123.light.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+  assert.strictEqual(resp.headers.get("Content-Type"), "image/png");
+});
+await t("/api/tracks/raw?f=thumb/123.dark.png 游客可读", async () => {
+  setQueue([{ path: "/contents/thumb/123.dark.png", body: { content: b64("PNG") } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=thumb/123.dark.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 200);
+});
+await t("/api/tracks/raw?f=thumb/../../etc.png 拒绝（路径注入）", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=thumb/..%2F..%2Fetc.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 400);
+});
+await t("/api/tracks/raw?f=thumb/12a.light.png 拒绝（run_id 非纯数字）", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=thumb/12a.light.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 400);
+});
+await t("/api/tracks/raw?f=preview.png 已废弃（返回 400）", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=preview.png"), AUTH_ENV);
+  assert.strictEqual(resp.status, 400);
 });
 await t("/api/tracks/raw?f=rides.full.json 无 token → 401", async () => {
   const resp = await w.default.fetch(new Request("https://x.workers.dev/api/tracks/raw?f=rides.full.json"), AUTH_ENV);
