@@ -10,7 +10,7 @@
   --shadow:0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  --jp-hit:#fff8d6;
+  --jp-hit:rgba(255,235,59,.55); --jp-hit-border:rgba(212,160,0,.85);
   --j-key:#0b6bcb; --j-str:#1a7f37; --j-num:#b1540a; --j-bool:#8250df; --j-null:#6e7781;
 }
 body[data-theme="dark"]{
@@ -22,7 +22,7 @@ body[data-theme="dark"]{
   --warning:#e0a24e; --warning-soft:#3a2d16;
   --purple:#a49ce8; --purple-soft:#262047;
   --shadow:0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.4);
-  --jp-hit:#3a3416;
+  --jp-hit:rgba(255,235,59,.45); --jp-hit-border:rgba(255,193,7,.9);
   --j-key:#7fb2ea; --j-str:#6fcbaa; --j-num:#e0a24e; --j-bool:#a49ce8; --j-null:#8b95a5;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -109,7 +109,8 @@ select.lang-sel{min-height:30px;border:1px solid var(--border2);border-radius:6p
 .jp-overlay{position:absolute;left:46px;top:0;right:0;bottom:0;margin:0;padding:12px;
   font-family:var(--mono);font-size:14px;line-height:24px;tab-size:2;white-space:pre;
   color:transparent;pointer-events:none;overflow:hidden;z-index:1;word-break:break-all}
-.jp-overlay .jp-hl{background:var(--jp-hit,#fff8d6);color:transparent;border-radius:2px}
+.jp-overlay .jp-hl{background:var(--jp-hit,rgba(255,235,59,.55));color:transparent;
+  border-radius:2px;outline:1px solid var(--jp-hit-border,rgba(212,160,0,.85))}
 /* 语法着色（JSONPath 结果 / 树形复用） */
 .j-key{color:var(--j-key,#0b6bcb)}
 .j-str{color:var(--j-str,#1a7f37)}
