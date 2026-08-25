@@ -154,7 +154,7 @@
                 <span id="treeLabelL">树形</span>
               </button>
               <span class="jp-inline">
-                <input class="jp-input" id="jpInputL" placeholder="JSONPath 查询本侧" spellcheck="false" onkeydown="if(event.key==='Enter')runJsonPath('L')">
+                <input class="jp-input" id="jpInputL" placeholder="JSONPath 查询（原文高亮）" spellcheck="false" onkeydown="if(event.key==='Enter')runJsonPath('L')">
                 <button class="btn ghost jp-run" onclick="runJsonPath('L')" title="对本侧数据（任意语言自动转 JSON）执行 JSONPath 查询">查</button>
                 <button class="btn ghost jp-clear" onclick="clearJsonPath('L')" title="清空查询并恢复本侧编辑视图">×</button>
               </span>
@@ -162,11 +162,11 @@
             <div class="editor view-edit" id="editorL">
               <div class="gutter" id="gutterL"></div>
               <textarea id="jsonInputL" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder='{"示例":"粘贴或输入 JSON，拖入文件亦可"}'></textarea>
+              <pre class="jp-overlay" id="jpOverlayL" aria-hidden="true"></pre>
               <svg class="err-squiggle" id="sqL"></svg>
             </div>
             <div class="view tree-view hide" id="treeL"></div>
             <div class="view diff-view hide" id="diffL"></div>
-            <div class="view jp-view hide" id="jpL"></div>
             <div class="vbar" id="vbarL">
               <span class="dot wait" id="vdotL"></span>
               <span id="vtextL">就绪 · 输入后实时校验</span>
@@ -209,7 +209,7 @@
                 <span id="treeLabelR">树形</span>
               </button>
               <span class="jp-inline">
-                <input class="jp-input" id="jpInputR" placeholder="JSONPath 查询本侧" spellcheck="false" onkeydown="if(event.key==='Enter')runJsonPath('R')">
+                <input class="jp-input" id="jpInputR" placeholder="JSONPath 查询（原文高亮）" spellcheck="false" onkeydown="if(event.key==='Enter')runJsonPath('R')">
                 <button class="btn ghost jp-run" onclick="runJsonPath('R')" title="对本侧数据（任意语言自动转 JSON）执行 JSONPath 查询">查</button>
                 <button class="btn ghost jp-clear" onclick="clearJsonPath('R')" title="清空查询并恢复本侧编辑视图">×</button>
               </span>
@@ -217,11 +217,11 @@
             <div class="editor view-edit" id="editorR">
               <div class="gutter" id="gutterR"></div>
               <textarea id="jsonInputR" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder='{"示例":"与左侧对比的 JSON，可直接粘贴"}'></textarea>
+              <pre class="jp-overlay" id="jpOverlayR" aria-hidden="true"></pre>
               <svg class="err-squiggle" id="sqR"></svg>
             </div>
             <div class="view tree-view hide" id="treeR"></div>
             <div class="view diff-view hide" id="diffR"></div>
-            <div class="view jp-view hide" id="jpR"></div>
             <div class="vbar" id="vbarR">
               <span class="dot wait" id="vdotR"></span>
               <span id="vtextR">就绪 · 输入后实时校验</span>
