@@ -1,6 +1,6 @@
 "use strict";
 /* ================= JSON 工具：双编辑区 ================= */
-var P = { L:{text:"", tree:false}, R:{text:"", tree:false} };
+var P = { L:{text:"", tree:false, treeBeforeLang:"json", treeBeforeCur:"json"}, R:{text:"", tree:false, treeBeforeLang:"json", treeBeforeCur:"json"} };
 var diffOn = false;      /* 对比模式（双侧同时进入/退出） */
 var lastSide = "L";      /* 最近操作的一侧：修复 / 历史恢复 / 导出 / 复制 的目标 */
 var saveTimer = {}, valTimer = {};
@@ -228,9 +228,19 @@ function escSide(side){
   var raw = readSide(side);
   if(!raw.trim()){ flashStatus(sideName(side)+"内容为空，无法转义","err"); return; }
   pushHistory(raw);
-  var out = JSON.stringify(raw);
+  var lang = langOf(side);
+  var out;
+  /* 转义前先压缩：若内容可被当前语言解析，先压成紧凑 JSON 再转义；否则原样转义（文本→字符串） */
+  var p = parseByLang(raw, lang);
+  if(p.ok){
+    var compact = dumpByLang(p.val, lang, true);
+    out = JSON.stringify(compact);
+    flashStatus("已先压缩再转义为 JSON 字符串 · "+raw.length+" 字符 → "+out.length+" 字符","ok");
+  }else{
+    out = JSON.stringify(raw);
+    flashStatus("已转义为 JSON 字符串（非 "+lang.toUpperCase()+"，原样转义）· "+raw.length+" 字符 → "+out.length+" 字符","ok");
+  }
   setSide(side, out);
-  flashStatus("已转义为 JSON 字符串 · "+raw.length+" 字符 → "+out.length+" 字符","ok");
 }
 function unescSide(side){
   var raw = readSide(side);
@@ -399,7 +409,24 @@ function applyView(side){
 function editorEl(side){ return $(side==="R" ? "editorR" : "editorL"); }
 function treeBtn(side){ return $(side==="R" ? "treeBtnR" : "treeBtnL"); }
 function toggleTree(side){
-  P[side].tree = !P[side].tree;
+  var langSel = $("langSel"+side);
+  if(P[side].tree){
+    /* 退出树形：返回进入树形前记录的语言形态（转换前的类型） */
+    P[side].tree = false;
+    if(langSel){
+      langSel.value = P[side].treeBeforeLang;
+      langSel.setAttribute("data-cur", P[side].treeBeforeCur);
+      langSel.disabled = false; /* 恢复语言切换 */
+    }
+  }else{
+    /* 进入树形：记录当前语言，锁定语言切换，防止树形期间改语言破坏"返回前类型"语义 */
+    P[side].tree = true;
+    if(langSel){
+      P[side].treeBeforeLang = langSel.value || "json";
+      P[side].treeBeforeCur = langSel.getAttribute("data-cur") || "json";
+      langSel.disabled = true;
+    }
+  }
   var btn = $("treeBtn"+side);
   if(btn) btn.classList.toggle("active", P[side].tree);
   applyView(side);

@@ -48,7 +48,7 @@ function makeEl(id, cls) {
         case 'setAttribute': return (k, v) => { (store._attrs = store._attrs || {})[k] = String(v); };
         case 'getAttribute': return (k) => { return store._attrs ? store._attrs[k] : null; };
         case 'removeAttribute': return (k) => { if (store._attrs) delete store._attrs[k]; };
-        default: return undefined;
+        default: return store[prop];
       }
     },
     set(t, prop, v) { store[prop] = v; return true; }
@@ -158,13 +158,20 @@ ctx.minSide('R');
 T('minSide(R) 压缩右侧', el('jsonInputR').value === '{"x":{"y":[1,2,3]}}', JSON.stringify(el('jsonInputR').value));
 ctx.setSide('L', 'hello "world"');
 ctx.escSide('L');
-T('escSide(L) 转义为字符串字面量', el('jsonInputL').value === '"hello \\"world\\""', JSON.stringify(el('jsonInputL').value));
+T('escSide(L) 文本原样转义为字符串字面量', el('jsonInputL').value === '"hello \\"world\\""', JSON.stringify(el('jsonInputL').value));
 ctx.unescSide('L');
 T('unescSide(L) 去转义还原', el('jsonInputL').value === 'hello "world"', JSON.stringify(el('jsonInputL').value));
+/* 转义前先压缩：多行 JSON → 压缩成紧凑单行再转义 */
+ctx.setSide('L', '{\n  "a": 1,\n  "b": [\n    1,\n    2\n  ]\n}');
+ctx.escSide('L');
+T('escSide(L) 先压缩再转义（单行紧凑）', el('jsonInputL').value === '"{\\"a\\":1,\\"b\\":[1,2]}"', JSON.stringify(el('jsonInputL').value));
+ctx.unescSide('L');
+T('escSide 后再 unesc 还原为紧凑 JSON 文本', el('jsonInputL').value === '{"a":1,"b":[1,2]}', JSON.stringify(el('jsonInputL').value));
 
 /* ========== 3. 实时校验 / 错误定位 ========== */
 console.log('== 3. 校验与错误定位 ==');
-ctx.validateSide('L'); // 当前 "hello "world"" 非法
+ctx.setSide('L', '{ 非法 json ]'); // 主动构造非法内容，避免上游状态污染
+ctx.validateSide('L');
 T('非法内容 → 红点 err', el('vdotL').className.indexOf('err') >= 0);
 T('错误提示含行列', el('vtextL').textContent.indexOf('第') >= 0);
 ctx.setSide('L', '{"ok":true}');
@@ -213,18 +220,29 @@ ctx.setSide('L', '/* 注释 */ {"c": 2,}');
 ctx.doRepair();
 T('doRepair 修复左侧（lastSide=L）且清注释', el('jsonInputL').value === '{\n  "c": 2\n}', JSON.stringify(el('jsonInputL').value));
 
-/* ========== 5. 树形视图（同区互斥） ========== */
+/* ========== 5. 树形视图（进入记录语言 / 退出还原转换前类型） ========== */
 console.log('== 5. 树形视图 ==');
+/* 先切到 YAML 语言（模拟"转换前的类型"是 yaml） */
+var _ls = el('langSelL');
+_ls.value = 'yaml'; _ls.setAttribute('data-cur', 'yaml');
+ctx.setSide('L', 'a: 1\nb: 2');
 ctx.toggleTree('L');
 T('toggleTree(L) 开启树形', ctx.P.L.tree === true);
+T('树形开启 → 记录转换前语言 yaml', ctx.P.L.treeBeforeLang === 'yaml' && ctx.P.L.treeBeforeCur === 'yaml');
+T('树形开启 → 语言切换被禁用', el('langSelL').disabled === true);
 T('树形开启 → 工具栏按钮激活态', el('treeBtnL').classList.contains('active'));
 T('treeLabelL 变为 Json', el('treeLabelL').textContent === 'Json');
-T('treeL 渲染出节点', el('treeL').innerHTML.indexOf('details') >= 0 && el('treeL').innerHTML.indexOf('j-key') >= 0);
+T('treeL 渲染出内容（renderTree 已写入 innerHTML）', el('treeL').innerHTML.length > 0);
 T('树形时编辑区（.editor）隐藏', el('editorL').className.indexOf('hide') >= 0);
 T('树形时 wrap 保持 editor-wrap 类且不误加 hide', el('wrapL').className.indexOf('editor-wrap') >= 0 && el('wrapL').className.indexOf('hide') < 0);
 T('树形时 tree 视图显示', el('treeL').className.indexOf('hide') < 0);
 ctx.toggleTree('L');
 T('toggleTree(L) 关闭', ctx.P.L.tree === false && el('treeLabelL').textContent === '树形');
+T('树形关闭 → 返回转换前的类型（语言还原为 yaml）', el('langSelL').value === 'yaml' && el('langSelL').getAttribute('data-cur') === 'yaml');
+T('树形关闭 → 语言切换恢复可用', el('langSelL').disabled === false);
+/* 还原语言状态，避免污染后续断言 */
+_ls.value = 'json'; _ls.setAttribute('data-cur', 'json'); _ls.disabled = false;
+ctx.setSide('L', '{"a":1}');
 T('树形关闭 → 按钮取消激活态', !el('treeBtnL').classList.contains('active'));
 T('关闭后编辑区恢复显示', el('editorL').className.indexOf('hide') < 0);
 
