@@ -316,6 +316,21 @@ T('skOpenCfg 未配置时预填默认仓库', el('skCfgRepo').value === 'guoxinl
 T('skOpenCfg 未配置时预填默认分支', el('skCfgBranch').value === 'main', el('skCfgBranch').value);
 T('skOpenCfg 未配置时预填默认 Worker', el('skCfgWorker').value === 'https://skillboard-collect.lgx31.workers.dev', el('skCfgWorker').value);
 
+/* ========== 10b2. 未配置通道时回退默认值（游客免配置即可看 skills / running 数据） ========== */
+console.log('== 10b2. 未配置回退默认值 ==');
+ctx.store('wb_home_sk_set', '{}');
+T('skCfg 未配置回退默认仓库', ctx.skCfg().repo === 'guoxinl/skill-collection', ctx.skCfg().repo);
+T('skCfg 未配置回退默认分支', ctx.skCfg().branch === 'main', ctx.skCfg().branch);
+T('skCfg 未配置回退默认 Worker', ctx.skCfg().worker === 'https://skillboard-collect.lgx31.workers.dev', ctx.skCfg().worker);
+T('rkTracks 未配置回退默认 Worker 代理 URL', ctx.rkTracks('preview.json') === 'https://skillboard-collect.lgx31.workers.dev/api/tracks/raw?f=preview.json', ctx.rkTracks('preview.json'));
+T('authWorkerUrl 未配置回退默认 Worker', ctx.authWorkerUrl() === 'https://skillboard-collect.lgx31.workers.dev', ctx.authWorkerUrl());
+ctx.store('wb_home_sk_set', JSON.stringify({repo:'a/b', branch:'dev', worker:'https://x.example.com/'}));
+var _cfgU = ctx.skCfg();
+T('skCfg 用户配置优先（含末尾斜杠清理）', _cfgU.repo === 'a/b' && _cfgU.branch === 'dev' && _cfgU.worker === 'https://x.example.com', JSON.stringify(_cfgU));
+ctx.store('wb_home_sk_set', JSON.stringify({repo:'', branch:'', worker:''}));
+var _cfgE = ctx.skCfg();
+T('skCfg 配置字段清空时逐项回退默认', _cfgE.repo === 'guoxinl/skill-collection' && _cfgE.branch === 'main' && _cfgE.worker === 'https://skillboard-collect.lgx31.workers.dev', JSON.stringify(_cfgE));
+
 /* ========== 10d. Auth：GitHub 登录态 / admin 权限 ========== */
 console.log('== 10d. Auth 登录态 ==');
 T('auth 模块全部函数存在', typeof ctx.authToken === 'function' && typeof ctx.authUser === 'function'

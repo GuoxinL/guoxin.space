@@ -1,8 +1,8 @@
 "use strict";
 /* ================= Skills ================= */
 var KEY_SK_SET = KEY_PREFIX + "sk_set";
-var SK_DEFAULTS = {repo:"guoxinl/skill-collection", branch:"main", worker:"https://skillboard-collect.lgx31.workers.dev"};
-function skCfg(){ try{ return JSON.parse(load(KEY_SK_SET)||"null") || {}; }catch(e){ return {}; } }
+/* 默认值统一在 util.js（skCfg 回退），此处仅为设置弹窗预填等处的向后兼容引用 */
+var SK_DEFAULTS = {repo: SK_DFLT_REPO, branch: SK_DFLT_BRANCH, worker: SK_DFLT_WORKER};
 function saveSkCfg(c){ store(KEY_SK_SET, JSON.stringify(c)); }
 function skWorkerUrl(cfg){ return String(cfg.worker||"").trim().replace(/\/+$/,""); }
 var skRepo = "", skBranchNow = "main", skTreeData = null, skRows = [], skOpenDir = "";

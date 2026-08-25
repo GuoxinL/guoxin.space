@@ -3,13 +3,9 @@
 var RK_CACHE = "wb_rk_acts_v2";
 /* 轨迹数据源：全部经 Cloudflare Worker /api/tracks/raw 白名单代理（轨迹仓库整体私有，
    preview.* 游客可读、rides.full.json 仅 admin）。Worker URL 复用 Skills 通道配置
-   wb_home_sk_set.worker；未配置返回 ""（running 页将提示先配置）。 */
+   wb_home_sk_set.worker；未配置时由 skCfg 回退内置默认 Worker（游客免配置即可看预览）。 */
 function rkTracks(f){
-  var w = "";
-  try{
-    var cfg = JSON.parse(load(KEY_PREFIX + "sk_set") || "null") || {};
-    w = String(cfg.worker || "").trim().replace(/\/+$/, "");
-  }catch(e){}
+  var w = skCfg().worker;
   return w ? (w + "/api/tracks/raw?f=" + encodeURIComponent(f)) : "";
 }
 /* 完整骑行轨迹映射（admin）：run_id -> 完整 polyline；游客/未加载时为 null */
