@@ -295,6 +295,47 @@ console.log('== 10. 挂载完整性 ==');
 ['fmtSide','minSide','escSide','unescSide','toggleTree','doCompare','doRepair','showHistory','restoreHistory','delHistory','clearHistory','copyResult','downloadJson','openImportJson'].forEach(fn => {
   T('window.' + fn + ' 可调用', typeof ctx[fn] === 'function');
 });
+/* 10a. 万能工具箱多语言 + JSONPath 改造 */
+console.log('== 10a. 多语言与 JSONPath 结构与函数 ==');
+// 结构断言（源码全文检索）
+T('左侧语言选择存在', src.indexOf('id="langSelL"') >= 0);
+T('右侧语言选择存在', src.indexOf('id="langSelR"') >= 0);
+T('左侧转义⇄去按钮（合并）', src.indexOf("onclick=\"toggleEscSide('L')\"") >= 0);
+T('右侧转义⇄去按钮（合并）', src.indexOf("onclick=\"toggleEscSide('R')\"") >= 0);
+T('无独立转义按钮（已合并）', src.indexOf('onclick="escSide(') < 0);
+T('无独立去转义按钮（已合并）', src.indexOf('onclick="unescSide(') < 0);
+T('左侧 JSONPath 输入框存在', src.indexOf('id="jpInputL"') >= 0);
+T('右侧 JSONPath 输入框存在', src.indexOf('id="jpInputR"') >= 0);
+T('左侧 jp 结果视图容器存在', src.indexOf('id="jpL"') >= 0);
+T('右侧 jp 结果视图容器存在', src.indexOf('id="jpR"') >= 0);
+T('vendor 库已引入（js-yaml UMD）', src.indexOf('/js/vendor/js-yaml.min.js') >= 0);
+T('vendor 桥接模块已引入（bundle）', src.indexOf('/js/vendor/lang-libs.bundle.js') >= 0);
+// 函数导出断言
+['langOf','parseByLang','dumpByLang','toggleEscSide','runJsonPath','clearJsonPath','jpHighlight'].forEach(fn => {
+  T('window.' + fn + ' 可调用', typeof ctx[fn] === 'function');
+});
+// 行为断言：langOf 默认回退 json
+T('langOf 缺省回退 json', ctx.langOf('L') === 'json');
+// 行为断言：parseByLang 对 JSON 走 JSON.parse
+var _pj = ctx.parseByLang('{"a":1}', 'json');
+T('parseByLang(json) 成功', _pj.ok === true && _pj.val.a === 1, JSON.stringify(_pj));
+var _pj2 = ctx.parseByLang('not json', 'json');
+T('parseByLang(json) 非法返回 ok=false', _pj2.ok === false);
+// 行为断言：toggleEscSide 对普通文本 → 转义（包成字符串字面量）
+el('jsonInputL').value = 'hello\nworld';
+ctx.toggleEscSide('L');
+T('toggleEscSide 文本→转义', el('jsonInputL').value === '"hello\\nworld"', el('jsonInputL').value);
+// 行为断言：toggleEscSide 对已转义字符串 → 去转义
+ctx.toggleEscSide('L');
+T('toggleEscSide 字符串→去转义', el('jsonInputL').value === 'hello\nworld', JSON.stringify(el('jsonInputL').value));
+// 行为断言：runJsonPath 无库时安全退出（vm 无 LIBS）
+el('jpInputL').value = '$.a';
+el('jsonInputL').value = '{"a":1}';
+ctx.runJsonPath('L'); // 不抛错即为通过
+T('runJsonPath 无库时安全不崩溃', true);
+// 行为断言：clearJsonPath 恢复编辑视图
+ctx.clearJsonPath('L');
+T('clearJsonPath 关闭 jp 视图态', ctx.P.L.jp === false);
 
 /* ========== 10b. skTest 输入框优先（未保存配置也能测） ========== */
 console.log('== 10b. skTest 输入框优先 ==');

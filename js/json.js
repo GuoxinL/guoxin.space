@@ -91,30 +91,94 @@ function parseJson(raw){
   catch(e){ return {ok:false, err:locateErr(e, raw)}; }
 }
 
-/* ================= JSON 工具：格式化 / 压缩 / 转义 / 去转义 ================= */
+/* ================= 多语言解析 / 序列化 ================= */
+/* 每侧语言：json / json5 / yaml / toml / xml；默认 json（元素缺失或为空时回退） */
+function langOf(side){
+  var el = $("langSel"+side);
+  var v = el && el.value ? el.value : "";
+  if(v !== "json" && v !== "json5" && v !== "yaml" && v !== "toml" && v !== "xml") return "json";
+  return v;
+}
 function fmtIndent(){
   var v = $("indentSel").value;
   return v === "tab" ? "\t" : new Array(parseInt(v,10)+1).join(" ");
 }
+/* 将文本按语言解析为 JS 对象；返回 {ok, val, err} */
+function parseByLang(raw, lang){
+  try{
+    if(lang === "json" || lang === "json5"){
+      var s = raw;
+      if(lang === "json5"){
+        s = s.replace(/^\uFEFF/, "");
+        s = s.replace(/\/\*[\s\S]*?\*\//g, function(m){ return m.replace(/[^\n]/g," "); });
+        s = s.replace(/(^|[^:])\/\/[^\n]*/g, function(m, p){ return p + m.slice(1).replace(/[^\n]/g," "); });
+        s = s.replace(/([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g, '$1"$2"$3');
+        s = s.replace(/,\s*([}\]])/g, "$1");
+        s = s.replace(/'/g, '"');
+      }
+      return {ok:true, val: JSON.parse(s)};
+    }
+    if(lang === "yaml"){
+      if(!window.LIBS || !window.LIBS.yaml) throw new Error("YAML 库未就绪");
+      return {ok:true, val: window.LIBS.yaml.load(raw)};
+    }
+    if(lang === "toml"){
+      if(!window.LIBS || !window.LIBS.tomlParse) throw new Error("TOML 库未就绪");
+      return {ok:true, val: window.LIBS.tomlParse(raw)};
+    }
+    if(lang === "xml"){
+      if(!window.LIBS || !window.LIBS.XMLParser) throw new Error("XML 库未就绪");
+      var parser = new window.LIBS.XMLParser({}, { ignoreAttributes:false, attributeNamePrefix:"@_" });
+      return {ok:true, val: parser.parse(raw)};
+    }
+  }catch(e){ return {ok:false, err:e}; }
+  return {ok:false, err:new Error("未知语言 "+lang)};
+}
+/* 将 JS 对象按语言序列化；compact=true 为紧凑格式 */
+function dumpByLang(val, lang, compact){
+  var ind = fmtIndent();
+  if(lang === "json" || lang === "json5"){
+    return JSON.stringify(val, null, compact ? 0 : ind);
+  }
+  if(lang === "yaml"){
+    if(!window.LIBS || !window.LIBS.yaml) throw new Error("YAML 库未就绪");
+    return window.LIBS.yaml.dump(val, { indent: ind === "\t" ? 2 : ind.length });
+  }
+  if(lang === "toml"){
+    if(!window.LIBS || !window.LIBS.tomlStringify) throw new Error("TOML 库未就绪");
+    var t = window.LIBS.tomlStringify(val);
+    return Array.isArray(t) ? t.join("\n") : String(t);
+  }
+  if(lang === "xml"){
+    if(!window.LIBS || !window.LIBS.XMLBuilder) throw new Error("XML 库未就绪");
+    var builder = new window.LIBS.XMLBuilder({ format: !compact, indentBy: ind === "\t" ? "\t" : ind });
+    return builder.build(val);
+  }
+  return JSON.stringify(val, null, compact ? 0 : ind);
+}
+
+/* ================= JSON 工具：格式化 / 压缩 / 转义 / 去转义 ================= */
 function fmtSide(side){
+  var lang = langOf(side);
   var raw = readSide(side);
   if(!raw.trim()){ flashStatus(sideName(side)+"内容为空，无法格式化","err"); return; }
   pushHistory(raw);
-  var p = parseJson(raw);
-  if(!p.ok){ showErr(side, p.err); return; }
-  var out = JSON.stringify(p.val, null, fmtIndent());
+  var p = parseByLang(raw, lang);
+  if(!p.ok){ showErr(side, {line:1, col:1, msg: lang+" 解析失败："+p.err.message}); return; }
+  var out = dumpByLang(p.val, lang, false);
   setSide(side, out);
-  flashStatus(sideName(side)+"格式化成功 · "+(raw.length - out.length > 0 ? "已展开为 "+out.split("\n").length+" 行" : "已是格式化状态"), "ok");
+  flashStatus(sideName(side)+"格式化成功（"+lang+"）· 已展开为 "+out.split("\n").length+" 行", "ok");
 }
 function minSide(side){
+  var lang = langOf(side);
   var raw = readSide(side);
   if(!raw.trim()){ flashStatus(sideName(side)+"内容为空，无法压缩","err"); return; }
   pushHistory(raw);
-  var p = parseJson(raw);
-  if(!p.ok){ showErr(side, p.err); return; }
-  var out = JSON.stringify(p.val);
+  var p = parseByLang(raw, lang);
+  if(!p.ok){ showErr(side, {line:1, col:1, msg: lang+" 解析失败："+p.err.message}); return; }
+  var out = dumpByLang(p.val, lang, true);
   setSide(side, out);
-  flashStatus(sideName(side)+"压缩成功 · 原 "+raw.length+" 字符 → "+out.length+" 字符", "ok");
+  flashStatus(sideName(side)+"压缩成功（"+lang+"）· 原 "+raw.length+" 字符 → "+out.length+" 字符", "ok");
 }
 function escSide(side){
   var raw = readSide(side);
@@ -133,6 +197,14 @@ function unescSide(side){
   if(typeof p.val !== "string"){ flashStatus("当前内容不是 JSON 字符串，无法去转义（转义结果形如 \"...\"）","err"); return; }
   setSide(side, p.val);
   flashStatus("已去转义还原为原始文本 · "+raw.length+" 字符 → "+p.val.length+" 字符","ok");
+}
+/* 合并按钮：文本→转义 / JSON 字符串→去转义（自动判向） */
+function toggleEscSide(side){
+  var raw = readSide(side);
+  if(!raw.trim()){ flashStatus(sideName(side)+"内容为空，无法操作","err"); return; }
+  var p = parseJson(raw);
+  if(p.ok && typeof p.val === "string"){ unescSide(side); return; }
+  escSide(side);
 }
 function showErr(side, err){
   P[side].err = err;
@@ -172,15 +244,25 @@ function validateSide(side){
     if(txt) txt.textContent = "就绪 · 输入后实时校验";
     return;
   }
-  var p = parseJson(raw);
+  var lang = langOf(side);
+  var p = parseByLang(raw, lang);
   if(p.ok){
     P[side].err = null; drawSquiggle(side);
     if(dot) dot.className = "dot ok";
-    if(txt) txt.textContent = "✓ JSON 合法 · 共 "+(raw.split("\n").length)+" 行";
+    if(txt) txt.textContent = "✓ "+lang.toUpperCase()+" 合法 · 共 "+(raw.split("\n").length)+" 行";
   }else{
-    P[side].err = p.err; drawSquiggle(side);
+    /* JSON/JSON5 保留精确行列定位；其他语言用通用错误信息 */
+    var err;
+    if(lang === "json" || lang === "json5"){
+      err = locateErr(p.err, raw);
+      err.msg = lang+" 解析失败："+err.msg;
+    }else{
+      err = {line:1, col:1, msg: lang+" 解析失败："+p.err.message};
+    }
+    P[side].err = err;
+    drawSquiggle(side);
     if(dot) dot.className = "dot err";
-    if(txt) txt.textContent = "✖ "+p.err.msg+"（第 "+p.err.line+" 行，第 "+p.err.col+" 列）";
+    if(txt) txt.textContent = "✖ "+err.msg+"（第 "+err.line+" 行，第 "+err.col+" 列）";
   }
 }
 
@@ -239,18 +321,20 @@ function renderTree(side){
   var raw = readSide(side);
   var out = treeEl(side);
   if(!raw.trim()){ out.innerHTML = '<div class="empty">内容为空</div>'; return; }
-  var p = parseJson(raw);
-  if(!p.ok){ out.innerHTML = '<div class="empty">'+esc(p.err.msg)+'（第 '+p.err.line+' 行）</div>'; return; }
+  var p = parseByLang(raw, langOf(side));
+  if(!p.ok){ out.innerHTML = '<div class="empty">'+esc(langOf(side)+" 解析失败："+p.err.message)+'</div>'; return; }
   out.innerHTML = nodeHtml(p.val, "root", 0);
 }
 /* 视图互斥：diff 优先 → 树形 → 编辑区 */
 function applyView(side){
-  var ed = editorEl(side), tv = treeEl(side), dv = diffEl(side);
-  var showTree = !diffOn && P[side].tree;
-  var showDiff = diffOn;
-  if(ed) ed.className = "editor view-edit" + (showTree || showDiff ? " hide" : "");
+  var ed = editorEl(side), tv = treeEl(side), dv = diffEl(side), jv = jpEl(side);
+  var showJp = !!P[side].jp;
+  var showTree = !showJp && !diffOn && P[side].tree;
+  var showDiff = !showJp && diffOn;
+  if(ed) ed.className = "editor view-edit" + (showTree || showDiff || showJp ? " hide" : "");
   if(tv) tv.className = "view tree-view" + (showTree ? "" : " hide");
   if(dv) dv.className = "view diff-view" + (showDiff ? "" : " hide");
+  if(jv) jv.className = "view jp-view" + (showJp ? "" : " hide");
   var lbl = treeLabel(side);
   if(lbl) lbl.textContent = showTree ? "Json" : "树形";
   var btn = treeBtn(side);
@@ -258,8 +342,10 @@ function applyView(side){
 }
 function editorEl(side){ return $(side==="R" ? "editorR" : "editorL"); }
 function treeBtn(side){ return $(side==="R" ? "treeBtnR" : "treeBtnL"); }
+function jpEl(side){ return $(side==="R" ? "jpR" : "jpL"); }
 function toggleTree(side){
   P[side].tree = !P[side].tree;
+  if(P[side].tree) P[side].jp = false;
   var btn = $("treeBtn"+side);
   if(btn) btn.classList.toggle("active", P[side].tree);
   applyView(side);
@@ -374,6 +460,67 @@ function copyResult(){
   copyText(txt);
 }
 
+/* ================= JSONPath 查询（左右各一栏，结果高亮展示在本侧） ================= */
+/* 对本侧数据（任意语言先转 JSON 对象）跑 JSONPath，结果高亮渲染到本侧 jp 视图 */
+function runJsonPath(side){
+  if(side !== "L" && side !== "R") side = "L";
+  if(!window.LIBS || !window.LIBS.JSONPath){ flashStatus("JSONPath 库未就绪，请稍候重试","err"); return; }
+  var expr = $("jpInput"+side) ? $("jpInput"+side).value.trim() : "";
+  if(!expr){ flashStatus("请输入 JSONPath 表达式","err"); return; }
+  var raw = readSide(side);
+  var p = parseByLang(raw, langOf(side));
+  if(!p.ok){ flashStatus(sideName(side)+"解析失败，无法查询："+p.err.message,"err"); return; }
+  var res;
+  try{
+    res = window.LIBS.JSONPath({ path: expr, json: p.val, resultType: "all" });
+  }catch(e){ flashStatus("JSONPath 语法错误："+e.message,"err"); return; }
+  if(!res || !res.length){ flashStatus("未匹配到任何节点","ok"); return; }
+  var html = "";
+  for(var i=0;i<res.length;i++){
+    var item = res[i];
+    var pathStr = jpPrettifyPath(item.path || "$");
+    html += '<div class="jp-hit"><div class="jp-path">'+esc(pathStr)+'</div>'+
+            '<pre class="jp-val">'+jpHighlight(item.value)+'</pre></div>';
+  }
+  var box = jpEl(side);
+  if(box){
+    box.innerHTML = '<div class="jp-head">JSONPath 命中 '+res.length+' 项 · 已自动将本侧「'+
+      langOf(side).toUpperCase()+'」转为 JSON 后查询</div>'+html;
+  }
+  P[side].jp = true;
+  P[side].tree = false;
+  applyView(side);
+  flashStatus(sideName(side)+" JSONPath 查询完成 · 命中 "+res.length+" 项","ok");
+}
+function clearJsonPath(side){
+  if(side !== "L" && side !== "R") side = "L";
+  var inp = $("jpInput"+side); if(inp) inp.value = "";
+  P[side].jp = false;
+  applyView(side);
+  flashStatus("已退出"+sideName(side)+" JSONPath 视图","ok");
+}
+/* JSON 语法着色 + 命中黄底（用于 jp 结果展示） */
+function jpPrettifyPath(p){
+  if(typeof p !== "string" || !p) return "$";
+  /* jsonpath-plus 路径形如 $['store']['book'][0]['title']
+     → 字符串键转 .key，数字索引 [0] 保留 → $.store.book[0].title */
+  return p
+    .replace(/\['([^']+)'\]/g, ".$1")
+    .replace(/\["([^"]+)"\]/g, ".$1");
+}
+function jpHighlight(val){
+  var json = JSON.stringify(val, null, 2);
+  if(json === undefined) return "";
+  json = esc(json);
+  json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(m){
+    var cls = "j-num";
+    if(/^"/.test(m)){ cls = /:$/.test(m) ? "j-key" : "j-str"; }
+    else if(/true|false/.test(m)) cls = "j-bool";
+    else if(/null/.test(m)) cls = "j-null";
+    return '<span class="'+cls+'">'+m+'</span>';
+  });
+  return json;
+}
 /* ================= 编辑区事件 ================= */
 function bindEditor(side){
   var inp = inputEl(side);
