@@ -1,22 +1,22 @@
 # 后续操作：权限系统上线清单
 
 > 目标：把已实现的 admin / 游客权限系统从「本地代码」推上线。
-> 状态速览：**代码实现已完成，但尚未部署**（见下表）。
+> 状态速览：**代码、数据管线、Worker 部署、环境变量均已就绪，待真机验收**（见下表）。
 
 ## 现状速览
 
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 代码实现 | ✅ 完成 | `node verify.js` 270/270、`node test-worker.mjs` 80/80 |
-| git 提交 | ❌ 未 commit | 12 个改动文件 + 2 个新增文件仍在工作区 |
-| Worker 部署 | ❌ 未部署 | Cloudflare 线上仍是旧版（`x-collect-key` 校验、无 OAuth） |
-| GitHub OAuth App | ❌ 未注册 | 需新建，拿到 Client ID / Secret |
-| Worker 环境变量 | ❌ 未配置 | 缺 5 个新变量，旧 `COLLECT_KEY` 需删除 |
-| 轨迹私有仓库 | ❌ 未创建 | 需新建 `GuoxinL/running-private`（Private） |
-| running 数据管线 | ❌ 未改造 | 需产出 `rides.full.json` 并推送私库 |
-| 真机验收 | ❌ 未做 | 游客 / admin 两条链路未在线上验证 |
+| git 提交 | ✅ 完成 | 主站 commit `b90cfea` 已推送 |
+| Worker 部署 | ✅ 已部署 | `skillboard-collect.lgx31.workers.dev`，健康检查 200，OAuth 新版代码已生效 |
+| GitHub OAuth App | ✅ 已注册 | 凭证已配置进 Worker 环境变量 |
+| Worker 环境变量 | ✅ 已配置 | `GH_TOKEN` 已追加 `running-private` 读权限；`COLLECT_KEY` 已删除 |
+| 轨迹私有仓库 | ✅ 已创建 | `GuoxinL/running-private`（Private，默认分支 master） |
+| running 数据管线 | ✅ 已改造 | `rides.full.json` 已产出并推送私库（commit `7eada2e` / 私库 `7908794`） |
+| 真机验收 | ⏳ 待做 | 游客 / admin 两条链路待线上验证（第 5 步） |
 
-**权限部分没有部署。** 线上 guoxin.space 目前运行的还是旧版：Skills 写通道走 `x-collect-key` 共享密钥、Running 轨迹直连公开 `raw.githubusercontent.com`。按下面顺序执行，每步都有检查点。
+**权限系统已全部部署。** Worker（`skillboard-collect.lgx31.workers.dev`）已运行新版：OAuth 登录、`x-collect-key` 彻底移除、轨迹代理已验证（preview 200 / full 401）。剩下最后一步：页面端通道设置 + 真机验收。
 
 ---
 
@@ -48,60 +48,51 @@ git push
 
 ---
 
-## 第 2 步：running 仓库数据管线改造（重点，含一个已核实的关键事实）
+## 第 2 步：running 仓库数据管线改造（✅ 已完成，2026-08-25）
 
-### 关键事实（已核实，决定 rides.full.json 怎么生成）
+### 关键事实（实测核实，推翻了此前的假设）
 
-- `run_page/generator/__init__.py:263`：`activity.summary_polyline = filter_out(...)` —— **写入数据库前**就对轨迹应用了 `start_end_hiding`（掐头去尾）+ `range_hiding`。
-- 因此 **`activities.json` / `activities.preview.json` 里的 polyline 全部是截断后的，完整轨迹在现有落库数据中已不存在**。
-- 唯一持有完整轨迹的现行链路是行者数据补全：`scripts/xingzhe_fill_polyline.py` 从行者 OpenAPI 拉**原始 GPX** 再编码为 polyline（`gpx_to_polyline()`，不过 `filter_out`）。GPX 就是完整轨迹。
-- 当前 CI 里 `IGNORE_START_END_RANGE: 10`（单位米）。
+此前假设「`activities.json` 的 polyline 全部是截断后的，完整轨迹在落库数据中已不存在，必须依赖上游 GPX 恢复」。**实测推翻**：
 
-**结论**：`rides.full.json` 不能从 `activities.json` 派生，必须在上游（GPX）保留完整轨迹。
+- `run_page/generator/__init__.py:263` 的 `filter_out`（掐头去尾 + range_hiding）**只作用于 React 站 `load()` 路径**；
+- 数据同步管线 `scripts/xingzhe_sync.py` 直接合并 JSON，**保留旧 polyline，不经过 `filter_out`**；
+- 量化验证：全部 161 条 Ride 记录 polyline 实测长度 / distance 比值 ≈ 1 → **`activities.json` / `activities.preview.json` 里的 polyline 本就是完整轨迹**。
 
-### 推荐落法 A：在行者 GPX 补全链路里顺带产出（改动最小）
+**结论**：`rides.full.json` 可直接从现有完整数据派生，**无需改 `xingzhe_fill_polyline.py`、无需上游 GPX**。截断改在输出侧做。
 
-改 `running/scripts/xingzhe_fill_polyline.py`：
+### 实际实现（running 仓库 commit `7eada2e`，已推送）
 
-1. 在 `gpx_to_polyline()` 解码出完整 `coords` 时，不要截断，直接编码为完整 polyline；
-2. 对 `type == "Ride"` 的活动，额外写入一个 sidecar 文件 `src/static/activities.rides.full.json`，格式对齐前端 `rkLoadRides()`：
+`scripts/prebuild_preview.py`：
+- 新增 `encode()`（polyline 编码）、`haversine()`、`start_end_hiding()`（与 run_page `IGNORE_START_END_RANGE: 10` 一致）——**截断在输出侧**；
+- 单次遍历同时产出三份数据：完整 `rides.full.json`（结构 `{"ok":true,"rides":[...]}`，对齐前端 `rkLoadRides()`）+ 截断后的 preview 系列（polyline / PNG / meta，由截断后轨迹生成）；
+- 幂等：两次运行 md5 一致，CI 无虚假 diff。
 
-```json
-[{ "run_id": "…", "name": "…", "start_date_local": "…", "summary_polyline": "完整未截断 polyline" }]
-```
+`.gitignore` 追加 `src/static/activities.rides.full.json`（完整轨迹**不进公开仓库**）。
 
-3. 幂等处理：只追加/更新本次补全的 Ride 记录，不覆盖已有记录。
+`.github/workflows/xingzhe_sync.yml` 新增「Push artifacts to private tracks repo」步骤：用 `TRACKS_PRIVATE_PAT`（Secret，见下）clone 私库 → 复制 4 个产物到**根目录** → commit + push `master`；未配置该 Secret 时 warning 跳过、不失败。
 
-局限：老 Strava/Nike/Garmin 的 Ride 活动完整轨迹已随截断丢失，**完整轨迹只覆盖「改脚本后同步的行者数据」起**。若需回溯全部历史完整轨迹，得从 Strava API 重拉并跳过 `filter_out`（受 rate limit 约束），可作为后续可选优化。
+### 验证结果（已满足检查点）
 
-### 落法 B：独立脚本（更清晰，推荐配合 A 或单独用）
+- preview 161 条全部截断：起点与 full 差 18m、点数 609 vs 612；
+- full 161 条完整：ratio ≈ 1；
+- 私库 `GuoxinL/running-private` 已初始化（commit `7908794`），**默认分支 master 已确认**，4 个产物在根目录；
+- 带鉴权 Contents API 可读（`{"ok":true,...}` 解码正确），匿名 raw 404。
 
-新增 `running/scripts/build_full_tracks.py`：
-
-- 遍历行者 GPX 来源（本地缓存或按需拉取），对 Ride 活动重建完整 polyline；
-- 输出 `activities.rides.full.json`，与 `prebuild_preview.py` 产出的 preview 系列并列；
-- 作为独立步骤串进数据同步工作流（`run_data_sync.yml` 或 `xingzhe_sync.yml`）。
-
-### 推送产物到私有仓库
-
-`prebuild_preview.py` 产出的 3 个文件 + 上面新增的 `rides.full.json`，**全部 push 到 `GuoxinL/running-private`**：
-
-- **位置：仓库根目录**，文件名保持 `activities.preview.json` / `activities.preview.png` / `activities.preview.meta.json` / `activities.rides.full.json`（worker.js 按仓库根路径读取，无 `src/static/` 前缀）。
-- **分支：`master`**（见第 1 步说明，worker.js 硬编码读取 `master`）。
-
-实现方式任选：
-- 在 CI（`run_data_sync.yml` / `xingzhe_sync.yml`）加一步：clone `running-private`（用带私库权限的 PAT），把 4 个产物从 `src/static/` 复制到私库根目录后 commit + push 到 `master`；
-- 或本地手动：clone 私库 → 复制产物到根目录 → `git add -A && git commit && git push origin master`。
-
-检查点：
+检查点复验：
 ```bash
 # 私库中应有 4 个产物（根目录）
+gh api repos/GuoxinL/running-private/contents/ --jq '.[].name'
+#   → activities.preview.json / activities.preview.png / activities.preview.meta.json / activities.rides.full.json
+# 匿名访问 → 404（私有仓库，符合预期）
 curl -s -o /dev/null -w "%{http_code}" https://raw.githubusercontent.com/GuoxinL/running-private/master/activities.rides.full.json
-#   → 404（私有仓库，匿名不可访问，符合预期）
-# 带 token 应能读到（用有私库读权限的 PAT）：
-curl -s -H "Authorization: Bearer <PAT>" https://api.github.com/repos/GuoxinL/running-private/contents/
-#   → 返回 4 个文件条目
 ```
+
+### 还需配置（否则 CI 推送私库会跳过）
+
+running 仓库 → Settings → **Secrets and variables** → Actions → 新增 Secret `TRACKS_PRIVATE_PAT`：
+- 细粒度 PAT，Repository access 仅授权 `GuoxinL/running-private`；
+- 权限：**Contents：Read + Write**（需要推送产物）；
+- 有效期按需设置，写入后 CI 的推送步骤才会真正执行。
 
 ---
 
@@ -117,7 +108,7 @@ curl -s -H "Authorization: Bearer <PAT>" https://api.github.com/repos/GuoxinL/ru
 
 ---
 
-## 第 4 步：部署 Worker + 配置环境变量（15 分钟）
+## 第 4 步：部署 Worker + 配置环境变量（✅ 已完成，2026-08-25）
 
 ### 4.1 更新 Worker 代码
 
@@ -162,6 +153,8 @@ curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect"
 
 期望：`200 / 200 / 401 / 401 / 401`。
 
+> 实际结果（2026-08-25）：`preview.json` / `preview.png` / `preview.meta.json` / `health` 均 200；`rides.full.json`（游客）401；未登录与旧 `x-collect-key` 写请求均 401。一次部署后曾遇「全员 401」，根因是线上还是旧代码（重新 Deploy 后恢复）；之后 `preview.json` 404，根因是 `GH_TOKEN` 未授权 `running-private` 读权限（追加后恢复）。
+
 ---
 
 ## 第 5 步：页面端接入 + 真机验收（20 分钟）
@@ -174,7 +167,7 @@ curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect"
 |---|---|
 | 技能夹仓库 | `guoxin/skill-collection` |
 | 分支 | `main` |
-| Worker URL | `https://skillboard-collect.<你的子域>.workers.dev` |
+| Worker URL | `https://skillboard-collect.lgx31.workers.dev` |
 
 点 **测试连接** → 绿色 `✓` 即打通。
 
@@ -203,7 +196,7 @@ curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect"
 |---|---|---|
 | 登录跳转后回到主页但没登录 | callback URL 或 `REDIRECT_URL` 域名不匹配 | 核对 OAuth App callback = Worker `/api/auth/callback`；Worker 日志看 `/api/auth/callback` 返回 |
 | `/api/tracks/raw?f=preview.json` 返回 500/404 | `GH_TOKEN` 未授权私库、产物不在根目录、或分支不是 `master`（worker.js 硬编码读 master） | 依次核对：PAT 的 Repository access 与 Contents 读权限；产物在根目录且文件名精确匹配；私库默认分支 = master |
-| `rides.full.json` 拉取成功但地图轨迹没变完整 | 该活动非 Ride 类型，或完整轨迹在管线里缺失（老 Strava 数据） | 确认是骑行活动；确认 `xingzhe_fill_polyline.py` 已产出完整记录 |
+| `rides.full.json` 拉取成功但地图轨迹没变完整 | 该活动非 Ride 类型（前端只对骑行替换完整轨迹） | 确认该活动 `type == "Ride"`；在 DevTools 里看 `rkPolyFor` 是否命中 `rkRidesFull` 映射 |
 | 收藏时报「未授权」 | token 过期（7 天）或未登录 | 重新登录；检查浏览器 localStorage 的 `wb_home_auth_token` |
 | Skills 页按钮不出现 | 已登录但 `auth/me` 校验失败（token 过期） | 重新登录；确认 `ADMIN_LOGIN` 拼写与登录 GitHub 账号一致 |
 
@@ -212,5 +205,4 @@ curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect"
 ## 剩余可选优化
 
 - OAuth 升级 **PKCE**（消除回调 code 劫持面）；
-- 老 Strava Ride 完整轨迹重拉（需权衡 rate limit 与收益）；
 - 完整轨迹按活动时间做服务端过期清理，控制私库体积。
