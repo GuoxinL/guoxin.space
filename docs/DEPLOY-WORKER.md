@@ -38,7 +38,7 @@
 | GET | `/api/auth/login` | 无 | 302 到 GitHub OAuth authorize |
 | GET | `/api/auth/callback?code&state` | 无 | OAuth 回调：验身份 → 签 token → 302 回站 `?auth=<token>` |
 | GET | `/api/auth/me` | Bearer | 校验 token 有效性，返回 `{ok, login, exp}` |
-| GET | `/api/tracks/raw?f=<file>` | 白名单 | 代理轨迹私有仓库。`preview.json/png/meta.json` 游客可读；`rides.full.json`（完整骑行轨迹）需 Bearer |
+| GET | `/api/tracks/raw?f=<file>` | 白名单 | 代理轨迹私有仓库。`preview.json` / `preview.meta.json` / `previews/{light,dark}.png`（双主题总览垫底）/ `thumb/<run_id>.<light\|dark>.png`（双主题活动缩略图，`run_id` 纯数字防路径注入）游客可读；`rides.full.json`（完整骑行轨迹）需 Bearer |
 | POST | `/api/collect` | **Bearer** | 收藏 skill。`mode`：`proxy` / `mirror`（≤60 文件） |
 | POST | `/api/remove` | **Bearer** | 删除目录（仅 `fav-*` / `my-*` 前缀） |
 | POST | `/api/sync` | **Bearer** | 仅 proxy：重新探测原仓库更新代理文件 |
@@ -121,6 +121,12 @@ curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect"
 # 4. 游客读截断轨迹 → 200
 curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=preview.json"
 
+# 4b. 游客读双主题垫底图/缩略图 → 200 (image/png)
+curl -o /dev/null -w "%{http_code} %{content_type}\n" \
+  "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=previews%2Flight.png"
+curl -o /dev/null -w "%{http_code} %{content_type}\n" \
+  "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=thumb%2F218861077.light.png"
+
 # 5. 游客读完整轨迹 → 401
 curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rides.full.json"
 #   → 401
@@ -144,7 +150,7 @@ curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rid
 | 页面操作 | 走的通道 | 备注 |
 |---|---|---|
 | 加载技能列表 / 排序 / 预览 SKILL.md / 图标 | GitHub 公开接口 | 仓库须公开 |
-| Running 截断轨迹 / 垫底 PNG / meta | Worker `/api/tracks/raw?f=preview.*` | 游客可用，未配置 Worker 时提示 |
+| Running 截断轨迹 / 双主题垫底图（`previews/`）/ 活动缩略图（`thumb/`）/ meta | Worker `/api/tracks/raw?f=preview.*\|previews/*\|thumb/*` | 游客可用，未配置 Worker 时提示 |
 | Running 完整骑行轨迹 | Worker `/api/tracks/raw?f=rides.full.json` | 需登录，显示「完整轨迹」徽标 |
 | 收藏（引用 / 深度镜像） | Worker `/api/collect` | 需登录 GitHub（admin-only 按钮） |
 | 删除 / 同步 | Worker `/api/remove` / `/api/sync` | 需登录 GitHub |
