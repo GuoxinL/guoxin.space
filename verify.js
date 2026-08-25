@@ -567,20 +567,21 @@ T('rkHeatColor L2 边界 50', ctx.rkHeatColor(50, 100) === '#fb923c');
 T('rkHeatColor L3 边界 75', ctx.rkHeatColor(75, 100) === '#f97316');
 T('rkHeatColor L4 满量程', ctx.rkHeatColor(100, 100) === '#ea580c');
 T('rkHeatColor 溢出进下一级', ctx.rkHeatColor(25.1, 100) === '#fb923c');
-// rkPbs 窗口 + 配速过滤（对齐 PersonalBest：窗口 4.8-5.5 / 9.5-11 / 20-22.5 / 41-44，配速 180-480 s/km）
+// rkPbs 骑行三项指标：最远距离 / 最高平均时速 / 最高时速（maxSpd 优先，无则降级最高均速并标注）
 var rkPbsActs = [
-  { type:'Run', poly:'p'.repeat(30), dist:5000, mt:'18:00', date:'2024-01-01T08:00:00Z' },
-  { type:'Run', poly:'p'.repeat(30), dist:10000, mt:'50:00', date:'2024-01-02T08:00:00Z' },
-  { type:'Run', poly:'p'.repeat(30), dist:21000, mt:'1:45:00', date:'2024-01-03T08:00:00Z' },
-  { type:'Run', poly:'p'.repeat(30), dist:42000, mt:'3:30:00', date:'2024-01-04T08:00:00Z' },
-  { type:'Run', poly:'p'.repeat(30), dist:5000, mt:'5:00', date:'2024-01-05T08:00:00Z' },
-  { type:'Run', poly:'p'.repeat(30), dist:8000, mt:'40:00', date:'2024-01-06T08:00:00Z' }
+  { type:'Ride', dist:12000, spd:6.94,  date:'2024-01-01T08:00:00Z' },                  /* 均速 25.0 */
+  { type:'Ride', dist:30000, spd:8.33,  date:'2024-01-02T08:00:00Z' },                  /* 最远 30km，均速 30.0 */
+  { type:'Ride', dist:8000,  spd:5.56,  maxSpd:13.9, date:'2024-01-03T08:00:00Z' },     /* 极速 50.0 */
+  { type:'Run',  dist:5000,  spd:2.78,  date:'2024-01-04T08:00:00Z' }                   /* 跑步应被忽略 */
 ];
 var rkPbsRes = ctx.rkPbs(rkPbsActs);
-T('rkPbs 5K 取最快并过滤超快配速', rkPbsRes[0].key==='5K' && rkPbsRes[0].time===1080 && rkPbsRes[0].act.date.slice(0,10)==='2024-01-01', JSON.stringify(rkPbsRes[0]));
-T('rkPbs 10K', rkPbsRes[1].time===3000);
-T('rkPbs Half', rkPbsRes[2].time===6300);
-T('rkPbs Full', rkPbsRes[3].time===12600);
+T('rkPbs 最远距离 30km', rkPbsRes[0].key==='dist' && rkPbsRes[0].v===30 && rkPbsRes[0].act.date.slice(0,10)==='2024-01-02', JSON.stringify(rkPbsRes[0]));
+T('rkPbs 最高平均时速 30.0（忽略跑步）', rkPbsRes[1].key==='avg' && rkPbsRes[1].v.toFixed(1)==='30.0' && rkPbsRes[1].act.date.slice(0,10)==='2024-01-02', JSON.stringify(rkPbsRes[1]));
+T('rkPbs 最高时速 50.0（maxSpd）', rkPbsRes[2].key==='speed' && rkPbsRes[2].v.toFixed(1)==='50.0' && !rkPbsRes[2].fallback, JSON.stringify(rkPbsRes[2]));
+var rkPbsActs2 = [ { type:'Ride', dist:10000, spd:7.0, date:'2024-02-01T08:00:00Z' } ];
+var rkPbsRes2 = ctx.rkPbs(rkPbsActs2);
+T('rkPbs 无 maxSpd 降级为最高均速并标注 fallback', rkPbsRes2[0].v===10 && rkPbsRes2[2].v===rkPbsRes2[1].v && rkPbsRes2[2].fallback===true, JSON.stringify(rkPbsRes2));
+T('rkPbs 无骑行数据返回三空项', (function(){ var r = ctx.rkPbs([{type:'Run',dist:5000,spd:2.78}]); return r.length===3 && r[0].v===0 && r[0].act===null && r[2].fallback===false; })());
 // rkDecodePolyline 已知样例（Google 官方示例）
 var rkDc = ctx.rkDecodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@');
 T('rkDecodePolyline 3 点', rkDc.length===3, 'len='+rkDc.length);
