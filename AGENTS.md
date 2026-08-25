@@ -8,6 +8,7 @@
 personal-homepage/
 ├── index.html          # 唯一页面：纯 HTML 结构 + 外链引用（不再内联 CSS/JS）
 ├── 404.html            # GitHub Pages SPA fallback（custom_404），必须与 index.html 内容一致
+├── AGENTS.md           # 本文档（仓库操作指南，供 AI Agent 阅读，固定在根目录）
 ├── css/
 │   └── style.css       # 全部样式（约 400 行，:root 主题变量 + 各区块样式）
 ├── js/                 # 业务脚本，按模块拆分，加载顺序固定（见下）
@@ -21,12 +22,12 @@ personal-homepage/
 ├── verify.js           # 页面 vm 回归测试（270 条断言，Node 直接运行）
 ├── test-worker.mjs     # Worker mock 单测（自动同步 worker.js）
 ├── docs/               # 仓库文档（与运行时代码分离，改文档只动这里）
-│   ├── AGENTS.md                 # 本文档
 │   ├── AUTH-PERMISSION-DESIGN.md # 权限控制方案（admin/游客）存档
 │   ├── DEPLOY-GUOXIN-SPACE.md    # GitHub Pages 部署细节
 │   ├── DEPLOY-WORKER.md          # Worker 部署细节
 │   ├── FOLLOWUP-OPERATIONS.md    # 权限系统上线操作清单
 │   ├── overview.md               # 迭代交付概览（每次迭代追加章节）
+│   ├── REPO-PRIVATIZE-PLAN.md    # 仓库私有化方案（submodule 评估 + 产物私库化）
 │   ├── running-js-migration-plan.md # running 脚本 Python→JS 迁移方案
 │   ├── RUNNING-MAP-FIX-PLAN.md   # 轨迹地图修复计划
 │   └── RUNNING-MAP-PERF.md       # 轨迹地图性能分析
