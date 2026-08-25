@@ -99,6 +99,44 @@ function langOf(side){
   if(v !== "json" && v !== "json5" && v !== "yaml" && v !== "toml" && v !== "xml") return "json";
   return v;
 }
+/* 切换语言即自动转换：按旧语言解析 → 转 JSON 中间态 → 按新语言序列化写回 */
+function changeLang(side, sel){
+  if(!sel) sel = $("langSel"+side);
+  var oldLang = sel.getAttribute("data-cur") || "json";
+  var newLang = sel.value;
+  sel.setAttribute("data-cur", newLang);
+  if(oldLang === newLang) return;
+  var raw = readSide(side);
+  if(!raw.trim()){
+    /* 空内容仅记录语言 */
+    flashStatus(sideName(side)+"语言已切换为 "+newLang.toUpperCase()+"（内容为空）","ok");
+    return;
+  }
+  var p = parseByLang(raw, oldLang);
+  if(!p.ok){
+    /* 按旧语言解析失败：回退语言，避免破坏内容 */
+    sel.value = oldLang;
+    sel.setAttribute("data-cur", oldLang);
+    flashStatus(sideName(side)+"内容不是 "+oldLang.toUpperCase()+"，已保持原语言："+p.err.message,"err");
+    return;
+  }
+  var out;
+  try{
+    out = dumpByLang(p.val, newLang, false);
+  }catch(e){
+    sel.value = oldLang;
+    sel.setAttribute("data-cur", oldLang);
+    flashStatus(sideName(side)+"转换为 "+newLang.toUpperCase()+" 失败："+e.message+"，已保持原语言","err");
+    return;
+  }
+  pushHistory(raw);
+  setSide(side, out);
+  /* 内容已变：退出 JSONPath / 树形视图回到编辑视图 */
+  P[side].jp = false;
+  P[side].tree = false;
+  applyView(side);
+  flashStatus(sideName(side)+"已自动转换 "+oldLang.toUpperCase()+" → "+newLang.toUpperCase(),"ok");
+}
 function fmtIndent(){
   var v = $("indentSel").value;
   return v === "tab" ? "\t" : new Array(parseInt(v,10)+1).join(" ");
@@ -129,7 +167,10 @@ function parseByLang(raw, lang){
     if(lang === "xml"){
       if(!window.LIBS || !window.LIBS.XMLParser) throw new Error("XML 库未就绪");
       var parser = new window.LIBS.XMLParser({}, { ignoreAttributes:false, attributeNamePrefix:"@_" });
-      return {ok:true, val: parser.parse(raw)};
+      var xmlVal = parser.parse(raw);
+      /* fxp 对纯文本/无标签内容返回空对象 {}：视为非法 XML 文档，避免误转 */
+      if(xmlVal === null || typeof xmlVal !== "object" || Object.keys(xmlVal).length === 0) throw new Error("内容不是合法 XML 文档");
+      return {ok:true, val: xmlVal};
     }
   }catch(e){ return {ok:false, err:e}; }
   return {ok:false, err:new Error("未知语言 "+lang)};
