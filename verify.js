@@ -567,7 +567,7 @@ T('rkHeatColor L2 边界 50', ctx.rkHeatColor(50, 100) === '#fb923c');
 T('rkHeatColor L3 边界 75', ctx.rkHeatColor(75, 100) === '#f97316');
 T('rkHeatColor L4 满量程', ctx.rkHeatColor(100, 100) === '#ea580c');
 T('rkHeatColor 溢出进下一级', ctx.rkHeatColor(25.1, 100) === '#fb923c');
-// rkPbs 骑行三项指标：最远距离 / 最高平均时速 / 最高时速（maxSpd 优先，无则降级最高均速并标注）
+// rkPbs 骑行三项指标：最远距离 / 平均时速 / 极限冲刺速度（maxSpd 优先，无则降级最高均速并标注）
 var rkPbsActs = [
   { type:'Ride', dist:12000, spd:6.94,  date:'2024-01-01T08:00:00Z' },                  /* 均速 25.0 */
   { type:'Ride', dist:30000, spd:8.33,  date:'2024-01-02T08:00:00Z' },                  /* 最远 30km，均速 30.0 */
@@ -576,8 +576,8 @@ var rkPbsActs = [
 ];
 var rkPbsRes = ctx.rkPbs(rkPbsActs);
 T('rkPbs 最远距离 30km', rkPbsRes[0].key==='dist' && rkPbsRes[0].v===30 && rkPbsRes[0].act.date.slice(0,10)==='2024-01-02', JSON.stringify(rkPbsRes[0]));
-T('rkPbs 最高平均时速 30.0（忽略跑步）', rkPbsRes[1].key==='avg' && rkPbsRes[1].v.toFixed(1)==='30.0' && rkPbsRes[1].act.date.slice(0,10)==='2024-01-02', JSON.stringify(rkPbsRes[1]));
-T('rkPbs 最高时速 50.0（maxSpd）', rkPbsRes[2].key==='speed' && rkPbsRes[2].v.toFixed(1)==='50.0' && !rkPbsRes[2].fallback, JSON.stringify(rkPbsRes[2]));
+T('rkPbs 平均时速 30.0（忽略跑步）', rkPbsRes[1].key==='avg' && rkPbsRes[1].v.toFixed(1)==='30.0' && rkPbsRes[1].act.date.slice(0,10)==='2024-01-02', JSON.stringify(rkPbsRes[1]));
+T('rkPbs 极限冲刺速度 50.0（maxSpd）', rkPbsRes[2].key==='speed' && rkPbsRes[2].v.toFixed(1)==='50.0' && !rkPbsRes[2].fallback, JSON.stringify(rkPbsRes[2]));
 var rkPbsActs2 = [ { type:'Ride', dist:10000, spd:7.0, date:'2024-02-01T08:00:00Z' } ];
 var rkPbsRes2 = ctx.rkPbs(rkPbsActs2);
 T('rkPbs 无 maxSpd 降级为最高均速并标注 fallback', rkPbsRes2[0].v===10 && rkPbsRes2[2].v===rkPbsRes2[1].v && rkPbsRes2[2].fallback===true, JSON.stringify(rkPbsRes2));
@@ -949,12 +949,13 @@ T('回放 HUD：右下角叠加动态爬升 + 时速（draw 内调用 rkActHud�
   'HUD 函数与调用');
 T('骑行改版：个人最佳三项指标渲染 + maxSpd 解析',
   src.indexOf('最远距离') >= 0
-  && src.indexOf('最高每小时公里数') >= 0
-  && src.indexOf('最高时速') >= 0
+  && src.indexOf('平均时速') >= 0
+  && src.indexOf('极限冲刺速度') >= 0
   && src.indexOf('maxSpd: Number(a.max_speed)') >= 0
   && src.indexOf('均速近似') >= 0,
   '骑行指标');
 T('骑行改版：无「平均配速」残留（源码全文检索）', src.indexOf('平均配速') < 0, '无配速残留');
+T('骑行改版：无旧指标名「最高每小时公里数/最高时速」残留', src.indexOf('最高每小时公里数') < 0 && src.indexOf('最高时速') < 0, '无旧指标名');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');
