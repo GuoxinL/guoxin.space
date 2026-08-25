@@ -68,6 +68,25 @@ CORS：`Access-Control-Allow-Origin: *`，允许头 `Content-Type, Authorization
 1. 打开 https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Create Worker** → 起名如 `skillboard-collect`。
 2. 用编辑器打开本目录下 [`worker.js`](./worker.js)，**全选替换**默认模板代码 → **Deploy**。
 
+### 3.5 wrangler CLI 部署（自动化，替代手动粘贴）
+
+```bash
+# 前置：Cloudflare API Token（Account → Cloudflare Workers Scripts → Edit）
+export CLOUDFLARE_API_TOKEN=<token>
+
+# 部署（务必带 --keep-vars 与 --compatibility-date）
+npx wrangler deploy worker.js --name skillboard-collect \
+  --compatibility-date 2026-08-20 \
+  --keep-vars \
+  --var TRACKS_REPO:GuoxinL/running-private \
+  --var ADMIN_LOGIN:GuoxinL \
+  --var COLLECT_BRANCH:main \
+  --var REDIRECT_URL:https://guoxin.space
+```
+
+> ⚠️ **大坑（2026-08 实测）**：无 `wrangler.toml` 且不带 `--keep-vars` 时，`wrangler deploy` 会**删除全部非加密环境变量**（dashboard 配置的 Text 型变量），线上立即报 `Worker 未配置 TRACKS_REPO`。**加密的 Secret 不受影响**（`GH_TOKEN`/`GITHUB_CLIENT_SECRET`/`AUTH_SECRET` 等安全）。
+> 被清空后用 `--var KEY:VALUE --keep-vars` 重新部署即可补回；`--keep-vars` 同时防止再次误删。
+
 ### 4. 配置环境变量
 
 Worker 详情页 → **Settings** → **Variables and Secrets**：
