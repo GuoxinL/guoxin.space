@@ -1111,7 +1111,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
      长宽 640:360（16:9）固定、z8 固定浅色）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
      中心优先用垫底 PNG 视角元数据（热点中心，PNG 与矢量层切换零跳动）；
      无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
-  var mv = metaView || null, HP_Z = 8;
+  var mv = metaView || null, HP_Z = 9; /* 初始视角固定 z9: 与垫底 PNG (MapCN light_all z9) 零跳动 */
   if(mv){
     rect(); S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
   } else {

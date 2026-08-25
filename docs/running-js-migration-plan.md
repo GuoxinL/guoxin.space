@@ -116,7 +116,7 @@ setup-python 3.11
 
 | 现状（Python） | 改造后（JS） |
 |---|---|
-| `actions/setup-python@v5` + `pip install requests polyline pillow` | `actions/setup-node@v4`（node 20）+ `npm ci`（仅 sharp，**I3 引入时再配**） |
+| `actions/setup-python@v5` + `pip install requests polyline pillow` | `actions/setup-node@v4`（node 20）+ `cd scripts && npm ci`（仅 sharp）+ `actions/cache` 缓存 scripts/node_modules |
 | `python scripts/xingzhe_sync.py` | `node scripts/xz-sync.js` |
 | `python scripts/xingzhe_fill_polyline.py` | `node scripts/xz-fill.js` |
 | `python scripts/prebuild_preview.py` | `node scripts/prebuild-preview.js` |
@@ -124,9 +124,9 @@ setup-python 3.11
 | 幂等/原子写/`if: always()` 隔离 | 全部保留 |
 
 > 目标 JS 文件均为 `.js` 后缀（running 仓库 `package.json` 已声明 `"type": "module"`，`.js` 即 ESM）。
-> **迁移期（I3 未完成前）**：`setup-python` 与 pip 依赖保留（仅剩 preview 步骤为 Python），I1/I2 已切 JS 的步骤零 npm 依赖（仅 node 内置模块），无需 `npm ci`；`setup-node@v4`（node 20）已加入。
+> **I3 完成（2026-08-25）**：sync/fill/preview 三步全部切 Node，`setup-python` 与 pip 依赖已整体移除；`scripts/package.json` + `package-lock.json` 提供 sharp（唯一 npm 依赖），CI 用 `npm ci` + cache。
 
-> 迁移期可脚本并存：CI 先切 JS，若异常可一键回切 Python（workflow 两行改动）。
+> 迁移期可脚本并存：CI 先切 JS，若异常可一键回切 Python（workflow 两行改动，Python 版脚本仍留在仓库）。
 
 ---
 
@@ -149,7 +149,7 @@ setup-python 3.11
 | **I0**（先行，优先级最高） | **技术验证**：① MapCN(CARTO) 瓦片国内可达性实测（curl 延迟/成功率，对比 OSM）；② sharp PNG 幂等性验证（libvips vs PIL 编码参数，固定 `compressionLevel` 等后是否逐字节稳定） | 输出两份验证结论：瓦片可用性决定 I3 瓦片常量（不可达则保留 OSM）；幂等结论决定 sharp 参数与 CI diff 校验策略 |
 | **I1** ✅ 已完成 | `xz-common.js` + `xz-sync.js`，CI 切 JS 同步 | 产物 `activities.json` 与 Python 版**逐字节一致**（diff=0）——**已达成**，见 §7.2 |
 | **I2** ✅ 已完成 | `xz-fill.js`（GPX 补全） | polyline 字段与 Python 版**逐点一致**（diff=0）——**已达成**，见 §7.3 |
-| **I3** | `prebuild-preview.js`（preview.json + sharp PNG + **MapCN 瓦片**） | preview.json 逐字节一致；PNG 视觉验收（瓦片为 MapCN 风格）；meta.json 数值一致 |
+| **I3** ✅ 已完成 | `prebuild-preview.js`（preview.json + sharp PNG + **MapCN 瓦片**） | preview.json/rides.full.json 逐字节一致（diff=0）；meta 数值一致（±1 ULP）；PNG 视觉验收（light_all z9 瓦片底图）——**已达成**，见 §7.4 |
 | **I4** | `keep-to-xz.js`（本地上传工具） | 本地上传成功 |
 | **I5** | 工作台侧收尾：矢量层换 MapCN 多档 + 主题色轨迹（上一轮方案 A+B） | verify 回归 + puppeteer 双验证 + 线上部署 |
 
@@ -209,6 +209,26 @@ setup-python 3.11
 **过程中发现并修复的真实 bug（关键）**：Python `polyline` 库内部**不用 `round()`**，而是 `_py2_round(x) = int(sign(x) * floor(|x| + 0.5))`——**「half away from zero」**（Python 2 式远离零舍入），**不是** Python 3 `round` 的 banker's 取偶。初版 `pyRoundInt` 误用 banker's，真实数据 345,013 点 0 处分歧（真实坐标极少落在二进制精确 `.5` 上），但合成边界样本立即暴露：`_py2_round(3988512.5) = 3988513`（远离零）vs banker's 的 3988512。修复后边界样本 20/20 一致。
 
 **CI 说明**：fill 步骤与 sync 同为零 npm 依赖；异常时一键回切 `python scripts/xingzhe_fill_polyline.py`。I2 后 pip 依赖（requests/polyline/pillow）仅剩 prebuild_preview 使用，I3 切 sharp 后移除 `setup-python`。
+
+---
+
+### 7.4 I3 验收结论（2026-08-25，JS 化全链路 + 瓦片底图）
+
+> 实现：`scripts/prebuild-preview.js`（移植自 `prebuild_preview.py`，唯一 npm 依赖 sharp——`scripts/package.json` + `package-lock.json`，瓦片底图用原生 fetch 拉取 MapCN light_all 瓦片）；CI `Build preview` 步骤切 `node scripts/prebuild-preview.js`，`setup-python` + pip 整体移除，新增 `actions/cache` 缓存 scripts/node_modules。
+> **规格变更（用户需求）**：垫底 PNG 从「浅灰纯色 z8」改为「**MapCN light_all z9 瓦片拼接**（实际渲染的地图背景，参考页面轨迹地图 z9 浅色）」，页面初始视角 `HP_Z` 同步 8→9（否则 z9 垫底与 z8 矢量层错位跳动）；meta.z 恒 9。
+
+验收结果：
+
+1. **preview.json / rides.full.json：严格 diff=0**（与 Python 版逐字节一致；run_id 大整数走 `readActivitiesList` 字符串化——初版裸 `JSON.parse` 曾把 `9223370472270748209` 截成 `...0749000`，已修复）。
+2. **meta.json：cx/cy 数值一致（±1 ULP）**——`cy` 差最后 1 ULP 是 V8 `Math.sin/log` 与 CPython libm 的平台浮点差异（merc 投影 y 轴含三角函数；x 轴纯乘除完全一致），视觉零影响；`z` 字段 8→9 为上述规格变更。
+3. **PNG：light_all z9 瓦片底图 + 全量轨迹，幂等**——同数据/瓦片两次构建 md5 一致；瓦片下载失败自动降级浅灰纯色底（不阻断）；任一瓦片失败即整体降级（保整底一致）。
+4. **thin 抽稀半边界修复**：`Math.round` → `pyRound0`（banker's），避免抽稀采样点与 Python 分歧导致热点中心 ULP 偏移。
+
+**平台差异说明**：`Math.sin/Math.log` 与 CPython libm 存在 ULP 级差异（实测 9660 采样点中多处 y 差 1 ULP），无法在 JS 侧精确模拟 Python 的 sin/log——meta 验收标准定为「数值一致（±1 ULP）」而非逐字节，PNG 验收为「同编码器两次构建一致 + 视觉验收」（I0② 已声明 PNG 不做 diff=0）。
+
+**瓦片幂等风险**：light_all 瓦片内容若被 CARTO 更新，PNG 会随之变化（低频、可接受）；下载失败降级纯色保证 CI 永不因此阻断。
+
+**CI 说明**：`scripts/package.json` 与 running 仓库根 `package.json`（pnpm/Vite 前端）相互独立；本机 Windows 无法在 UNC 路径跑 npm（CMD 不支持），验证时先在本地临时目录 `npm ci` 再复制产物回 `scripts/`，CI（Linux runner）无此限制。
 
 ---
 
