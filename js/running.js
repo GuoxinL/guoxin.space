@@ -270,23 +270,6 @@ function rkBar(text, cls){
   if(b) b.style.display = "flex";
 }
 
-/* ---- 渲染：统计卡 ---- */
-function rkRenderStats(){
-  var s = rkStats(rkActs);
-  var cards = [
-    { k:"总距离", v:rkFmtDist(s.dist), u:"km", ic:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 7h8m0 0v8m0-8l-8 8-4-4-6 6\"/></svg>" },
-    { k:"总时长", v:rkFmtDur(s.sec), u:"", ic:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 3\"/></svg>" },
-    { k:"运动次数", v:rkComma(s.count), u:"次", ic:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z\"/><path d=\"M4 22v-7\"/></svg>" },
-    { k:"运动天数", v:rkComma(s.days), u:"天", ic:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M8 3v4M16 3v4M3 10h18\"/></svg>" },
-    { k:"累计爬升", v:rkComma(Math.round(s.elev)), u:"m", ic:"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 3l4 8 5-5 5 15H2L8 3z\"/></svg>" }
-  ];
-  var h = "";
-  cards.forEach(function(c){
-    h += "<div class=\"rk-card\"><div class=\"rk-k\">" + c.ic + c.k + "</div><div class=\"rk-v\">" + c.v + "<small>" + c.u + "</small></div></div>";
-  });
-  var e = rkEl("rkStats"); if(e) e.innerHTML = h;
-}
-
 /* ---- 渲染：年度热力图 ---- */
 function rkHeatSel(y){
   rkState.year = y;
@@ -393,20 +376,33 @@ function rkTrendSVG(vals, counts, labels, title){
   return h;
 }
 
-/* ---- 渲染：个人最佳（骑行三项指标） ---- */
+/* ---- 渲染：个人最佳（PB 3 项 + 个人数据总览 3 项） ---- */
 function rkRenderPbs(){
+  var s = rkStats(rkActs);
   var pbs = rkPbs(rkActs);
   var defs = { dist:{ k:"最远距离", u:"km" }, avg:{ k:"平均时速", u:"km/h" }, speed:{ k:"极限冲刺速度", u:"km/h" } };
-  var h = "";
+  var items = [];
   pbs.forEach(function(p){
     var d = defs[p.key], act = p.act;
     if(act){
       var dt = act.date ? act.date.slice(0,10) : "";
       var v = p.key === "dist" ? (p.v >= 100 ? p.v.toFixed(0) : p.v.toFixed(1)) : p.v.toFixed(1);
       var sub = (p.key === "dist" ? "单次骑行 · " : "") + dt + (p.fallback ? " · 均速近似" : "");
-      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + d.k + "</div><div class=\"rk-pb-v\">" + v + " <small>" + d.u + "</small></div><div class=\"rk-pb-d\">" + sub + "</div></div>";
+      items.push({ k:d.k, v:v, u:d.u, d:sub });
     } else {
-      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + d.k + "</div><div class=\"rk-pb-v\" style=\"font-size:15px;color:var(--text3)\">暂无</div><div class=\"rk-pb-d\">无骑行记录</div></div>";
+      items.push({ k:d.k, v:"暂无", u:"", d:"无骑行记录", empty:true });
+    }
+  });
+  /* 个人数据总览（并入本区块：总距离 / 总时长 / 运动次数） */
+  items.push({ k:"总距离", v:rkFmtDist(s.dist), u:"km", d:"" });
+  items.push({ k:"总时长", v:rkFmtDur(s.sec), u:"", d:"" });
+  items.push({ k:"运动次数", v:rkComma(s.count), u:"次", d:"" });
+  var h = "";
+  items.forEach(function(it){
+    if(it.empty){
+      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + it.k + "</div><div class=\"rk-pb-v\" style=\"font-size:15px;color:var(--text3)\">" + it.v + "</div><div class=\"rk-pb-d\">" + it.d + "</div></div>";
+    } else {
+      h += "<div class=\"rk-pb-item\"><div class=\"rk-pb-k\">" + it.k + "</div><div class=\"rk-pb-v\">" + it.v + " <small>" + it.u + "</small></div><div class=\"rk-pb-d\">" + it.d + "</div></div>";
     }
   });
   var e = rkEl("rkPbs"); if(e) e.innerHTML = h;
@@ -1201,7 +1197,7 @@ function rkOnData(text){
     rkActs = rkParse(text);
     window.rkActs = rkActs; /* 挂全局便于控制台调试与外部脚本访问 */
     if(!rkActs.length) throw new Error("数据为空");
-    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录（经 Worker 代理 · 本地零存储）", "ok");
+    rkBar("数据已加载：" + rkComma(rkActs.length) + " 条记录", "ok");
     var curYr = String(new Date().getFullYear());
     rkState.year = rkYears(rkActs).indexOf(curYr) >= 0 ? curYr : (rkYears(rkActs)[0] || curYr); // 默认当年（2026）；数据无当年则回退最新年份
     rkState.listYear = "all"; rkState.listN = 30;
@@ -1258,7 +1254,6 @@ function rkLoadRides(){
   }
 }
 function rkRenderAll(){
-  rkRenderStats();
   rkRenderHeatTabs();
   rkRenderTrend();
   rkRenderPbs();

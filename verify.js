@@ -680,16 +680,16 @@ ctx.rkShowMap(0);
 T('rkShowMap(0) 无轨迹显示提示', el('rkMapBox').innerHTML.indexOf('暂无轨迹数据')>=0, el('rkMapBox').innerHTML.slice(0,60));
 ctx.rkActs = null;
 
-// rkBody 模块顺序（轨迹地图 → 年度热力图 → 统计卡 → 趋势 → 个人最佳 → 活动列表）
+// rkBody 模块顺序（个人最佳 → 轨迹地图 → 年度热力图 → 趋势 → 活动列表）
 var riMap = src.indexOf('id="rkMapSec"');
 var riHeat = src.indexOf('年度热力图');
-var riStats = src.indexOf('id="rkStats"');
 var riTrend = src.indexOf('id="rkTrendOut"');
 var riPbs = src.indexOf('id="rkPbs"');
 var riList = src.indexOf('id="rkList"');
-T('rkBody 顺序 统计<地图<个人最佳<热力图<趋势<活动列表',
-  riStats >= 0 && riStats < riMap && riMap < riPbs && riPbs < riHeat && riHeat < riTrend && riTrend < riList,
-  [riStats, riMap, riPbs, riHeat, riTrend, riList].join(' < '));
+T('rkBody 顺序 个人最佳<地图<热力图<趋势<活动列表',
+  riPbs >= 0 && riPbs < riMap && riMap < riHeat && riHeat < riTrend && riTrend < riList,
+  [riPbs, riMap, riHeat, riTrend, riList].join(' < '));
+T('rkBody 无统计卡容器（id=rkStats 已删）', src.indexOf('id="rkStats"') < 0, '无 rkStats 容器');
 
 // 热力图默认年份：rkOnData 中优先当前公历年（2026），数据无当年则回退最新年份；去掉「全部」聚合 tab
 T('rkHeat 默认当年优先（2026），无当年回退最新',
@@ -956,6 +956,14 @@ T('骑行改版：个人最佳三项指标渲染 + maxSpd 解析',
   '骑行指标');
 T('骑行改版：无「平均配速」残留（源码全文检索）', src.indexOf('平均配速') < 0, '无配速残留');
 T('骑行改版：无旧指标名「最高每小时公里数/最高时速」残留', src.indexOf('最高每小时公里数') < 0 && src.indexOf('最高时速') < 0, '无旧指标名');
+T('骑行改版：rkBar 无「经 Worker 代理 · 本地零存储」残留', src.indexOf('经 Worker 代理 · 本地零存储') < 0, 'rkBar 文案');
+T('骑行改版：rk-sub 改为「骑行 · 轨迹」', src.indexOf('骑行 · 轨迹') >= 0, 'rk-sub');
+T('骑行改版：统计标签并入个人最佳（总距离/总时长/运动次数）',
+  src.indexOf('items.push({ k:"总距离"') >= 0
+  && src.indexOf('items.push({ k:"总时长"') >= 0
+  && src.indexOf('items.push({ k:"运动次数"') >= 0,
+  '个人最佳 6 项');
+T('骑行改版：无「运动天数」残留（统计卡已删）', src.indexOf('运动天数') < 0, '无运动天数');
 
 /* ========== 结果 ========== */
 console.log('\n========================================');

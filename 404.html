@@ -103,7 +103,7 @@
         <button class="qcard" onclick="go('/running')">
           <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></div>
           <div class="qt">Running</div>
-          <div class="qd">跑步 / 骑行统计 · 直连 running</div>
+          <div class="qd">骑行统计 · 直连 running</div>
         </button>
         <div class="qcard dashed">+ 更多卡片<br>（待办 / 打卡 / 记账…）</div>
       </div>
@@ -310,7 +310,7 @@
       <h2>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
         Running
-        <span class="rk-sub">跑步 / 骑行 · 轨迹私有仓库经 Worker 代理</span>
+        <span class="rk-sub">骑行 · 轨迹</span>
       </h2>
       <div class="toolbar">
         <span class="rk-full-badge" id="rkFullBadge" style="display:none" title="已加载完整骑行轨迹（仅站长可见）">
@@ -325,19 +325,18 @@
     </div>
     <div class="rk-bar" id="rkBar"><span class="dot" id="rkDot"></span><span id="rkBarText">正在加载数据…</span></div>
     <div id="rkBody">
-      <div class="rk-cards" id="rkStats"></div>
+      <div class="rk-sec">
+        <div class="rk-sec-h">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>个人最佳</h3>
+        </div>
+        <div class="rk-pb" id="rkPbs"></div>
+      </div>
       <div class="rk-sec" id="rkMapSec">
         <div class="rk-sec-h">
           <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v16M15 6v16"/></svg>轨迹地图</h3>
           <span id="rkMapTitle" style="font-size:12px;color:var(--text3)"></span>
         </div>
         <div class="rk-map" id="rkMapBox"><div class="rk-map-hint"><div class="rk-mh-t">轨迹地图</div><div>数据加载完成后自动渲染全部活动轨迹；点击活动列表中的记录可高亮该条路线。</div></div></div>
-      </div>
-      <div class="rk-sec">
-        <div class="rk-sec-h">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>个人最佳</h3>
-        </div>
-        <div class="rk-pb" id="rkPbs"></div>
       </div>
       <div class="rk-sec">
         <div class="rk-sec-h">
