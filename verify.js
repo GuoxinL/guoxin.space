@@ -519,14 +519,14 @@ T('skMdTabsShow(true) 显示 tabs', el('drTabs').style.display==='flex');
 console.log('== 11. 运动数据 rk ==');
 // rkParse 字段规整 + 过滤
 var rkRaw = [
-  { run_id:'9007199254740993', name:'晨跑', distance:'5200', moving_time:'30:00', type:'Run', start_date_local:'2024-01-01T08:00:00Z', location_country:'中国', location_city:'北京市丰台区', summary_polyline:'p'.repeat(25), average_heartrate:'145', average_speed:3.12, elevation_gain:'50', thumbnail:'https://cdn.example.com/x.png' },
+  { run_id:'9007199254740993', name:'晨跑', distance:'5200', moving_time:'30:00', type:'Run', start_date_local:'2024-01-01T08:00:00Z', location_country:'中国', location_city:'北京市丰台区', summary_polyline:'p'.repeat(25), average_heartrate:'145', average_speed:3.12, elevation_gain:'50' },
   { run_id:102, distance:0 }
 ];
 var rkP = ctx.rkParse(rkRaw);
 T('rkParse 规整字段', rkP.length===1 && rkP[0].id==='9007199254740993' && rkP[0].dist===5200 && rkP[0].mt==='30:00' && rkP[0].type==='Run' && rkP[0].date==='2024-01-01T08:00:00Z' && rkP[0].hr===145 && rkP[0].spd===3.12 && rkP[0].elev===50, JSON.stringify(rkP));
 T('rkParse run_id 字符串化（规避超安全整数精度丢失）', rkP[0].id==='9007199254740993' && typeof rkP[0].id==='string');
 T('rkParse 数字 run_id 也转字符串', (function(){ var p2 = ctx.rkParse([{ run_id:101, distance:100, start_date_local:'x' }]); return p2[0].id==='101' && typeof p2[0].id==='string'; })());
-T('rkParse 地点与主图字段', rkP[0].city==='北京市丰台区' && rkP[0].thumb==='https://cdn.example.com/x.png', JSON.stringify(rkP[0]));
+T('rkParse 地点与主图字段（thumb 已废弃：缩略图改自产）', rkP[0].city==='北京市丰台区' && !('thumb' in rkP[0]) && rkP[0].poly==='ppppppppppppppppppppppppp', JSON.stringify(rkP[0]));
 T('rkParse 过滤无距离无日期记录', rkP.length===1);
 // rkMovingSec 3 段 / 2 段 / 天 + 时分秒
 T('rkMovingSec 3 段', ctx.rkMovingSec('12:34:56')===45296);
@@ -680,15 +680,15 @@ ctx.rkShowMap(0);
 T('rkShowMap(0) 无轨迹显示提示', el('rkMapBox').innerHTML.indexOf('暂无轨迹数据')>=0, el('rkMapBox').innerHTML.slice(0,60));
 ctx.rkActs = null;
 
-// rkBody 模块顺序（个人最佳 → 轨迹地图 → 年度热力图 → 趋势 → 活动列表）
+// rkBody 模块顺序（个人最佳 → 轨迹地图 → 活动列表 → 年度热力图 → 趋势）
 var riMap = src.indexOf('id="rkMapSec"');
 var riHeat = src.indexOf('年度热力图');
 var riTrend = src.indexOf('id="rkTrendOut"');
 var riPbs = src.indexOf('id="rkPbs"');
 var riList = src.indexOf('id="rkList"');
-T('rkBody 顺序 个人最佳<地图<热力图<趋势<活动列表',
-  riPbs >= 0 && riPbs < riMap && riMap < riHeat && riHeat < riTrend && riTrend < riList,
-  [riPbs, riMap, riHeat, riTrend, riList].join(' < '));
+T('rkBody 顺序 个人最佳<地图<活动列表<热力图<趋势',
+  riPbs >= 0 && riPbs < riMap && riMap < riList && riList < riHeat && riHeat < riTrend,
+  [riPbs, riMap, riList, riHeat, riTrend].join(' < '));
 T('rkBody 无统计卡容器（id=rkStats 已删）', src.indexOf('id="rkStats"') < 0, '无 rkStats 容器');
 
 // 热力图默认年份：rkOnData 中优先当前公历年（2026），数据无当年则回退最新年份；去掉「全部」聚合 tab
@@ -781,16 +781,17 @@ T('样式三档固定浅色：按钮 title 无「自动（跟随明暗）」、z
 
 // Task 17 渐进式加载 + 固定 zoom13 世界像素投影（垫底 PNG 全貌 → 矢量层就绪切换，缩放零重投影）
 // 轨迹数据源已迁移：不再直连 raw.githubusercontent.com，统一经 Worker /api/tracks/raw 白名单代理
-T('渐进加载：rkTracks 代理（preview.png / preview.meta.json）+ phase1 img 与加载提示',
+// 需求五：垫底 PNG 双主题（previews/light|dark.png 按系统明暗选图），缩略图同源自产（thumb/<id>.<theme>.png）
+T('渐进加载：rkTracks 代理（previews/<theme>.png / preview.meta.json）+ phase1 img 与加载提示',
   src.indexOf('function rkTracks(') >= 0
   && src.indexOf('w + "/api/tracks/raw?f=" + encodeURIComponent(f)') >= 0
-  && src.indexOf('rkTracks("preview.png")') >= 0
+  && src.indexOf('rkTracks("previews/" + rkTheme() + ".png")') >= 0
   && src.indexOf('rkTracks("preview.meta.json")') >= 0
   && src.indexOf('<img class=\\"rk-tm-pv\\"') >= 0
   && src.indexOf('rk-tm-loading') >= 0
   && src.indexOf('轨迹矢量层构建中') >= 0
   && src.indexOf('raw.githubusercontent.com/GuoxinL/running') < 0,
-  '代理URL/垫底PNG/视角元数据/加载提示');
+  '代理URL/双主题垫底/视角元数据/加载提示');
 // rkFetchMeta：测试环境 windowMock 无 fetch → 同步回调 null（回退 hotspot/fit 视角）
 let rkMetaCb = 'unset';
 ctx.rkFetchMeta(function(m){ rkMetaCb = (m === null) ? 'null' : 'obj'; });
@@ -862,16 +863,17 @@ T('卡片网格容器 rkList + .rk-actlist grid',
   && src.indexOf('.rk-actlist{display:grid') >= 0
   && src.indexOf('repeat(auto-fill,minmax(230px,1fr))') >= 0,
   '卡片式网格替代行式列表');
-T('卡片渲染：主图 thumb + 类型标签 + 地点 pin + 日期 + 三格统计(公里/kmh/时长)',
+T('卡片渲染：自产双主题缩略图 thumb/<id>.<theme>.png + 类型标签 + 地点 pin + 日期 + 三格统计(公里/kmh/时长)',
   src.indexOf('class=\\"rk-actcard\\"') >= 0
   && src.indexOf('class=\\"rk-act-thumb\\"') >= 0
-  && src.indexOf('(a.thumb ? "<img src=\\"" + esc(a.thumb)') >= 0
+  && src.indexOf('rkTracks("thumb/" + a.id + "." + rkTheme() + ".png")') >= 0
+  && src.indexOf('esc(a.thumb)') < 0
   && src.indexOf('rkTypeTag(a.type)') >= 0
   && src.indexOf('esc(a.city || "未知地点")') >= 0
   && src.indexOf('(a.dist/1000).toFixed(1)') >= 0
   && src.indexOf('(kmh ? kmh.toFixed(1) : "--")') >= 0
   && src.indexOf('rkFmtDur(t)') >= 0,
-  '卡片字段齐全');
+  '卡片字段齐全（自产缩略图）');
 T('平均时速单位换算 m/s → km/h（spd*3.6）',
   src.indexOf('a.spd ? (a.spd*3.6)') >= 0,
   'spd*3.6 换算');
@@ -905,13 +907,15 @@ T('轨迹回放：canvas Web Mercator 投影 + 瓦片底图背景 + 已走轨迹
   && src.indexOf('rkTrackColor(a.type)') >= 0
   && src.indexOf('ctx.arc(pts[0][0], pts[0][1], 6, 0, Math.PI*2)') >= 0,
   '回放绘制逻辑（Mercator + 瓦片底图）');
-T('回放底图样式跟随系统默认明暗：matchMedia 检测 + light/dark 档选择 + 占位底色',
-  src.indexOf('window.matchMedia("(prefers-color-scheme: dark)")') >= 0
-  && src.indexOf('return dark ? RK_STYLES[2] : RK_STYLES[0];') >= 0
+T('回放底图样式跟随系统默认明暗：rkTheme 检测 + light/dark 档选择 + 占位底色',
+  src.indexOf('function rkTheme(') >= 0
+  && src.indexOf('window.matchMedia("(prefers-color-scheme: dark)")') >= 0
+  && src.indexOf('return dark ? "dark" : "light";') >= 0
+  && src.indexOf('return rkTheme() === "dark" ? RK_STYLES[2] : RK_STYLES[0];') >= 0
   && src.indexOf('bg:"#e9e5dd"') >= 0
   && src.indexOf('bg:"#1a2234"') >= 0
   && src.indexOf('bgCtx.fillRect(0, 0, W, H)') >= 0,
-  '明暗检测/档选择/占位底色');
+  'rkTheme 明暗检测/档选择/占位底色');
 T('回放底图瓦片加载：离屏 canvas 渐进加载 + {s} 子域 + drawImage 对齐',
   src.indexOf('img.onload = function(){') >= 0
   && src.indexOf('bgCtx.drawImage(img, tx*RK_TILE - vx0, ty*RK_TILE - vy0, RK_TILE, RK_TILE)') >= 0
@@ -919,13 +923,18 @@ T('回放底图瓦片加载：离屏 canvas 渐进加载 + {s} 子域 + drawImag
   && src.indexOf('var bgCv = document.createElement("canvas")') >= 0,
   '离屏渐进加载/子域/drawImage');
 // 回放底图样式运行时：windowMock 无 matchMedia → 默认 light；模拟暗色系统 → dark
+// rkTheme（需求五双主题选择依据）：与 rkActBgStyle 同源
 T('rkActBgStyle 无 matchMedia 默认 light（浅色系统）',
   ctx.rkActBgStyle().k === 'light' && ctx.rkActBgStyle().url.indexOf('light_all') > 0,
   'k=' + ctx.rkActBgStyle().k);
+T('rkTheme 无 matchMedia 默认 light（浅色系统）',
+  ctx.rkTheme() === 'light', 'theme=' + ctx.rkTheme());
 windowMock.matchMedia = function () { return { matches: true }; };
 T('rkActBgStyle 暗色系统（prefers-color-scheme: dark）→ dark',
   ctx.rkActBgStyle().k === 'dark' && ctx.rkActBgStyle().url.indexOf('dark_all') > 0,
   'k=' + ctx.rkActBgStyle().k);
+T('rkTheme 暗色系统（prefers-color-scheme: dark）→ dark',
+  ctx.rkTheme() === 'dark', 'theme=' + ctx.rkTheme());
 delete windowMock.matchMedia;
 T('进入即自动播放 + 循环（requestAnimationFrame + prog 回卷）',
   src.indexOf('rkActAnim = requestAnimationFrame(tick)') >= 0
