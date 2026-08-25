@@ -150,7 +150,7 @@ setup-python 3.11
 | **I1** ✅ 已完成 | `xz-common.js` + `xz-sync.js`，CI 切 JS 同步 | 产物 `activities.json` 与 Python 版**逐字节一致**（diff=0）——**已达成**，见 §7.2 |
 | **I2** ✅ 已完成 | `xz-fill.js`（GPX 补全） | polyline 字段与 Python 版**逐点一致**（diff=0）——**已达成**，见 §7.3 |
 | **I3** ✅ 已完成 | `prebuild-preview.js`（preview.json + sharp PNG + **MapCN 瓦片**） | preview.json/rides.full.json 逐字节一致（diff=0）；meta 数值一致（±1 ULP）；PNG 视觉验收（light_all z9 瓦片底图）——**已达成**，见 §7.4 |
-| **I4** | `keep-to-xz.js`（本地上传工具） | 本地上传成功 |
+| **I4** ✅ 已完成 | `keep-to-xz.js`（本地上传工具） | 语法/文件名解析/扫描过滤自测通过；真实上传待 write scope 凭据 + 本地 Keep FIT 导出后执行——**已交付**，见 §7.5 |
 | **I5** | 工作台侧收尾：矢量层换 MapCN 多档 + 主题色轨迹（上一轮方案 A+B） | verify 回归 + puppeteer 双验证 + 线上部署 |
 
 > 每轮遵循「移植 → 数据 diff 校验 → 推送 → CI 实跑 → memory 日志」标准流程。
@@ -229,6 +229,27 @@ setup-python 3.11
 **瓦片幂等风险**：light_all 瓦片内容若被 CARTO 更新，PNG 会随之变化（低频、可接受）；下载失败降级纯色保证 CI 永不因此阻断。
 
 **CI 说明**：`scripts/package.json` 与 running 仓库根 `package.json`（pnpm/Vite 前端）相互独立；本机 Windows 无法在 UNC 路径跑 npm（CMD 不支持），验证时先在本地临时目录 `npm ci` 再复制产物回 `scripts/`，CI（Linux runner）无此限制。
+
+---
+
+### 7.5 I4 验收结论（2026-08-25，Keep 历史 → 行者上传工具）
+
+> 实现：`scripts/keep-to-xz.js`（本地上传工具，约 230 行，零第三方依赖——Node 18+ 原生 fetch/FormData/crypto）。复用 `lib/xz-common.js` 的 `XingzheClient.uploadFit()`（I1 预留的 multipart 上传方法），只做「上传」，不含 Keep 数据获取（Keep 导出由上游 `keep_sync.py` 或官方/第三方完成）。
+> **定位澄清**：上游 `running_page` 并无 `keep_to_xingzhe.py` 原版（git trees 递归搜索仅见 `keep_sync.py`/`keep_to_strava_sync.py`），xz 系列为项目自定义 → I4 为**从零编写**，以 `xz-common.js` 的 `uploadFit()` 契约为准。
+
+验收结果：
+
+1. **语法校验通过**：`node --check` 无报错。
+2. **文件名解析 6 用例通过**：`parseFilename` 覆盖纯 keep_id（`9223370472270748209.fit` → keepId 19 位 + title 退回 "Ride from keep"）、日期+时分秒（`骑行_2019-07-31_20-34-21.fit` → date "2019-07-31" + title "骑行"）、无 keep_id 等边界；TIME_RE 剔除时分秒残留、标题提空退回 "Ride from keep"（对齐 activities.json 命名）。
+3. **扫描过滤冒烟测试通过**：目录扫描自动过滤非目标扩展名（如 `readme.txt`），正确解析两个 `.fit`，临时目录已清理（Windows 下 `/tmp` 被 node 解析为 UNC 路径 ENOENT，改用项目内 `.xz_smoke` 规避）。
+
+**溯源闭环**：上传时 `detail` 写 `keep_id=xxx [date=YYYY-MM-DD]`（文件名 15+ 位连续数字视为 keep_id），对齐 `xz-sync.js:164` 的 `keep_id=(\d+)` 提取，使同步回来的记录 `run_id=keep_id`、name 显示 "Ride from keep"；`buildUploadedKeepIds()` 分页拉全活动提取已上传 keep_id，默认去重跳过（`--force` 可强制重传）。
+
+**待真实上传验证（前置条件）**：① 行者凭据需含 **write** scope（只读 scope 上传会 403，脚本已做 403 提示）；② 本地已导出的 Keep FIT 文件放到 `keep_export/`。用法：
+```bash
+node scripts/keep-to-xz.js --dir ./keep_export --dry-run   # 先预览
+node scripts/keep-to-xz.js --dir ./keep_export             # 实际上传
+```
 
 ---
 
