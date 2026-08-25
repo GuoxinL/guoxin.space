@@ -310,12 +310,13 @@ T('左侧压缩按钮有 id', src.indexOf('id="minBtnL"') >= 0);
 T('右侧压缩按钮有 id', src.indexOf('id="minBtnR"') >= 0);
 T('左侧 JSONPath 输入框存在', src.indexOf('id="jpInputL"') >= 0);
 T('右侧 JSONPath 输入框存在', src.indexOf('id="jpInputR"') >= 0);
-T('左侧 jp 结果视图容器存在', src.indexOf('id="jpL"') >= 0);
-T('右侧 jp 结果视图容器存在', src.indexOf('id="jpR"') >= 0);
+T('左侧 JSONPath 高亮层存在', src.indexOf('id="jpOverlayL"') >= 0);
+T('右侧 JSONPath 高亮层存在', src.indexOf('id="jpOverlayR"') >= 0);
+T('无旧 jp 结果视图容器', src.indexOf('id="jpL"') < 0 && src.indexOf('id="jpR"') < 0);
 T('vendor 库已引入（js-yaml UMD）', src.indexOf('/js/vendor/js-yaml.min.js') >= 0);
 T('vendor 桥接模块已引入（bundle）', src.indexOf('/js/vendor/lang-libs.bundle.js') >= 0);
 // 函数导出断言
-['langOf','parseByLang','dumpByLang','updateToolBtns','runJsonPath','clearJsonPath','jpHighlight'].forEach(fn => {
+['langOf','parseByLang','dumpByLang','updateToolBtns','runJsonPath','clearJsonPath','jpNeedles','jpFindRanges','jpMergeRanges','renderJpOverlay'].forEach(fn => {
   T('window.' + fn + ' 可调用', typeof ctx[fn] === 'function');
 });
 // 行为断言：langOf 默认回退 json
@@ -325,6 +326,23 @@ var _pj = ctx.parseByLang('{"a":1}', 'json');
 T('parseByLang(json) 成功', _pj.ok === true && _pj.val.a === 1, JSON.stringify(_pj));
 var _pj2 = ctx.parseByLang('not json', 'json');
 T('parseByLang(json) 非法返回 ok=false', _pj2.ok === false);
+// 行为断言：jpNeedles 候选文本（JSON 语言含引号与裸值）
+var _nd = ctx.jpNeedles('cycling', 'json');
+T('jpNeedles(json字符串) 含引号与裸值', _nd.indexOf('"cycling"') >= 0 && _nd.indexOf('cycling') >= 0, JSON.stringify(_nd));
+var _nd2 = ctx.jpNeedles('cycling', 'yaml');
+T('jpNeedles(yaml字符串) 仅裸值', _nd2.length === 1 && _nd2[0] === 'cycling', JSON.stringify(_nd2));
+// 行为断言：jpFindRanges 查找出现区间
+var _rg = ctx.jpFindRanges('a "cycling" b cycling', ['cycling']);
+T('jpFindRanges 找到 2 处', _rg.length === 2, JSON.stringify(_rg));
+// 行为断言：renderJpOverlay 渲染高亮层（命中区间包 jp-hl）
+el('jpOverlayL').innerHTML = '';
+el('jsonInputL').value = '{"hobby":["cycling"]}';
+ctx.renderJpOverlay('L', '{"hobby":["cycling"]}', [[8,16]]);
+T('renderJpOverlay 输出 jp-hl span', el('jpOverlayL').innerHTML.indexOf('jp-hl') >= 0, el('jpOverlayL').innerHTML);
+// 行为断言：clearJsonPath 清空高亮层
+el('jpOverlayL').innerHTML = '<span class="jp-hl">x</span>';
+ctx.clearJsonPath('L');
+T('clearJsonPath 清空高亮层', el('jpOverlayL').innerHTML === '');
 // 行为断言：updateToolBtns 按能力显隐
 // 场景1：普通文本 → 显示转义，隐藏去转义（压缩：非 JSON 不可压缩 → 隐藏）
 el('jsonInputL').value = 'hello\nworld';
@@ -357,9 +375,10 @@ el('jpInputL').value = '$.a';
 el('jsonInputL').value = '{"a":1}';
 ctx.runJsonPath('L'); // 不抛错即为通过
 T('runJsonPath 无库时安全不崩溃', true);
-// 行为断言：clearJsonPath 恢复编辑视图
+// 行为断言：clearJsonPath 清空高亮层
+el('jpOverlayL').innerHTML = '<span class="jp-hl">x</span>';
 ctx.clearJsonPath('L');
-T('clearJsonPath 关闭 jp 视图态', ctx.P.L.jp === false);
+T('clearJsonPath 清空高亮层', el('jpOverlayL').innerHTML === '');
 // 行为断言：切换语言自动转换（JSON → JSON5 不依赖 LIBS，vm 可测）
 el('langSelL').setAttribute('data-cur', 'json');
 el('langSelL').value = 'json5';

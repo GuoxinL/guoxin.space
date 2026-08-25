@@ -383,16 +383,14 @@ function renderTree(side){
   if(!p.ok){ out.innerHTML = '<div class="empty">'+esc(langOf(side)+" 解析失败："+p.err.message)+'</div>'; return; }
   out.innerHTML = nodeHtml(p.val, "root", 0);
 }
-/* 视图互斥：diff 优先 → 树形 → 编辑区 */
+/* 视图互斥：diff 优先 → 树形 → 编辑区（JSONPath 为原地文字高亮，不切换视图） */
 function applyView(side){
-  var ed = editorEl(side), tv = treeEl(side), dv = diffEl(side), jv = jpEl(side);
-  var showJp = !!P[side].jp;
-  var showTree = !showJp && !diffOn && P[side].tree;
-  var showDiff = !showJp && diffOn;
-  if(ed) ed.className = "editor view-edit" + (showTree || showDiff || showJp ? " hide" : "");
+  var ed = editorEl(side), tv = treeEl(side), dv = diffEl(side);
+  var showTree = !diffOn && P[side].tree;
+  var showDiff = diffOn;
+  if(ed) ed.className = "editor view-edit" + (showTree || showDiff ? " hide" : "");
   if(tv) tv.className = "view tree-view" + (showTree ? "" : " hide");
   if(dv) dv.className = "view diff-view" + (showDiff ? "" : " hide");
-  if(jv) jv.className = "view jp-view" + (showJp ? "" : " hide");
   var lbl = treeLabel(side);
   if(lbl) lbl.textContent = showTree ? "Json" : "树形";
   var btn = treeBtn(side);
@@ -400,10 +398,8 @@ function applyView(side){
 }
 function editorEl(side){ return $(side==="R" ? "editorR" : "editorL"); }
 function treeBtn(side){ return $(side==="R" ? "treeBtnR" : "treeBtnL"); }
-function jpEl(side){ return $(side==="R" ? "jpR" : "jpL"); }
 function toggleTree(side){
   P[side].tree = !P[side].tree;
-  if(P[side].tree) P[side].jp = false;
   var btn = $("treeBtn"+side);
   if(btn) btn.classList.toggle("active", P[side].tree);
   applyView(side);
@@ -518,8 +514,8 @@ function copyResult(){
   copyText(txt);
 }
 
-/* ================= JSONPath 查询（左右各一栏，结果高亮展示在本侧） ================= */
-/* 对本侧数据（任意语言先转 JSON 对象）跑 JSONPath，结果高亮渲染到本侧 jp 视图 */
+/* ================= JSONPath 查询（左右各一栏，命中文字在原文高亮，不改动原格式） ================= */
+/* 对本侧数据（任意语言先转 JSON 对象）跑 JSONPath，命中值在原文中的文字片段叠加黄色高亮 */
 function runJsonPath(side){
   if(side !== "L" && side !== "R") side = "L";
   if(!window.LIBS || !window.LIBS.JSONPath){ flashStatus("JSONPath 库未就绪，请稍候重试","err"); return; }
@@ -533,51 +529,105 @@ function runJsonPath(side){
     res = window.LIBS.JSONPath({ path: expr, json: p.val, resultType: "all" });
   }catch(e){ flashStatus("JSONPath 语法错误："+e.message,"err"); return; }
   if(!res || !res.length){ flashStatus("未匹配到任何节点","ok"); return; }
-  var html = "";
+  /* 定位命中值在原文中的文字区间（保持原格式，仅标记位置） */
+  var ranges = [];
   for(var i=0;i<res.length;i++){
-    var item = res[i];
-    var pathStr = jpPrettifyPath(item.path || "$");
-    html += '<div class="jp-hit"><div class="jp-path">'+esc(pathStr)+'</div>'+
-            '<pre class="jp-val">'+jpHighlight(item.value)+'</pre></div>';
+    var needles = jpNeedles(res[i].value, langOf(side));
+    ranges = ranges.concat(jpFindRanges(raw, needles));
   }
-  var box = jpEl(side);
-  if(box){
-    box.innerHTML = '<div class="jp-head">JSONPath 命中 '+res.length+' 项 · 已自动将本侧「'+
-      langOf(side).toUpperCase()+'」转为 JSON 后查询</div>'+html;
-  }
-  P[side].jp = true;
-  P[side].tree = false;
-  applyView(side);
-  flashStatus(sideName(side)+" JSONPath 查询完成 · 命中 "+res.length+" 项","ok");
+  ranges = jpMergeRanges(ranges);
+  renderJpOverlay(side, raw, ranges);
+  flashStatus(sideName(side)+" JSONPath 命中 "+res.length+" 项 · 已在原文高亮 "+ranges.length+" 处文字","ok");
 }
 function clearJsonPath(side){
   if(side !== "L" && side !== "R") side = "L";
   var inp = $("jpInput"+side); if(inp) inp.value = "";
-  P[side].jp = false;
-  applyView(side);
-  flashStatus("已退出"+sideName(side)+" JSONPath 视图","ok");
+  var ov = $("jpOverlay"+side);
+  if(ov) ov.innerHTML = "";
+  flashStatus("已清除"+sideName(side)+" JSONPath 高亮","ok");
 }
-/* JSON 语法着色 + 命中黄底（用于 jp 结果展示） */
-function jpPrettifyPath(p){
-  if(typeof p !== "string" || !p) return "$";
-  /* jsonpath-plus 路径形如 $['store']['book'][0]['title']
-     → 字符串键转 .key，数字索引 [0] 保留 → $.store.book[0].title */
-  return p
-    .replace(/\['([^']+)'\]/g, ".$1")
-    .replace(/\["([^"]+)"\]/g, ".$1");
+/* 命中值 → 原文检索候选文本（按语言取匹配形式） */
+function jpNeedles(value, lang){
+  var list = [];
+  if(typeof value === "string"){
+    if(lang === "json" || lang === "json5"){
+      list.push(JSON.stringify(value));  /* "cycling"（含引号，精确） */
+      list.push(value);                  /* cycling（裸值，YAML/压缩等场景兜底） */
+    }else{
+      list.push(value);
+    }
+  }else if(value !== null && typeof value === "object"){
+    if(lang === "json" || lang === "json5") list.push(JSON.stringify(value));
+    list.push(String(value));
+  }else{
+    list.push(String(value));
+  }
+  return list;
 }
-function jpHighlight(val){
-  var json = JSON.stringify(val, null, 2);
-  if(json === undefined) return "";
-  json = esc(json);
-  json = json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(m){
-    var cls = "j-num";
-    if(/^"/.test(m)){ cls = /:$/.test(m) ? "j-key" : "j-str"; }
-    else if(/true|false/.test(m)) cls = "j-bool";
-    else if(/null/.test(m)) cls = "j-null";
-    return '<span class="'+cls+'">'+m+'</span>';
-  });
-  return json;
+/* 在原文中查找所有候选文本的出现区间 */
+function jpFindRanges(raw, needles){
+  var ranges = [];
+  for(var n=0;n<needles.length;n++){
+    var nd = needles[n];
+    if(!nd) continue;
+    var idx = 0;
+    while((idx = raw.indexOf(nd, idx)) >= 0){
+      ranges.push([idx, idx + nd.length]);
+      idx += nd.length;
+    }
+  }
+  return ranges;
+}
+/* 区间排序 + 合并重叠 */
+function jpMergeRanges(ranges){
+  if(!ranges.length) return [];
+  ranges.sort(function(a,b){ return a[0]-b[0] || a[1]-b[1]; });
+  var merged = [ranges[0].slice()];
+  for(var i=1;i<ranges.length;i++){
+    var last = merged[merged.length-1];
+    if(ranges[i][0] <= last[1]){ last[1] = Math.max(last[1], ranges[i][1]); }
+    else merged.push(ranges[i].slice());
+  }
+  return merged;
+}
+/* 渲染高亮层：与 textarea 完全同度量，命中区间包黄底 span，文字本体透明 */
+function renderJpOverlay(side, raw, ranges){
+  var ov = $("jpOverlay"+side);
+  if(!ov) return;
+  if(!ranges.length){ ov.innerHTML = ""; return; }
+  var lines = raw.split("\n");
+  /* 每行起始 offset（含换行符） */
+  var lineStart = [0];
+  for(var i=0;i<lines.length;i++) lineStart.push(lineStart[i] + lines[i].length + 1);
+  var html = "";
+  for(var li=0; li<lines.length; li++){
+    var lStart = lineStart[li], lEnd = lineStart[li] + lines[li].length;
+    var segs = [];
+    for(var r=0; r<ranges.length; r++){
+      var s = Math.max(ranges[r][0], lStart), e = Math.min(ranges[r][1], lEnd);
+      if(s < e) segs.push([s - lStart, e - lStart]);
+    }
+    if(!segs.length){ html += esc(lines[li]) + "\n"; continue; }
+    segs.sort(function(a,b){ return a[0]-b[0] || a[1]-b[1]; });
+    var merged = [segs[0].slice()];
+    for(var k=1;k<segs.length;k++){
+      var last = merged[merged.length-1];
+      if(segs[k][0] <= last[1]) last[1] = Math.max(last[1], segs[k][1]);
+      else merged.push(segs[k].slice());
+    }
+    var lineText = lines[li], lineHtml = "", cursor = 0;
+    for(var m=0; m<merged.length; m++){
+      lineHtml += esc(lineText.slice(cursor, merged[m][0]));
+      lineHtml += '<span class="jp-hl">'+esc(lineText.slice(merged[m][0], merged[m][1]))+'</span>';
+      cursor = merged[m][1];
+    }
+    lineHtml += esc(lineText.slice(cursor));
+    html += lineHtml + "\n";
+  }
+  ov.innerHTML = html;
+  /* 滚动与 textarea 同步 */
+  var inp = inputEl(side);
+  if(inp){ ov.scrollTop = inp.scrollTop; ov.scrollLeft = inp.scrollLeft; }
 }
 /* ================= 编辑区事件 ================= */
 function bindEditor(side){
@@ -592,12 +642,17 @@ function bindEditor(side){
     drawSquiggle(side); /* 内容变化立即按新内容重绘（位置随光标行内容变化） */
     scheduleSave(side);
     updateToolBtns(side); /* 输入即刷新按钮显隐（不等 500ms 防抖） */
+    /* 内容已变：JSONPath 高亮失效，清除 */
+    var ov = $("jpOverlay"+side);
+    if(ov && ov.innerHTML) ov.innerHTML = "";
     clearTimeout(valTimer[side]);
     valTimer[side] = setTimeout(function(){ validateSide(side); }, 500);
   });
   inp.addEventListener("scroll", function(){
     gutterEl(side).scrollTop = inp.scrollTop;
     drawSquiggle(side); /* 滚动时波浪线跟随文字 */
+    var ov = $("jpOverlay"+side);
+    if(ov && ov.innerHTML){ ov.scrollTop = inp.scrollTop; ov.scrollLeft = inp.scrollLeft; }
   });
   // 拖拽导入
   var editor = inp.closest(".editor");

@@ -105,13 +105,11 @@ select.lang-sel{min-height:30px;border:1px solid var(--border2);border-radius:6p
 .jp-inline .jp-input{width:130px;min-height:28px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text);padding:0 7px;font-size:12px;outline:none;font-family:var(--mono)}
 .jp-inline .jp-input:focus{border-color:var(--primary)}
 .jp-inline .btn.ghost{min-height:28px;padding:0 8px;font-size:12px}
-/* JSONPath 结果高亮视图 */
-.jp-view{flex:1;overflow:auto;padding:12px;font-family:var(--mono);font-size:13px;line-height:1.6;background:var(--surface)}
-.jp-view.hide{display:none}
-.jp-head{font-family:var(--font);font-size:12px;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.jp-hit{background:var(--jp-hit,#fff8d6);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px}
-.jp-path{font-size:11.5px;color:var(--primary-deep);margin-bottom:4px;word-break:break-all}
-.jp-val{margin:0;white-space:pre-wrap;word-break:break-word}
+/* JSONPath 原地高亮层：与 textarea 完全同度量，文字透明只显示命中背景 */
+.jp-overlay{position:absolute;left:46px;top:0;right:0;bottom:0;margin:0;padding:12px;
+  font-family:var(--mono);font-size:14px;line-height:24px;tab-size:2;white-space:pre;
+  color:transparent;pointer-events:none;overflow:hidden;z-index:1;word-break:break-all}
+.jp-overlay .jp-hl{background:var(--jp-hit,#fff8d6);color:transparent;border-radius:2px}
 /* 语法着色（JSONPath 结果 / 树形复用） */
 .j-key{color:var(--j-key,#0b6bcb)}
 .j-str{color:var(--j-str,#1a7f37)}
