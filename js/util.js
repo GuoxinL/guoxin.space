@@ -70,6 +70,8 @@ function applyTheme(t){
   store(KEY_THEME, t);
   var label = $("themeLabel");
   if(label) label.textContent = (t==="dark" ? "亮色模式" : "暗色模式");
+  /* 广播主题变更：running 等模块监听 themechange 即时刷新双主题图片（缩略图/垫底） */
+  try{ window.dispatchEvent(new CustomEvent("themechange", { detail: t })); }catch(e){}
   /* 地图样式固定浅色（不随明暗切换），主题切换无需重绘地图 */
 }
 function toggleTheme(){
