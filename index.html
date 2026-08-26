@@ -48,14 +48,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
         <span id="themeLabel">暗色模式</span>
       </button>
-      <button class="side-btn" onclick="openImport()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-        导入备份
-      </button>
-      <button class="side-btn" onclick="exportBackup()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
-        导出备份
-      </button>
       <button class="side-btn" id="authBtn" title="登录 GitHub（站长功能）">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="M6 12l6 6 6-6"/><path d="M4 21h16"/></svg>
         <span>登录 GitHub</span>
@@ -85,29 +77,7 @@
         </div>
       </div>
 
-      <div class="sec-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-        快捷入口
-      </div>
-      <div class="cards">
-        <button class="qcard" onclick="exportBackup()">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg></div>
-          <div class="qt">导出备份</div>
-          <div class="qd">一键导出全部数据 JSON 快照</div>
-        </button>
-        <button class="qcard" onclick="toggleTheme()">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
-          <div class="qt">切换主题</div>
-          <div class="qd">亮色 / 暗色一键切换</div>
-        </button>
-        <button class="qcard" onclick="go('/running')">
-          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg></div>
-          <div class="qt">Running</div>
-          <div class="qd">骑行统计 · 直连 running</div>
-        </button>
-        <div class="qcard dashed">+ 更多卡片<br>（待办 / 打卡 / 记账…）</div>
-      </div>
-      <div class="hint">数据存储在本机浏览器（键前缀 wb_home_），刷新不丢失；建议定期「导出备份」。天气来自 Open-Meteo 免费接口，联网时自动获取。</div>
+      <div class="hint">数据存储在本机浏览器（键前缀 wb_home_），刷新不丢失。天气来自 Open-Meteo 免费接口，联网时自动获取。</div>
     </section>
 
     <!-- 页面二：JSON 工具 -->
@@ -317,10 +287,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
           完整轨迹
         </span>
-        <button class="btn" onclick="rkRefresh()" title="重新拉取轨迹私有仓库的 preview 抽帧数据">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
-          刷新数据
-        </button>
       </div>
     </div>
     <div class="rk-bar" id="rkBar"><span class="dot" id="rkDot"></span><span id="rkBarText">正在加载数据…</span></div>
@@ -475,7 +441,6 @@
 
 <!-- 隐藏文件输入 -->
 <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
-<input type="file" id="fileImportBackup" accept=".json,application/json" style="display:none">
 
 <script src="/js/util.js"></script>
 <script src="/js/auth.js"></script>

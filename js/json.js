@@ -374,37 +374,6 @@ function copyResult(){
   copyText(txt);
 }
 
-/* ================= 全局备份 ================= */
-function exportBackup(){
-  var keys=[];
-  for(var i=0;i<localStorage.length;i++){
-    var k = localStorage.key(i);
-    if(k && k.indexOf(KEY_PREFIX)===0) keys.push(k);
-  }
-  var data = {app:"wb-home", version:1, exportedAt:new Date().toISOString(), keys:{}};
-  keys.forEach(function(k){ data.keys[k]=localStorage.getItem(k); });
-  download("wb_home_backup_"+nowStr()+".json", JSON.stringify(data,null,2), "application/json");
-}
-function openImport(){ $("fileImportBackup").click(); }
-$("fileImportBackup").addEventListener("change", function(e){
-  var f = e.target.files[0];
-  if(!f) return;
-  var r = new FileReader();
-  r.onload = function(){
-    try{
-      var data = JSON.parse(String(r.result));
-      if(!data || !data.keys) throw new Error("格式不正确");
-      Object.keys(data.keys).forEach(function(k){ if(k.indexOf(KEY_PREFIX)===0) store(k, data.keys[k]); });
-      alert("备份导入成功，已恢复 "+Object.keys(data.keys).length+" 项数据");
-      location.reload();
-    }catch(err){
-      alert("备份文件解析失败："+err.message);
-    }
-  };
-  r.readAsText(f, "utf-8");
-  e.target.value="";
-});
-
 /* ================= 编辑区事件 ================= */
 function bindEditor(side){
   var inp = inputEl(side);

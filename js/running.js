@@ -908,6 +908,9 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX);
     t.pts = coords.map(function(c){ var p = rkMerc(c[1], c[0], RK_BASE_Z); return [p[0], p[1]]; });
   });
+  /* 当前 viewBox/瓦片基线（z 世界像素中心 + 缩放 k + 瓦片左上偏移），
+     在 render/refreshView 后同步；缩放过渡动画以此为起点做 translate3d+scale */
+  var zbase = { k: 1, cx: 0, cy: 0, ox0: 0, oy0: 0 };
   function rect(){
     try{
       var r = container.getBoundingClientRect();
@@ -1004,6 +1007,7 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
       if(S.zoomEl) S.zoomEl.textContent = "z" + S.z + " · " + S.style.n;
       updateStrokeWidths();
     }
+    zbase.k = S.k; zbase.cx = S.cx; zbase.cy = S.cy; zbase.ox0 = S.ox0; zbase.oy0 = S.oy0;
   }
   /* 缩放后线宽反算更新：每条轨迹一个属性（~百条，毫秒级） */
   function updateStrokeWidths(){
@@ -1044,48 +1048,74 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     } else {
       refreshView();
     }
+    zbase.k = S.k; zbase.cx = S.cx; zbase.cy = S.cy; zbase.ox0 = S.ox0; zbase.oy0 = S.oy0;
     container.style.cursor = "grab";
   }
-  /* 缩放过渡动画：旧内容（瓦片 + SVG）整体 scale(f) 绕锚点（will-change:transform
-     走 GPU 合成，动画期间不重光栅化 345K 点，丝滑），过渡结束 settle() 应用真实
-     viewBox + 重建瓦片。scale 归 1 时与新 viewBox 渲染结果一致（数学等价），零跳变。
-     连续快速缩放时 zoomBy 先 settle 结算到当前 zoom，再从干净状态起新动画，
-     避免 transform 叠加错乱 */
-  var zoomAnimTimer = null;
-  function settle(){
-    if(zoomAnimTimer){ clearTimeout(zoomAnimTimer); zoomAnimTimer = null; }
-    if(S.svgEl){ S.svgEl.style.transition = "none"; S.svgEl.style.transform = ""; S.svgEl.style.transformOrigin = ""; }
-    if(S.tilesEl){ S.tilesEl.style.transition = "none"; S.tilesEl.style.transform = ""; S.tilesEl.style.transformOrigin = ""; }
-    refreshView();
-  }
-  function animateZoom(ox, oy, f){
-    if(!S.ready || !S.svgEl){ render(); return; }
+  /* 缩放过渡动画（rAF 驱动）：动画期间只改 translate3d + scale（GPU 合成层，
+     零重光栅化 34 万点 SVG），滚动停止后一次性 settle 应用真实 viewBox + 重建瓦片。
+     对比旧 CSS transition 实现：连续滚轮每次 zoomBy 都 settle() 触发 viewBox 全量
+     重光栅化，触控板高频事件下卡死 —— 现改为「动画全程零重光栅化、停止后结算一次」。
+     锚点不动由 cx/cy 蕴含（zoomBy 已围绕鼠标重算中心），transform 仅做纯映射补偿；
+     连续缩放从当前插值态接续，起点/目标全程一致。 */
+  var zanim = null;        /* { from:{k,cx,cy}, to:{k,cx,cy}, mx, my, t0, raf, k, cx, cy } */
+  var zsettleTimer = null;
+  function zApply(k, cx, cy){
+    var f = k / zbase.k;   /* 相对基线 viewBox 的缩放倍率 */
     var svg = S.svgEl, tiles = S.tilesEl;
-    svg.style.transition = "transform 0.2s ease-out";
-    svg.style.transformOrigin = ox + "px " + oy + "px";
-    svg.style.transform = "scale(" + f + ")";
-    if(tiles){
-      tiles.style.transition = "transform 0.2s ease-out";
-      tiles.style.transformOrigin = ox + "px " + oy + "px";
-      tiles.style.transform = "translate(" + (-S.ox0).toFixed(1) + "px," + (-S.oy0).toFixed(1) + "px) scale(" + f + ")";
+    if(svg){
+      svg.style.transform = "translate3d(" + (S.W/2*(1-f) + k*(zbase.cx - cx)).toFixed(2)
+        + "px," + (S.H/2*(1-f) + k*(zbase.cy - cy)).toFixed(2) + "px,0) scale(" + f.toFixed(4) + ")";
     }
-    zoomAnimTimer = setTimeout(settle, 210);
+    if(tiles){
+      /* 瓦片层内部坐标系相对世界像素多一个 -ox0/-oy0 偏移，故补 -f*ox0/-f*oy0 项与 SVG 严格对齐 */
+      tiles.style.transform = "translate3d(" + (S.W/2*(1-f) + k*(zbase.cx - cx) - f*zbase.ox0).toFixed(2)
+        + "px," + (S.H/2*(1-f) + k*(zbase.cy - cy) - f*zbase.oy0).toFixed(2) + "px,0) scale(" + f.toFixed(4) + ")";
+    }
+  }
+  function settleZoom(){
+    if(zsettleTimer){ clearTimeout(zsettleTimer); zsettleTimer = null; }
+    if(zanim){
+      if(zanim.raf){ cancelAnimationFrame(zanim.raf); zanim.raf = 0; }
+      zanim = null;
+    }
+    if(S.svgEl) S.svgEl.style.transform = "";
+    if(S.tilesEl) S.tilesEl.style.transform = "";
+    refreshView();   /* 更新 viewBox + 重建瓦片 + 线宽反算（此处才重光栅化，且仅一次） */
+  }
+  function zstep(){
+    if(!zanim) return;
+    zanim.raf = 0;
+    var t = Math.min(1, (Date.now() - zanim.t0) / 200);
+    var e = 1 - Math.pow(1 - t, 3);   /* easeOutCubic 缓出 */
+    var k = zanim.from.k + (zanim.to.k - zanim.from.k) * e;
+    var cx = zanim.from.cx + (zanim.to.cx - zanim.from.cx) * e;
+    var cy = zanim.from.cy + (zanim.to.cy - zanim.from.cy) * e;
+    zanim.k = k; zanim.cx = cx; zanim.cy = cy;   /* 记录当前插值态，供连续缩放接续 */
+    zApply(k, cx, cy);
+    if(t < 1) zanim.raf = requestAnimationFrame(zstep);
+    else settleZoom();
   }
   function zoomBy(d, mx, my){
     var nz = Math.max(RK_Z_MIN, Math.min(RK_Z_MAX, S.z + d));
     if(nz === S.z) return;
     if(mx == null){ mx = S.W/2; my = S.H/2; }
-    if(zoomAnimTimer) settle();   /* 有未完成动画 → 先结算到当前 zoom，再起新动画 */
-    var oldZ = S.z;
+    /* 当前实际视图态（有未完成动画则从其插值态接续，否则取基线） */
+    var ck, ccx, ccy;
+    if(zanim){ ck = zanim.k; ccx = zanim.cx; ccy = zanim.cy; }
+    else { ck = zbase.k; ccx = zbase.cx; ccy = zbase.cy; }
     /* 锚点 = 鼠标位置的 z13 世界像素，缩放前后保持不变：
        要求 cx' - W/(2k') + mx/k' = wx → cx' = wx + (S.W/2 - mx)/k'
        旧实现 cx' = wx - mx/k' 漏了 +S.W/(2k')，锚点偏移约半屏，滚轮缩放"找不到位置" */
-    var wx = S.cx - S.W/(2*S.k) + mx / S.k;
-    var wy = S.cy - S.H/(2*S.k) + my / S.k;
+    var wx = ccx - S.W/(2*ck) + mx / ck;
+    var wy = ccy - S.H/(2*ck) + my / ck;
     setZoom(nz);
     S.cx = wx + (S.W/2 - mx) / S.k;
     S.cy = wy + (S.H/2 - my) / S.k;
-    animateZoom(mx, my, Math.pow(2, nz - oldZ));
+    zanim = { from: { k:ck, cx:ccx, cy:ccy }, to: { k:S.k, cx:S.cx, cy:S.cy },
+              mx:mx, my:my, t0:Date.now(), raf:0, k:ck, cx:ccx, cy:ccy };
+    if(!zanim.raf) zanim.raf = requestAnimationFrame(zstep);
+    if(zsettleTimer){ clearTimeout(zsettleTimer); }
+    zsettleTimer = setTimeout(settleZoom, 240);
   }
   function fit(){
     rect();
@@ -1104,22 +1134,35 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
      拖动中视觉反馈：瓦片层 translate(-ox0+dx, -oy0+dy)、SVG 层 translate(dx, dy)，
      两者增量同为 (+dx,+dy)——内容跟随鼠标右移，与 S.cx 递减、松手 render 后 viewBox
      左移等价，故拖动全程路径与底图零脱离、松手无跳变。
-     注意：SVG 层绝不能写成 translate(-dx,-dy)（与瓦片反向，一拖即脱离）。 */
+     注意：SVG 层绝不能写成 translate(-dx,-dy)（与瓦片反向，一拖即脱离）。
+     性能：高频 mousemove/touchmove 用 requestAnimationFrame 合并到每帧一次，
+     只改写 translate3d（GPU 合成层，避免 34 万点 SVG 每事件重光栅化），
+     并复用缓存的 S.svgEl/S.tilesEl，杜绝每帧 querySelector。 */
   var drag = null;
-  function onMove(e){
+  function dragPaint(){
     if(!drag) return;
-    var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    drag.raf = 0;
+    var dx = drag.mx - drag.sx, dy = drag.my - drag.sy;
     S.cx = drag.cx - dx / S.k; S.cy = drag.cy - dy / S.k;   /* 屏幕像素 → z13 世界像素 */
-    var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
+    var tiles = S.tilesEl, svg = S.svgEl;
     if(tiles && svg){
       var nx = S.ox0 - dx, ny = S.oy0 - dy;
-      tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";
-      svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";
+      tiles.style.transform = "translate3d(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px,0)";
+      svg.style.transform = "translate3d(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px,0)";
     }
   }
-  function onUp(){
+  function dragEnd(){
     if(!drag) return;
+    if(drag.raf){ cancelAnimationFrame(drag.raf); drag.raf = 0; dragPaint(); }
     drag = null;
+  }
+  function onMove(e){
+    if(!drag) return;
+    drag.mx = e.clientX; drag.my = e.clientY;
+    if(!drag.raf) drag.raf = requestAnimationFrame(dragPaint);
+  }
+  function onUp(){
+    dragEnd();
     container.style.cursor = "grab";
     render();
     document.removeEventListener("mousemove", onMove);
@@ -1127,8 +1170,8 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   }
   container.addEventListener("mousedown", function(e){
     if(e.target && e.target.className === "rk-tm-btn") return;
-    if(zoomAnimTimer) settle();   /* 缩放动画未结束时按下 → 先结算，避免拖拽与 scale 叠加 */
-    drag = { sx:e.clientX, sy:e.clientY, cx:S.cx, cy:S.cy };
+    if(zanim || zsettleTimer) settleZoom();   /* 缩放动画未结束时按下 → 先结算，避免拖拽与 scale 叠加 */
+    drag = { sx:e.clientX, sy:e.clientY, mx:e.clientX, my:e.clientY, cx:S.cx, cy:S.cy, raf:0 };
     container.style.cursor = "grabbing";
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
@@ -1137,27 +1180,21 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
   /* 触摸：单指拖动（移动端） */
   container.addEventListener("touchstart", function(e){
     if(e.touches.length === 1 && !(e.target && e.target.className === "rk-tm-btn")){
-      if(zoomAnimTimer) settle();   /* 同上：先结算缩放动画 */
+      if(zanim || zsettleTimer) settleZoom();   /* 同上：先结算缩放动画 */
       var t = e.touches[0];
-      drag = { sx:t.clientX, sy:t.clientY, cx:S.cx, cy:S.cy };
+      drag = { sx:t.clientX, sy:t.clientY, mx:t.clientX, my:t.clientY, cx:S.cx, cy:S.cy, raf:0 };
       e.preventDefault();
     }
   }, { passive:false });
   container.addEventListener("touchmove", function(e){
     if(!drag || e.touches.length !== 1) return;
     var t = e.touches[0];
-    var dx = t.clientX - drag.sx, dy = t.clientY - drag.sy;
-    S.cx = drag.cx - dx / S.k; S.cy = drag.cy - dy / S.k;
-    var tiles = container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg");
-    if(tiles && svg){
-      tiles.style.transform = "translate(" + (-(S.ox0 - dx)).toFixed(1) + "px," + (-(S.oy0 - dy)).toFixed(1) + "px)";
-      svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";
-    }
+    drag.mx = t.clientX; drag.my = t.clientY;
+    if(!drag.raf) drag.raf = requestAnimationFrame(dragPaint);
     e.preventDefault();
   }, { passive:false });
   container.addEventListener("touchend", function(){
-    if(!drag) return;
-    drag = null;
+    dragEnd();
     render();
   });
   /* 滚轮 / 双击 / 控制按钮 */
@@ -1216,7 +1253,7 @@ function rkFetch(){
   if(!url){
     rkBar("未配置 Worker 写通道 · 请先在 Skills「通道设置」填写 Worker URL", "err");
     var body = rkEl("rkBody");
-    if(body) body.innerHTML = "<div class=\"rk-empty\">Running 数据现经 Cloudflare Worker 代理下发（轨迹仓库为私有仓库），请先在 Skills 页「通道设置」填写 Worker URL 后点击「刷新数据」。</div>";
+    if(body) body.innerHTML = "<div class=\"rk-empty\">Running 数据现经 Cloudflare Worker 代理下发（轨迹仓库为私有仓库），请先在 Skills 页「通道设置」填写 Worker URL 后刷新页面。</div>";
     return;
   }
   function viaFetch(u){
@@ -1256,7 +1293,7 @@ function rkOnErr(e){
   rkActs = null;
   rkBar("数据加载失败：" + esc(e && e.message ? e.message : e) + " — 可稍后重试", "err");
   var body = rkEl("rkBody");
-  if(body) body.innerHTML = "<div class=\"rk-empty\">无法连接数据源（Cloudflare Worker 代理）。请检查网络后点击「刷新数据」重试。</div>";
+  if(body) body.innerHTML = "<div class=\"rk-empty\">无法连接数据源（Cloudflare Worker 代理）。请检查网络后刷新页面重试。</div>";
 }
 /* admin 完整骑行轨迹：GET <worker>/api/tracks/raw?f=rides.full.json（Bearer token）。
    成功 → 构建 run_id → 完整 polyline 映射 → 显示「完整轨迹」徽标并重绘地图。
@@ -1307,7 +1344,6 @@ function rkRenderAll(){
   rkRenderListTools();
   rkShowMap(rkState.selId);  /* 全量渲染所有轨迹；有选中则高亮 */
 }
-function rkRefresh(){ rkFetch(); }
 function rkLoad(){
   if(!rkActs) rkFetch();
   else { rkBar("数据已就绪（缓存）", "ok"); rkRenderAll(); }
