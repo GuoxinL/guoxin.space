@@ -87,6 +87,8 @@ npx wrangler deploy worker.js --name skillboard-collect \
 > ⚠️ **大坑（2026-08 实测）**：无 `wrangler.toml` 且不带 `--keep-vars` 时，`wrangler deploy` 会**删除全部非加密环境变量**（dashboard 配置的 Text 型变量），线上立即报 `Worker 未配置 TRACKS_REPO`。**加密的 Secret 不受影响**（`GH_TOKEN`/`GITHUB_CLIENT_SECRET`/`AUTH_SECRET` 等安全）。
 > 被清空后用 `--var KEY:VALUE --keep-vars` 重新部署即可补回；`--keep-vars` 同时防止再次误删。
 
+> ⚠️ **坑（2026-08 实测）**：CI（`running-private/.github/workflows/xingzhe_sync.yml`）把产物复制到仓库根目录时，**必须先删后拷**（`rm -rf ./thumb ./previews` 再 `cp -r`）。直接 `cp -r src/static/thumb ./thumb` 在目标已存在时会嵌套成 `thumb/thumb/`，导致 Worker 白名单（精确匹配 `thumb/<id>.<theme>.png`）永远读到旧版——cc10349 曾因此产生 320 张嵌套垃圾且线上缩略图长期是瓦片降级的纯色底。已在 5f5ca13 修复。
+
 ### 4. 配置环境变量
 
 Worker 详情页 → **Settings** → **Variables and Secrets**：
