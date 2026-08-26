@@ -15,7 +15,8 @@ var RK_CACHE_RIDES = "wb_rk_rides_full";
 function rkPolyFor(a){ return (rkRidesFull && a && a.poly && rkRidesFull[a.id]) ? rkRidesFull[a.id] : (a ? a.poly : ""); }
 /* MapCN（CARTO Basemaps）免费瓦片，无 token；三档手动切换：浅色 / 明亮 / 暗色。
    垫底 PNG 与活动缩略图为轨迹私有仓库预渲染双主题产物（previews/light|dark.png、
-   thumb/<run_id>.<light|dark>.png，均 16:9 与页面一致），按系统明暗（rkTheme）选图；
+   thumb/<run_id>.<light|dark>.png，均 16:9 与页面一致），跟随页面明暗主题（rkTheme：
+   优先 body[data-theme]，未设置回退系统 prefers-color-scheme），切主题即时联动；
    矢量层瓦片样式仍可手动三档循环（voyager 档无对应垫底，垫底沿用 light 版短暂过渡） */
 var RK_STYLES = [
   { k:"light",   n:"浅色", bg:"#e9e5dd", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
@@ -504,14 +505,39 @@ function rkActInfo(a){
   h += "</div>";
   e.innerHTML = h;
 }
-/* 系统明暗主题（"light"|"dark"）：垫底 PNG / 活动缩略图双主题选择依据。
-   浅色系统 → light，暗色系统 → dark（与回放底图 rkActBgStyle 同源） */
+/* 页面明暗主题（"light"|"dark"）：垫底 PNG / 活动缩略图双主题选择依据。
+   优先跟随页面手动切换（body[data-theme]，localStorage 持久化）；
+   未设置时回退系统 prefers-color-scheme（与回放底图 rkActBgStyle 同源） */
 function rkTheme(){
+  if(document.body && document.body.dataset && document.body.dataset.theme)
+    return document.body.dataset.theme === "dark" ? "dark" : "light";
   var dark = false;
   try{
     if(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) dark = true;
   }catch(e){}
   return dark ? "dark" : "light";
+}
+/* 主题联动：手动切换（themechange 事件）或系统切换（prefers-color-scheme change）
+   时，即时刷新已渲染的活动缩略图与地图垫底 PNG 的 src（.light/.dark.png 互切），
+   无需重渲染列表（保留滚动位置与加载状态） */
+function rkApplyThemeChange(){
+  var th = rkTheme();
+  var imgs = document.querySelectorAll(".rk-act-thumb img");
+  for(var i=0;i<imgs.length;i++){
+    var s = imgs[i].getAttribute("src");
+    if(s) imgs[i].setAttribute("src", s.replace(/\.(light|dark)\.png(?=[?#]|$)/, "." + th + ".png"));
+  }
+  var pv = document.querySelector(".rk-tm-pv");
+  if(pv){
+    var ps = pv.getAttribute("src");
+    if(ps) pv.setAttribute("src", ps.replace(/\.(light|dark)\.png(?=[?#]|$)/, "." + th + ".png"));
+  }
+}
+window.addEventListener("themechange", rkApplyThemeChange);
+if(window.matchMedia){
+  var rkMql = window.matchMedia("(prefers-color-scheme: dark)");
+  if(rkMql.addEventListener) rkMql.addEventListener("change", rkApplyThemeChange);
+  else if(rkMql.addListener) rkMql.addListener(rkApplyThemeChange);  /* 旧 Safari */
 }
 /* 回放底图样式：跟随系统默认明暗（浅色系统 → light，暗色系统 → dark）。
    与运行页地图三档手动切换相互独立，回放底图不做手动切换。 */
