@@ -45,8 +45,6 @@ function init(){
   $("histModal").addEventListener("click", function(e){ if(e.target === this) closeHist(); });
   window.loadWeather = loadWeather;
   window.toggleTheme = toggleTheme;
-  window.exportBackup = exportBackup;
-  window.openImport = openImport;
   window.fmtSide = fmtSide; window.minSide = minSide; window.escSide = escSide; window.unescSide = unescSide;
   window.toggleTree = toggleTree; window.doCompare = doCompare; window.doRepair = doRepair;
   window.showHistory = showHistory; window.closeHist = closeHist;
@@ -71,7 +69,7 @@ function init(){
     if(_skS) skRo.observe(_skS);
   }
   skLoad();
-  window.rkLoad = rkLoad; window.rkFetch = rkFetch; window.rkRefresh = rkRefresh;
+  window.rkLoad = rkLoad; window.rkFetch = rkFetch;
   window.rkRenderAll = rkRenderAll; window.rkMapStyle = rkMapStyle;
   window.rkMapStyleIdx = rkMapStyleIdx; window.rkResolveStyle = rkResolveStyle;
   window.rkHeatSel = rkHeatSel; window.rkTrendMode = rkTrendMode;
