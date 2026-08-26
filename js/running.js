@@ -1228,11 +1228,10 @@ function rkMapInit(container, tracks, styleIdx, selId, metaView){
     else if(idx === 2) zoomBy(-1);
     else if(idx === 3) fit();
   });
-  /* 默认视角固定规格：z=9（与轨迹私有仓库垫底 PNG previews/{light,dark}.png 生成规格一致，
-     长宽 640:360（16:9）固定、z9 固定、双主题共用同一视角）。cx/cy 为 z13 世界像素中心（与 zoom 无关），
-     中心优先用垫底 PNG 视角元数据（热点中心，PNG 与矢量层切换零跳动）；
+  /* 默认视角固定规格：z=12（长宽 640:360（16:9）固定、z12 固定、双主题共用同一视角）。
+     cx/cy 为 z13 世界像素中心（与 zoom 无关），中心优先用垫底 PNG 视角元数据（热点中心）；
      无元数据（离线/旧环境）回退热点聚焦（全量模式）或全量 fit（选中模式） */
-  var mv = metaView || null, HP_Z = 9; /* 初始视角固定 z9: 与垫底 PNG (MapCN light_all z9) 零跳动 */
+  var mv = metaView || null, HP_Z = 12; /* 初始视角固定 z12 */
   if(mv){
     rect(); S.prep = 1; setZoom(HP_Z); S.cx = mv.cx; S.cy = mv.cy; finishPrepare(); render();
   } else {
