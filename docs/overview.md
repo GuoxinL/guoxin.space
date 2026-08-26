@@ -61,7 +61,7 @@
 - **算法与 running_page 源码逐项对齐**（避免凭记忆偏差）：`formatDistance=Math.round(m/1000)`；`formatPace=1000/60/speedMs→m:ss`；`rkMovingSec` 支持 `'12:34:56'` / `'34:56'` / `'2 days, 12:34:56'`；热力图 4 级色阶 `level=ceil(min(dist/max,1)*4)`，Run 色板 `['#fed7aa','#fb923c','#f97316','#ea580c']`（Ride 蓝系/All 紫系），日格 `dist>0?dist:1`、`12×12px`、月标签按周宽、星期列 `['','一','','三','','五','']`；PB 窗口 `5K:4.8-5.5 / 10K:9.5-11 / Half:20-22.5 / Full:41-44` + 配速 180-480 s/km 过滤 + 取最快 moving_time（需 `type==='Run'` 且 poly>20 字符）；时段标题 `20-40km 半马 / ≥40km 全马 / 0-10 晨 / 10-14 午间 / 14-18 午后 / 18-21 傍晚 / 其余夜跑`。
 - **趋势图**：纯内联 SVG（720×220、4 条网格线、柱状 + `<title>` 悬浮提示、月度=当年 12 月 / 年度=历年，>15 数据点隔行显示 label），不引图表库。
 - **轨迹地图（Mapbox 懒加载 + 无 token 降级）**：token 存 `localStorage['wb_run_mapbox_token']`，`rkTokenCfg` 用 prompt 输入/清除；有 token 才动态注入 `mapbox-gl@v3.4.0` js+css，`rkDecodePolyline`（precision 5）解码后 addSource/addLayer 橙色线 + fitBounds padding 48；无 token 显示「未配置 Mapbox Token」降级提示并指引 `account.mapbox.com`；无 poly 显示「该记录无轨迹数据」。
-- **全局挂载**：init() 末尾沿袭 `window.skXxx` 模式追加 `window.rkLoad/rkFetch/rkRefresh/rkRenderAll/rkTokenCfg/rkHeatSel/rkTrendMode/rkListSel/rkMore/rkShowMap`（否则内联 onclick 报 `rkXxx is not defined`）。
+- **全局挂载**：init() 末尾沿袭 `window.skXxx` 模式追加 `window.rkLoad/rkFetch/rkRenderAll/rkTokenCfg/rkHeatSel/rkTrendMode/rkListSel/rkMore/rkShowMap`（否则内联 onclick 报 `rkXxx is not defined`）。
 - **修复的 bug**：`rkPbs` 窗口对象字段定义用 `k:"5K"` 但返回时误写 `w.key`（undefined）→ 改为 `w.k`（否则 PB 卡片 key 渲染为空）。
 
 ## 2026-08-22 迭代四：自然滚动 + 标题栏吸顶 + 标题锚点

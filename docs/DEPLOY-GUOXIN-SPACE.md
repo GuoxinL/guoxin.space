@@ -111,7 +111,7 @@ curl -s  https://guoxin.space | head -5       # 期望返回 index.html 内容
 ```
 
 浏览器验证（重点 4 项）：
-- [ ] `https://guoxin.space` → 首页渲染（日期问候 / 天气 / 快捷入口）
+- [ ] `https://guoxin.space` → 首页渲染（日期问候 / 天气）
 - [ ] `https://guoxin.space/#/skills` → 技能夹列表可加载（GitHub 公开接口）
 - [ ] `https://guoxin.space/#/running` → 运动页数据/地图正常（3.4MB activities.json 拉取 + 缓存）
 - [ ] `https://guoxin.space/#/json` → JSON 工具可用

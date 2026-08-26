@@ -292,7 +292,7 @@ nullIds.clear();
 
 /* ========== 10. 全局函数导出 ========== */
 console.log('== 10. 挂载完整性 ==');
-['fmtSide','minSide','escSide','unescSide','toggleTree','doCompare','doRepair','showHistory','restoreHistory','delHistory','clearHistory','copyResult','downloadJson','openImportJson','exportBackup','openImport'].forEach(fn => {
+['fmtSide','minSide','escSide','unescSide','toggleTree','doCompare','doRepair','showHistory','restoreHistory','delHistory','clearHistory','copyResult','downloadJson','openImportJson'].forEach(fn => {
   T('window.' + fn + ' 可调用', typeof ctx[fn] === 'function');
 });
 
@@ -818,13 +818,16 @@ T('投影抽稀：非选中轨迹抽稀到 RK_THIN_MAX（降 SVG 重光栅化成
   && src.indexOf('var coords = t.sel ? t.coords : rkThin(t.coords, RK_THIN_MAX)') >= 0
   && src.indexOf('rkMerc(c[1], c[0], RK_BASE_Z)') >= 0,
   '抽稀常量/投影抽稀/选中全量');
-T('缩放过渡动画：scale(f) GPU 合成 + settle 结算（动画结束应用真实 viewBox，零跳变）',
-  src.indexOf('function animateZoom(') >= 0
-  && src.indexOf('function settle()') >= 0
-  && src.indexOf('transform 0.2s ease-out') >= 0
-  && src.indexOf('animateZoom(mx, my, Math.pow(2, nz - oldZ))') >= 0
-  && src.indexOf('if(zoomAnimTimer) settle()') >= 0,
-  '过渡动画/结算/连续缩放防叠加');
+T('缩放过渡动画：rAF 驱动 translate3d+scale（动画零重光栅化）+ 连续缩放插值态接续 + 停后 settleZoom 结算',
+  src.indexOf('function zApply(') >= 0
+  && src.indexOf('function zstep(') >= 0
+  && src.indexOf('function settleZoom(') >= 0
+  && src.indexOf('requestAnimationFrame(zstep)') >= 0
+  && src.indexOf('setTimeout(settleZoom, 240)') >= 0
+  && src.indexOf('if(zanim){ ck = zanim.k; ccx = zanim.cx; ccy = zanim.cy; }') >= 0
+  && src.indexOf('if(zoomAnimTimer) settle()') < 0
+  && src.indexOf('function animateZoom(') < 0,
+  'rAF 过渡/停后结算/插值态接续');
 T('滚轮灵敏度：累积 deltaY 阈值 120 才缩放（防触控板/高精度滚轮一次跳 N 级）',
   src.indexOf('wheelAcc') >= 0
   && src.indexOf('while(wheelAcc <= -120)') >= 0
@@ -844,16 +847,24 @@ T('按钮缩放围绕图片中心：idx=1 放大 / idx=2 缩小 / idx=3 适应�
   && src.indexOf('else if(idx === 3) fit();') >= 0
   && src.indexOf('if(idx === 0) zoomBy(1)') < 0,
   '按钮 idx 映射与顺序一致');
-T('拖拽平移：鼠标 onMove 中 SVG 路径层与瓦片层同向（translate(+dx,+dy) 跟随鼠标，路径与地图零脱离）',
-  src.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
-  && src.indexOf('svg.style.transform = "translate(" + (-dx).toFixed(1)') < 0
-  && src.indexOf('tiles.style.transform = "translate(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px)";') >= 0,
+T('拖拽平移：dragPaint 中 SVG 路径层与瓦片层同向 translate3d(+dx,+dy)（跟随鼠标，路径与地图零脱离）',
+  src.indexOf('svg.style.transform = "translate3d(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px,0)";') >= 0
+  && src.indexOf('svg.style.transform = "translate3d(" + (-dx).toFixed(1)') < 0
+  && src.indexOf('tiles.style.transform = "translate3d(" + (-nx).toFixed(1) + "px," + (-ny).toFixed(1) + "px,0)";') >= 0,
   'SVG 增量(+dx,+dy) 与瓦片增量一致');
-T('拖拽平移：触摸 touchmove 中 SVG 层同样 translate(+dx,+dy)（与鼠标路径一致，防移动端脱离）',
-  src.indexOf('svg.style.transform = "translate(" + (dx).toFixed(1) + "px," + (dy).toFixed(1) + "px)";') >= 0
-  && src.indexOf('(-(S.ox0 - dx)).toFixed(1)') >= 0
-  && src.indexOf('(-dx).toFixed(1) + "px," + (-dy).toFixed(1)') < 0,
-  'SVG 正向位移、瓦片基线偏移正确');
+T('拖拽平移：触摸 touchmove 与鼠标共用 dragPaint（rAF 合并 + translate3d，防移动端脱离）',
+  src.indexOf('drag.mx = t.clientX; drag.my = t.clientY;') >= 0
+  && src.indexOf('if(!drag.raf) drag.raf = requestAnimationFrame(dragPaint);') >= 0
+  && src.indexOf('(-(S.ox0 - dx)).toFixed(1)') < 0,
+  '触摸与鼠标共用拖拽绘制函数');
+T('拖拽平移性能：rAF 合并高频事件 + 复用缓存 S.svgEl/S.tilesEl（无每帧 querySelector）',
+  src.indexOf('var tiles = S.tilesEl, svg = S.svgEl;') >= 0
+  && src.indexOf('container.querySelector(".rk-tm-tiles"), svg = container.querySelector(".rk-tm-svg")') < 0
+  && src.indexOf('translate3d(') >= 0,
+  '缓存 DOM 引用 + translate3d GPU 合成');
+T('「刷新数据」按钮与 rkRefresh 彻底移除（HTML/JS 无残留）',
+  src.indexOf('rkRefresh') < 0 && src.indexOf('刷新数据') < 0,
+  '无 rkRefresh / 刷新数据残留');
 
 /* ========== 12. 活动列表卡片网格 + 详情弹窗轨迹回放 ========== */
 console.log('== 12. 活动列表卡片 + 弹窗回放 ==');
