@@ -126,6 +126,13 @@
           </div>
           <div class="editor-wrap" id="wrapL">
             <div class="ed-toolbar" data-side="L">
+              <select class="lang-sel" id="langSelL" title="本侧数据语言">
+                <option value="json">JSON</option>
+                <option value="json5">JSON5</option>
+                <option value="yaml">YAML</option>
+                <option value="toml">TOML</option>
+                <option value="xml">XML</option>
+              </select>
               <button class="btn primary" onclick="fmtSide('L')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
                 格式化
@@ -134,18 +141,19 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l6 3-6 3V9zM14 15l6 3V6l-6 3"/></svg>
                 压缩
               </button>
-              <button class="btn" onclick="escSide('L')" title="把文本转义为 JSON 字符串字面量">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 12.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg>
-                转义
-              </button>
-              <button class="btn" onclick="unescSide('L')" title="把 JSON 字符串字面量还原为文本">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 19.5 12.5H13l1.5 9.5L5 10.5h6.5L11 2z"/></svg>
-                去转义
+              <button class="btn" onclick="toggleEscSide('L')" id="escBtnL" title="智能转义：文本→JSON字符串 / JSON字符串→文本（自动判断方向）">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h7M7 12h10M7 17h6"/><path d="m14 4 3 3-3 3"/><path d="m17 14-3 3 3 3"/></svg>
+                转义⇄去
               </button>
               <button class="btn" onclick="toggleTree('L')" id="treeBtnL">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h9M5 18h6"/><circle cx="19" cy="12" r="1.6"/><circle cx="17" cy="18" r="1.6"/><circle cx="21" cy="6" r="1.6"/></svg>
                 <span id="treeLabelL">树形</span>
               </button>
+              <span class="jp-inline">
+                <input class="jp-input" id="jpInputL" placeholder="JSONPath 查询本侧" spellcheck="false" onkeydown="if(event.key==='Enter')runJsonPath('L')">
+                <button class="btn ghost jp-run" onclick="runJsonPath('L')" title="对本侧数据（任意语言自动转 JSON）执行 JSONPath 查询">查</button>
+                <button class="btn ghost jp-clear" onclick="clearJsonPath('L')" title="清空查询并恢复本侧编辑视图">×</button>
+              </span>
             </div>
             <div class="editor view-edit" id="editorL">
               <div class="gutter" id="gutterL"></div>
@@ -154,6 +162,7 @@
             </div>
             <div class="view tree-view hide" id="treeL"></div>
             <div class="view diff-view hide" id="diffL"></div>
+            <div class="view jp-view hide" id="jpL"></div>
             <div class="vbar" id="vbarL">
               <span class="dot wait" id="vdotL"></span>
               <span id="vtextL">就绪 · 输入后实时校验</span>
@@ -168,6 +177,13 @@
           </div>
           <div class="editor-wrap" id="wrapR">
             <div class="ed-toolbar" data-side="R">
+              <select class="lang-sel" id="langSelR" title="本侧数据语言">
+                <option value="json">JSON</option>
+                <option value="json5">JSON5</option>
+                <option value="yaml">YAML</option>
+                <option value="toml">TOML</option>
+                <option value="xml">XML</option>
+              </select>
               <button class="btn primary" onclick="fmtSide('R')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
                 格式化
@@ -176,18 +192,19 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l6 3-6 3V9zM14 15l6 3V6l-6 3"/></svg>
                 压缩
               </button>
-              <button class="btn" onclick="escSide('R')" title="把文本转义为 JSON 字符串字面量">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 12.5H11L9.5 22 19 10.5h-6.5L13 2z"/></svg>
-                转义
-              </button>
-              <button class="btn" onclick="unescSide('R')" title="把 JSON 字符串字面量还原为文本">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2 19.5 12.5H13l1.5 9.5L5 10.5h6.5L11 2z"/></svg>
-                去转义
+              <button class="btn" onclick="toggleEscSide('R')" id="escBtnR" title="智能转义：文本→JSON字符串 / JSON字符串→文本（自动判断方向）">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h7M7 12h10M7 17h6"/><path d="m14 4 3 3-3 3"/><path d="m17 14-3 3 3 3"/></svg>
+                转义⇄去
               </button>
               <button class="btn" onclick="toggleTree('R')" id="treeBtnR">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6h14M5 12h9M5 18h6"/><circle cx="19" cy="12" r="1.6"/><circle cx="17" cy="18" r="1.6"/><circle cx="21" cy="6" r="1.6"/></svg>
                 <span id="treeLabelR">树形</span>
               </button>
+              <span class="jp-inline">
+                <input class="jp-input" id="jpInputR" placeholder="JSONPath 查询本侧" spellcheck="false" onkeydown="if(event.key==='Enter')runJsonPath('R')">
+                <button class="btn ghost jp-run" onclick="runJsonPath('R')" title="对本侧数据（任意语言自动转 JSON）执行 JSONPath 查询">查</button>
+                <button class="btn ghost jp-clear" onclick="clearJsonPath('R')" title="清空查询并恢复本侧编辑视图">×</button>
+              </span>
             </div>
             <div class="editor view-edit" id="editorR">
               <div class="gutter" id="gutterR"></div>
@@ -196,6 +213,7 @@
             </div>
             <div class="view tree-view hide" id="treeR"></div>
             <div class="view diff-view hide" id="diffR"></div>
+            <div class="view jp-view hide" id="jpR"></div>
             <div class="vbar" id="vbarR">
               <span class="dot wait" id="vdotR"></span>
               <span id="vtextR">就绪 · 输入后实时校验</span>
@@ -444,6 +462,9 @@
 
 <script src="/js/util.js"></script>
 <script src="/js/auth.js"></script>
+<!-- 第三方语言解析库（vendored 本地，零网络依赖） -->
+<script src="/js/vendor/js-yaml.min.js"></script>
+<script src="/js/vendor/lang-libs.bundle.js"></script>
 <script src="/js/json.js"></script>
 <script src="/js/skills.js"></script>
 <script src="/js/app.js"></script>
