@@ -13,11 +13,13 @@ var rkRidesFull = null;
 var RK_CACHE_RIDES = "wb_rk_rides_full";
 /* 当前活动实际渲染的 polyline：admin 且命中完整轨迹 → 用完整版；否则用 preview 截断版 */
 function rkPolyFor(a){ return (rkRidesFull && a && a.poly && rkRidesFull[a.id]) ? rkRidesFull[a.id] : (a ? a.poly : ""); }
-/* MapCN（CARTO Basemaps）免费瓦片，无 token；三档手动切换：浅色 / 明亮 / 暗色。
+/* MapCN（CARTO Basemaps）免费瓦片，无 token；矢量层底图默认跟随页面明暗主题
+   （浅色主题→light_all，暗色主题→dark_all），未手动锁定时切主题即时联动重绘；
+   亦可手动三档循环：浅色 / 明亮 / 暗色（手动选择优先，存 localStorage）。
    垫底 PNG 与活动缩略图为轨迹私有仓库预渲染双主题产物（previews/light|dark.png、
    thumb/<run_id>.<light|dark>.png，均 16:9 与页面一致），跟随页面明暗主题（rkTheme：
    优先 body[data-theme]，未设置回退系统 prefers-color-scheme），切主题即时联动；
-   矢量层瓦片样式仍可手动三档循环（voyager 档无对应垫底，垫底沿用 light 版短暂过渡） */
+   voyager 档无对应垫底，垫底沿用 light 版短暂过渡 */
 var RK_STYLES = [
   { k:"light",   n:"浅色", bg:"#e9e5dd", url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png" },
   { k:"voyager", n:"明亮", bg:"#e9e5dd", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" },
@@ -48,12 +50,14 @@ var rkActs = null;               /* 规整后的活动数组 */
 var rkState = { year:String(new Date().getFullYear()), trend:"m", listYear:"all", listN:30, selId:0 };
 
 function rkEl(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
-/* 当前样式索引：默认 0=浅色（固定浅色），用户切换后存 localStorage */
+/* 当前样式索引：未手动锁定（localStorage 无记录）时跟随页面主题
+   （暗色→暗色瓦片 dark_all，浅色→浅色瓦片 light_all），用户手动三档切换后以记录为准 */
 function rkMapStyleIdx(){
   try{
     var i = parseInt(localStorage.getItem(RK_STYLE_KEY), 10);
-    return (i >= 0 && i < RK_STYLES.length) ? i : 0;
-  }catch(e){ return 0; }
+    if(i >= 0 && i < RK_STYLES.length) return i;
+  }catch(e){}
+  return rkTheme() === "dark" ? 2 : 0;
 }
 
 /* ---- 数据解析（verify 可测）---- */
@@ -517,8 +521,11 @@ function rkTheme(){
   }catch(e){}
   return dark ? "dark" : "light";
 }
-/* 主题联动：手动切换（themechange 事件）或系统切换（prefers-color-scheme change）
-   时，即时刷新已渲染的活动缩略图与地图垫底 PNG 的 src（.light/.dark.png 互切），
+/* 主题联动：手动切换（themechange 事件）或系统切换（prefers-color-scheme change）时：
+   ① 刷新已渲染的活动缩略图 src（.light/.dark.png 互切）；
+   ② 轨迹地图可见且底图样式未手动锁定 → 联动重绘矢量瓦片层（浅色 light_all ↔ 暗色
+      dark_all 跟随主题），垫底 PNG 一并换新；
+   ③ 已手动选择底图样式（localStorage 有记录）或地图未打开 → 保留选择，仅换垫底 PNG src。
    无需重渲染列表（保留滚动位置与加载状态） */
 function rkApplyThemeChange(){
   var th = rkTheme();
@@ -526,6 +533,13 @@ function rkApplyThemeChange(){
   for(var i=0;i<imgs.length;i++){
     var s = imgs[i].getAttribute("src");
     if(s) imgs[i].setAttribute("src", s.replace(/\.(light|dark)\.png(?=[?#]|$)/, "." + th + ".png"));
+  }
+  var locked = false;
+  try{ locked = localStorage.getItem(RK_STYLE_KEY) !== null; }catch(e){}
+  var sec = rkEl("rkMapSec");
+  if(sec && sec.style.display !== "none" && !locked){
+    rkShowMap(rkState.selId);   /* 重绘：矢量层 + 垫底 PNG 一起跟随新主题 */
+    return;
   }
   var pv = document.querySelector(".rk-tm-pv");
   if(pv){
