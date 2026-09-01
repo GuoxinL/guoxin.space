@@ -250,6 +250,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             收藏 Skill
           </button>
+          <button class="btn" onclick="skCopyInstallAll()" title="复制一条命令：把全部 Skill 安装到常用 Agent（WSL/macOS/Linux 终端粘贴运行）">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            下载全部
+          </button>
         </div>
       </div>
       <div class="sk-bar" id="skBar">
@@ -272,6 +276,10 @@
           <div class="sk-src" id="drSrc"></div>
         </div>
         <div class="sk-detail-actions">
+          <button class="btn" onclick="skCopyInstall(skOpenDir)" title="复制一条命令：把当前 Skill 安装到常用 Agent（WSL/macOS/Linux 终端粘贴运行）">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            下载当前 Skill
+          </button>
           <button class="btn admin-only" onclick="skSync()" title="重新探测原仓库并更新代理文件（引用模式）">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="M21 3v6h-6"/></svg>
             同步
