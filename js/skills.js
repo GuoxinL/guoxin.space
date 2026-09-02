@@ -154,17 +154,56 @@ function skSourceOwner(source, sourceOwner){
   return m ? m[1] : "";
 }
 function escAttr(s){ return esc(s).replace(/"/g,"&quot;"); }
+/* —— 「应用到 Agent」命令：复制一段免预装一键命令到剪贴板 ——
+   命令 = mkdir ~/.local/bin + curl 下载 skill-apply.py（本仓库根，发布后在线）+ 运行。
+   卡片/详情传单目录；列表头「下载全部」传 all。默认应用到 workbuddy+codebuddy(wb,cb)。
+   访问者在 WSL/macOS/Linux 终端粘贴即可装到本机常用 agent。 */
+var SK_APPLY_RAW = "https://raw.githubusercontent.com/GuoxinL/guoxin.space/main/skill-apply.py";
+var SK_APPLY_AGENT = "wb,cb";           // 命令默认 agent（可改成 workbuddy/codebuddy/claude/cursor 或 all）
+function skShellQuote(s){
+  /* 目录名做 bash 单引号转义：内部单引号 -> '\''，整体单引号包裹 */
+  return "'" + String(s||"").replace(/'/g, "'\\''") + "'";
+}
+function skInstallCmd(dirOrAll){
+  /* dirOrAll: 单个目录名 或 "all"（下载全部） */
+  return "mkdir -p \"$HOME/.local/bin\" && "
+    + "curl -fsSL " + SK_APPLY_RAW + " -o \"$HOME/.local/bin/skill-apply.py\" && "
+    + "chmod +x \"$HOME/.local/bin/skill-apply.py\" && "
+    + "python3 \"$HOME/.local/bin/skill-apply.py\" " + skShellQuote(dirOrAll)
+    + " --agent " + SK_APPLY_AGENT;
+}
+function skCopyInstall(dir){
+  skToast("正在生成命令…");
+  var cmd = skInstallCmd(dir || "all");
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(cmd).then(function(){ skToast("已复制 · 到终端粘贴运行即可安装到常用 Agent"); },
+      function(){ skFallbackCopy(cmd); });
+  }else{ skFallbackCopy(cmd); }
+}
+function skCopyInstallAll(){ skCopyInstall("all"); }
+function skFallbackCopy(text){
+  var ta=document.createElement("textarea");
+  ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); skToast("已复制 · 到终端粘贴运行即可安装到常用 Agent"); }
+  catch(e){ skToast("复制失败，请手动复制"); }
+  ta.remove();
+}
+var skDownloadIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
+var skCopyIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
 function skRender(){
   var grid = $("skGrid");
   if(!skRows.length){ grid.innerHTML = skEmptyHtml("技能夹是空的 · 点击「收藏 Skill」从 GitHub 收藏第一个"); return; }
   grid.innerHTML = skRows.map(function(row){
     var badge = row.mode==="mirror" ? '<span class="sk-badge mirror">镜像</span>' : (row.mode==="proxy" ? '<span class="sk-badge proxy">引用</span>' : "");
     var src = row.source ? row.source.replace(/^https:\/\//,"") : (skRepo+"/"+row.dir);
-    return '<button class="sk-card" onclick="skGoto(\''+row.dir+'\')">'
+    var dl = '<button class="sk-card-dl" type="button" title="复制安装命令 · 粘贴到终端即可装到常用 Agent" aria-label="安装 '+escAttr(row.dir)+'" onclick="event.stopPropagation();skCopyInstall(\''+row.dir+'\')">'+skDownloadIcon+'</button>';
+    return '<div class="sk-grid-item">'+dl+'<div class="sk-card" role="button" tabindex="0" onclick="skGoto(\''+row.dir+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();skGoto(\''+row.dir+'\')}">'
       + '<div class="sk-icon"><img src="'+row.icon+'" alt="" onerror="this.style.display=\'none\'"></div>'
       + '<div class="sk-body"><div class="sk-name">'+esc(row.name)+badge+'</div>'
       + '<div class="sk-desc">'+esc(row.description||"（无简介）")+'</div>'
-      + '<div class="sk-src">'+esc(src)+'</div></div></button>';
+      + '<div class="sk-src">'+esc(src)+'</div></div></div></div>';
   }).join("");
 }
 
