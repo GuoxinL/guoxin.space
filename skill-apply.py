@@ -262,13 +262,36 @@ def _download_skill(owner, repo, branch, prefix, target_dir, skip_meta=True):
     return written, skipped, expected
 
 
+def _ensure_within(root, child):
+    """安全护栏：断言 child 的规范绝对路径一定在 root 之内(不允许 .. 上跳/绝对路径越界)。
+    返回规范后的 child 绝对路径；越界则返回 None。
+    """
+    base = os.path.abspath(root)
+    target = os.path.abspath(child)
+    if target == base:           # child 本身 == root：拒绝(我们要操作的是 root 的子目录)
+        return None
+    try:
+        if os.path.commonpath([base, target]) != base:
+            return None          # 不在 root 之下
+    except ValueError:
+        return None              # 不同盘符/无法比较 → 拒绝
+    return target
+
+
 def _sync_prune(target_dir, expected):
     """以远端为权威同步删除：删掉 target_dir 下不在 expected 里的文件，并清理多余空目录。
     仅操作 target_dir 内部，绝不删除 target_dir 本身。返回删除文件数。
     expected: 期望存在的相对路径集合(用 / 分隔)。
+    安全护栏：target_dir 必须是独立真实目录且不指向任何用户根(home 等)，杜绝越界删除。
     """
     removed = 0
     if not os.path.isdir(target_dir) or expected is None:
+        return 0
+    # 护栏：target_dir 必须解析为规范绝对路径，且不能是 home 本身或 filesystem 根
+    tgt = os.path.abspath(target_dir)
+    home = os.path.abspath(os.path.expanduser("~"))
+    if tgt == home or os.path.dirname(tgt) == tgt or tgt == os.path.abspath("/"):
+        print(f"  ✖ 安全护栏拒绝：目标路径 {target_dir} 指向 home/根目录，不同步删除")
         return 0
     for root, dirs, files in os.walk(target_dir, topdown=False):
         for fn in files:
@@ -329,7 +352,13 @@ def apply_entry(entry, agents, force=False, sync=False):
         # 若与条目名不同且以 fav-/my- 开头，去掉前缀避免歧义
         if d.startswith(("fav-", "my-")) and target_name == d:
             target_name = d.split("-", 1)[1]
+        # 安全护栏：target_name 仅取目录名，剥离任何路径分隔符/.. /绝对路径前缀
+        target_name = os.path.basename(target_name) or d
         target = os.path.join(base, target_name)
+        # 双保险：校验 target 规范路径必须落在 base 之内，否则拒绝该 agent
+        if _ensure_within(base, target) is None:
+            print(f"  [{ag}] ✖ 安全护栏拒绝：目标 {target_name} 越出 {base}，跳过")
+            continue
 
         expected = None
         if mode == "proxy":
