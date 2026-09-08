@@ -8,17 +8,17 @@
 
 ### 现状评估
 
-| 组件 | 当前状态 | 存在问题 |
-|---|---|---|
-| **静态托管** | ✅ GitHub Pages (main 分支) | - CDN 缓存限制 |
-| | | - 国内访问性能一般 |
-| | | - 无自定义域名 CDN 优化 |
-| **域名绑定** | ✅ guoxin.space | - 依赖 GitHub Pages 自有 CDN |
-| | | - 无 CDN 控制 |
-| **功能模块** | ✅ SPA 单页应用 | - 前端全部静态资源 |
-| | - 工作台 / JSON / Skills / Running | - 依赖 GitHub API |
-| **外部服务** | ⚠️ Cloudflare Worker (写通道) | - 国内访问不稳定 |
-| | - GuoxinL/running-private (数据) | - 依赖第三方服务 |
+| 组件         | 当前状态                           | 存在问题                     |
+|--------------|------------------------------------|------------------------------|
+| **静态托管** | ✅ GitHub Pages (main 分支)        | - CDN 缓存限制               |
+|              |                                    | - 国内访问性能一般           |
+|              |                                    | - 无自定义域名 CDN 优化      |
+| **域名绑定** | ✅ guoxin.space                    | - 依赖 GitHub Pages 自有 CDN |
+|              |                                    | - 无 CDN 控制                |
+| **功能模块** | ✅ SPA 单页应用                    | - 前端全部静态资源           |
+|              | - 工作台 / JSON / Skills / Running | - 依赖 GitHub API            |
+| **外部服务** | ⚠️ Cloudflare Worker (写通道)      | - 国内访问不稳定             |
+|              | - GuoxinL/running-private (数据)   | - 依赖第三方服务             |
 
 ### 架构优势
 

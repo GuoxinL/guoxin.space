@@ -21,10 +21,17 @@ worker.test.mjs
 .workbuddy/
 
 # running 数据仓库（本地开发用普通 clone 管理，不再作为 submodule 发布到 Pages）
-running/
+/running/
 
 # running-private 私有仓库（本地开发 clone，独立仓库）
-running-private/
+/running-private/
 
 # Cloudflare wrangler 本地缓存（部署产物，勿提交）
 .wrangler/
+
+# Qwik 构建产物
+dist/
+/lib/
+/server/
+.qwik/
+tsconfig.tsbuildinfo

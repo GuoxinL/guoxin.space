@@ -105,3 +105,13 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 - **改 CSS** → 只改 `css/style.css`，不要回写 `index.html`。
 - **改 JS** → 只改对应 `js/*.js`，不要回写 `index.html`；跑 `node verify.js`。
 - **GitHub Pages 缓存**：raw.githubusercontent.com 约 5 分钟 CDN 缓存，改 `running-private` 仓库产物后浏览器需强制刷新。
+
+## Qwik 重构（进行中）
+
+- 权威方案：docs/QWIK-REFACTORING-PLAN.md；包管理器统一 pnpm（禁用 npm / yarn，禁止提交 package-lock.json）。
+- 过渡期约定：新代码只进 app/src/，不要再往 js/ 加功能。js/、css/、index.html 在 P8 前保持可运行，作为回滚基线。
+- 构建：pnpm build 产出 app/dist/（挂了 static adapter，静态预渲染，Pages 可直接托管）。
+- 部署：.github/workflows/deploy.yml；仓库 Settings 的 Pages Source 需切到 GitHub Actions。
+- Pages 硬性两步：CI 里 cp CNAME app/dist/CNAME（404.html 由 SSG 自动生成），缺一会掉域名或深层路径 404。
+- 旧站回归：node verify.js（289 断言）在 P8 前继续维护；worker.js 与 test-worker.mjs 不受重构影响。
+- 注意：根 package.json 不加 type=module（会让 CommonJS 的 verify.js 报错），postcss/tailwind 配置用 CJS 写法。
