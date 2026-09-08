@@ -44,6 +44,9 @@ jobs:
 
   deploy:
     needs: build
+    # P7 前 Pages 来源仍是 branch deploy（旧站在线）。push 只跑构建验证，
+    # 避免 deploy-pages 报错；切到 GitHub Actions 来源后改为手动 workflow_dispatch 上线。
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
