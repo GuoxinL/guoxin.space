@@ -1,228 +1,232 @@
-import{j as p,h as ae,s as le,k as ce,F as z,c as J,i as Z,l as de,u as ue,a as k,_ as f,m as pe,n as G,R as me,o as _e,Q as ye}from"./q-nbz67VWc.js";/**
+import{p as f,q as ce,s as ue,r as de,F as G,t as qe,c as Z,i as M,v as fe,e as me,f as j,b as y,d as _e,w as V,R as be,x as he,Q as pe}from"./q-DATjI_jR.js";const D={manifestHash:"dhwi8m",core:"q-BDZG_ELa.js",preloader:"q-DoNi8vyY.js",qwikLoader:"q-naDMFAHy.js",bundleGraphAsset:"assets/YteNEn9B-bundle-graph.json",injections:[{tag:"link",location:"head",attributes:{rel:"stylesheet",href:"/assets/C3ljhfJo-style.css"}}],mapping:{s_07b9P2x1TLs:"q-Cq5snlVn.js",s_08HN7k0trnk:"q-xnkdOiqw.js",s_0pdX9Uyxb2E:"q-xnkdOiqw.js",s_20cwLdnk1rw:"q-xnkdOiqw.js",s_3TflY0fgRkQ:"q-xnkdOiqw.js",s_5cxamnnR77w:"q-xnkdOiqw.js",s_67TanhY701Q:"q-xnkdOiqw.js",s_803JPxSgWBg:"q-CkTe_RIy.js",s_8n2ksET0E94:"q-CQJMffpG.js",s_Hxo8BRKYtXs:"q-xnkdOiqw.js",s_L0MmKDGiGjA:"q-CkTe_RIy.js",s_MmmtfsX1Fe0:"q-xnkdOiqw.js",s_NRiY1itYZTI:"q-xnkdOiqw.js",s_Na6qwQRpeek:"q-xnkdOiqw.js",s_OE4RBjczb3k:"q-xnkdOiqw.js",s_OoljdHbSeMc:"q-Cq5snlVn.js",s_ROWkHhzUvDM:"q-Cq5snlVn.js",s_W1K7E048MsQ:"q-xnkdOiqw.js",s_WzXXRbeezaI:"q-BPx7YRAD.js",s_aqd7xyQCONk:"q-BNXAdI5a.js",s_bO8fvthhHpc:"q-xnkdOiqw.js",s_c5SzTXGYIeU:"q-xnkdOiqw.js",s_cLIwfGEBP1s:"q-Cq5snlVn.js",s_cu730rht0rc:"q-0UiouS4F.js",s_dcGl7DSPdeI:"q-HabJSPTK.js",s_gHbD0zUl64s:"q-xnkdOiqw.js",s_ghFJxMOTJZ8:"q-xnkdOiqw.js",s_i07XpRJ9fzE:"q-BDZG_ELa.js",s_kvx4Alvyy5U:"q-DCtbmh1Q.js",s_nzl0UTnZls4:"q-xnkdOiqw.js",s_qWhbe8Cv4oQ:"q-BNXAdI5a.js",s_u5Q5cmOS4DM:"q-DyUGRoWc.js",s_yxTr2TyA1lQ:"q-DyEWT__x.js",s_NHtoJuc3cD8:"q-xnkdOiqw.js",s_1grHGDd0T00:"q-BPx7YRAD.js",s_cQTua1OSzuI:"q-0UiouS4F.js",s_kvSpQhwLBG4:"q-xnkdOiqw.js",s_oTNLQB8A0ds:"q-BPx7YRAD.js",s_pHPgmEmJ33k:"q-xnkdOiqw.js",s_ujL0Q3jtcM0:"q-BPx7YRAD.js",s_HJREdkGd0ps:"q-xnkdOiqw.js",s_Q50fkMUYUGo:"q-0UiouS4F.js",s_S7Lz4yF9RIc:"q-DCtbmh1Q.js",s_jxbqmf0GtzU:"q-xnkdOiqw.js",s_scJWf07pxu0:"q-xnkdOiqw.js",s_zOSWkwOcLqA:"q-0UiouS4F.js",s_vPgjn4EqnmQ:"q-xnkdOiqw.js",s_2JH05s0oess:"q-_xKiPYLs.js",s_Z6Xvc6zDPWw:"q-D71im_T9.js",s_pvxDyT2pw7E:"q-C1U-f6F6.js",s_wSdzySeOnlk:"q-B7YtkvE9.js",s_0XRTcQzOTE0:"q-BfaoHe0-.js",s_7EUlnG4FVBQ:"q-eg8LoOkT.js",s_7W9M9noP6fc:"q-B-_KnY6P.js",s_8Yzw00bgUwk:"q-BNXAdI5a.js",s_D9PgVWcycfQ:"q-BZleaTKj.js",s_GkmvajltnCg:"q-7vl0WSR0.js",s_Grus9DC0Fw8:"q-uE0ePBQp.js",s_I8N90b4pXfI:"q-DBh-iDE5.js",s_OWTUNdBf0dI:"q-B9-QsKxR.js",s_c0MgvUcL00A:"q-48TQWlGJ.js",s_mZ9lE0Lavk8:"q-DfsgBVXM.js",s_zDvLPQgAWuE:"q-DB0_Hsjc.js",s_1RXVrk5DnoU:"q-C1U-f6F6.js",s_246Gr60KyzA:"q-BNXAdI5a.js",s_2nMSs56suPM:"q-OPqQBz5n.js",s_6NthLTHYRyA:"q-BzlK8_NC.js",s_Cxj0z7qQ5tk:"q-BHxMqxsm.js",s_FpCBbKKGQvU:"q-B7YtkvE9.js",s_HEjtAYNHpIU:"q-BL-4CS6u.js",s_HIBed0imu5Q:"q-BPx7YRAD.js",s_ISU7fRSgKm4:"q-Cq5snlVn.js",s_LIAeziHjqhU:"q-CkTe_RIy.js",s_LVeGS9vkrRk:"q-CKAXStqu.js",s_LqnNyU1Iy8c:"q-DVjFDg9h.js",s_O4gdnU1kjW0:"q-0UiouS4F.js",s_OnIx8bK0ipw:"q-tHXwt5T-.js",s_TG0a9Yb7gLI:"q-lL2mdPgq.js",s_TXxjJ5cBq7w:"q-Bn4F-Dsb.js",s_V0lbvSXO34g:"q-xnkdOiqw.js",s_VZFLGNcFx1Q:"q-DZX5iR3O.js",s_Xcg3bySKF2Q:"q-DyUGRoWc.js",s_YwqwNWLbKl0:"q-DIqJYcoB.js",s_aWuxeOnBXyE:"q-Cj56g34y.js",s_b41QemphEJg:"q-SEBeVmnl.js",s_btpnpoddAr4:"q-BDZG_ELa.js",s_cP1MN6aKI1E:"q-JxSfEI7x.js",s_ho6GxbXxAAw:"q-DjU7Jfz5.js",s_ht7s4x4p4ow:"q-uv4hjzLj.js",s_klr08XI5gOc:"q-DCtbmh1Q.js",s_m3AW0EgFSoE:"q-_1VSFa1R.js",s_m9zBAz6sGm4:"q-D_hZ6qFa.js",s_rByBtwVlC5o:"q-B34bBNxK.js",s_zXrQWnVqlos:"q-DG5Nbvl5.js",s_4GGTYz6eZds:"q-BNXAdI5a.js",s_rb7Iu4KsvOo:"q-C1U-f6F6.js",s_dEUG0RTwimI:"q-B7bdclRL.js",s_lpXYrDAj53Q:"q-DWR0egog.js",s_mE74SBniWTg:"q-ELOdre4l.js",s_sVGOSuvo0ro:"q-BYunCQxj.js",s_072FWxxzlto:"q-xnkdOiqw.js",s_09iIkAAnvNw:"q-xnkdOiqw.js",s_0QYPyvE0pRM:"q-xnkdOiqw.js",s_0ak6Sb0muPA:"q-C1U-f6F6.js",s_4hTMQP4KTwA:"q-xnkdOiqw.js",s_5DG0AADsy9w:"q-xnkdOiqw.js",s_6Mp1Gth5V1M:"q-B7YtkvE9.js",s_6bukL09TW9Q:"q-C1U-f6F6.js",s_FBb0SjTwxkw:"q-xnkdOiqw.js",s_IxxrG3g25Xw:"q-xnkdOiqw.js",s_NvRXeRJpaGw:"q-_1VSFa1R.js",s_O95oTkoKP0Y:"q-CkTe_RIy.js",s_Oqvi76xcAn0:"q-Cq5snlVn.js",s_QZ3Eg8FQQvw:"q-xnkdOiqw.js",s_RxEyWh02gF0:"q-CkTe_RIy.js",s_UtOXMMrPP5w:"q-Cq5snlVn.js",s_ZcieGZECmrk:"q-BNXAdI5a.js",s_cMseDXbd0dE:"q-BfS8b5Dx.js",s_Jd70yM7UqQQ:"q-z_lYkeib.js",s_pjX04MPA3aA:"q-C891pYy3.js",s_w0u1D7FhOMA:"q-DyEWT__x.js",s_8hGPg6MuI90:"q-BNXAdI5a.js",s_8sM0sjd9gQs:"q-0UiouS4F.js",s_HUevEm51x2E:"q-z_lYkeib.js",s_LWTKMJC5Bhc:"q-BPx7YRAD.js",s_RTu4Es0PIW0:"q-BPx7YRAD.js",s_WrWNheDzbB0:"q-xnkdOiqw.js",s_ZaWiCBVxMqM:"q-B34bBNxK.js",s_dRkHtwrtmHU:"q-CkTe_RIy.js",s_dlOz0F3jtME:"q-xnkdOiqw.js",s_eVS3tsSoeOk:"q-xnkdOiqw.js",s_eXCuZ658pb0:"q-CkTe_RIy.js",s_kQzRuRcucs4:"q-xnkdOiqw.js",s_kpaaEhYVT0g:"q-xnkdOiqw.js",s_pgG59wbu2PM:"q-B34bBNxK.js",s_q101F1preKM:"q-_1VSFa1R.js",s_sVsvmiuMqVY:"q-CKAXStqu.js",s_teZ8TOBkAq4:"q-xnkdOiqw.js",s_tt2LKfl3irg:"q-xnkdOiqw.js",s_uqkmCxjKKHQ:"q-xnkdOiqw.js",s_uzptTfBEqHo:"q-BNXAdI5a.js",s_wh3BLHIyAeo:"q-CkTe_RIy.js",s_yMKJiw9G7xI:"q-xnkdOiqw.js",s_yjuVfyQcboI:"q-_1VSFa1R.js"}};/**
  * @license
- * @builder.io/qwik/server 1.9.1
+ * @builder.io/qwik/server 1.20.0
  * Copyright Builder.io, Inc. All Rights Reserved.
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://github.com/QwikDev/qwik/blob/main/LICENSE
- */var we=(t=>typeof require<"u"?require:typeof Proxy<"u"?new Proxy(t,{get:(e,n)=>(typeof require<"u"?require:e)[n]}):t)(function(t){if(typeof require<"u")return require.apply(this,arguments);throw Error('Dynamic require of "'+t+'" is not supported')}),be="<sync>";function fe(t,e){const n=e==null?void 0:e.mapper,i=t.symbolMapper?t.symbolMapper:(o,a,r)=>{var l;if(n){const c=N(o),d=n[c];if(!d){if(c===be)return[c,""];if((l=globalThis.__qwik_reg_symbols)==null?void 0:l.has(c))return[o,"_"];if(r)return[o,`${r}?qrl=${o}`];console.error("Cannot resolve symbol",o,"in",n,r)}return d}};return{isServer:!0,async importSymbol(o,a,r){var q;const l=N(r),c=(q=globalThis.__qwik_reg_symbols)==null?void 0:q.get(l);if(c)return c;let d=String(a);d.endsWith(".js")||(d+=".js");const w=we(d);if(!(r in w))throw new Error(`Q-ERROR: missing symbol '${r}' in module '${d}'.`);return w[r]},raf:()=>(console.error("server can not rerender"),Promise.resolve()),nextTick:o=>new Promise(a=>{setTimeout(()=>{a(o())})}),chunkForSymbol(o,a,r){return i(o,n,r)}}}async function he(t,e){const n=fe(t,e);le(n)}var N=t=>{const e=t.lastIndexOf("_");return e>-1?t.slice(e+1):t},qe="q:instance";function ke(t){if(t!=null&&t.mapping!=null&&typeof t.mapping=="object"&&t.symbols!=null&&typeof t.symbols=="object"&&t.bundles!=null&&typeof t.bundles=="object")return t}function S(){let s=`const w=new Worker(URL.createObjectURL(new Blob(['onmessage=(e)=>{Promise.all(e.data.map(u=>fetch(u))).finally(()=>{setTimeout(postMessage({}),9999)})}'],{type:"text/javascript"})));`;return s+="w.postMessage(u.map(u=>new URL(u,origin)+''));",s+="w.onmessage=()=>{w.terminate()};",s}function ge(t,e){const n={bundles:g(e).map(s=>s.split("/").pop())};return`(window.qwikPrefetchSW||(window.qwikPrefetchSW=[])).push(${JSON.stringify(["prefetch",t,...n.bundles])});`}function g(t){const e=[],n=i=>{if(Array.isArray(i))for(const s of i)e.includes(s.url)||(e.push(s.url),n(s.imports))};return n(t),e}function xe(t){const e=new Map;let n=0;const i=(r,l)=>{if(Array.isArray(r))for(const c of r){const d=e.get(c.url)||0;e.set(c.url,d+1),n++,l.has(c.url)||(l.add(c.url),i(c.imports,l))}},s=new Set;for(const r of t)s.clear(),i(r.imports,s);const o=n/e.size*2,a=Array.from(e.entries());return a.sort((r,l)=>l[1]-r[1]),a.slice(0,5).filter(r=>r[1]>o).map(r=>r[0])}function je(t,e,n,i){const s=ze(e==null?void 0:e.implementation),o=[];return s.prefetchEvent==="always"&&ve(t,o,n,i),s.linkInsert==="html-append"&&Ee(o,n,s),s.linkInsert==="js-append"?Ne(o,n,s,i):s.workerFetchInsert==="always"&&Se(o,n,i),o.length>0?p(z,{children:o}):null}function ve(t,e,n,i){const s=xe(n);for(const o of s)e.push(p("link",{rel:"modulepreload",href:o,nonce:i}));e.push(p("script",{"q:type":"prefetch-bundles",dangerouslySetInnerHTML:ge(t,n)+"document.dispatchEvent(new CustomEvent('qprefetch', {detail:{links: [location.pathname]}}))",nonce:i}))}function Ee(t,e,n){const i=g(e),s=n.linkRel||"prefetch";for(const o of i){const a={};a.href=o,a.rel=s,(s==="prefetch"||s==="preload")&&o.endsWith(".js")&&(a.as="script"),t.push(p("link",a))}}function Ne(t,e,n,i){const s=n.linkRel||"prefetch";let o="";n.workerFetchInsert==="no-link-support"&&(o+="let supportsLinkRel = true;"),o+=`const u=${JSON.stringify(g(e))};`,o+="u.map((u,i)=>{",o+="const l=document.createElement('link');",o+='l.setAttribute("href",u);',o+=`l.setAttribute("rel","${s}");`,n.workerFetchInsert==="no-link-support"&&(o+="if(i===0){",o+="try{",o+=`supportsLinkRel=l.relList.supports("${s}");`,o+="}catch(e){}",o+="}"),o+="document.body.appendChild(l);",o+="});",n.workerFetchInsert==="no-link-support"&&(o+="if(!supportsLinkRel){",o+=S(),o+="}"),n.workerFetchInsert==="always"&&(o+=S()),t.push(p("script",{type:"module","q:type":"link-js",dangerouslySetInnerHTML:o,nonce:i}))}function Se(t,e,n){let i=`const u=${JSON.stringify(g(e))};`;i+=S(),t.push(p("script",{type:"module","q:type":"prefetch-worker",dangerouslySetInnerHTML:i,nonce:n}))}function ze(t){return{...Ce,...t}}var Ce={linkInsert:null,linkRel:null,workerFetchInsert:null,prefetchEvent:"always"};function E(){if(typeof performance>"u")return()=>0;const t=performance.now();return()=>(performance.now()-t)/1e6}function X(t){let e=t.base;return typeof t.base=="function"&&(e=t.base(t)),typeof e=="string"?(e.endsWith("/")||(e+="/"),e):"/build/"}function Ie(t,e,n){if(!n)return[];const i=e.prefetchStrategy,s=X(e);if(i!==null){if(!i||!i.symbolsToPrefetch||i.symbolsToPrefetch==="auto")return Te(t,n,s);if(typeof i.symbolsToPrefetch=="function")try{return i.symbolsToPrefetch({manifest:n.manifest})}catch(o){console.error("getPrefetchUrls, symbolsToPrefetch()",o)}}return[]}function Te(t,e,n){const i=[],s=t==null?void 0:t.qrls,{mapper:o,manifest:a}=e,r=new Map;if(Array.isArray(s))for(const l of s){const c=l.getHash(),d=o[c];if(d){const w=d[1];V(a,r,i,n,w)}}return i}function V(t,e,n,i,s){const o=i+s;let a=e.get(o);if(!a){a={url:o,imports:[]},e.set(o,a);const r=t.bundles[s];if(r&&Array.isArray(r.imports))for(const l of r.imports)V(t,e,a.imports,i,l)}n.push(a)}var Le='(()=>{var e=Object.defineProperty,t=Object.getOwnPropertySymbols,r=Object.prototype.hasOwnProperty,o=Object.prototype.propertyIsEnumerable,n=(t,r,o)=>r in t?e(t,r,{enumerable:!0,configurable:!0,writable:!0,value:o}):t[r]=o,s=(e,s)=>{for(var a in s||(s={}))r.call(s,a)&&n(e,a,s[a]);if(t)for(var a of t(s))o.call(s,a)&&n(e,a,s[a]);return e};((e,t)=>{const r="__q_context__",o=window,n=new Set,a=new Set([e]),c="replace",i="forEach",l="target",f="getAttribute",p="isConnected",b="qvisible",u="_qwikjson_",y=(e,t)=>Array.from(e.querySelectorAll(t)),h=e=>{const t=[];return a.forEach((r=>t.push(...y(r,e)))),t},d=e=>{S(e),y(e,"[q\\\\:shadowroot]").forEach((e=>{const t=e.shadowRoot;t&&d(t)}))},m=e=>e&&"function"==typeof e.then,w=(e,t,r=t.type)=>{h("[on"+e+"\\\\:"+r+"]")[i]((o=>E(o,e,t,r)))},q=t=>{if(void 0===t[u]){let r=(t===e.documentElement?e.body:t).lastElementChild;for(;r;){if("SCRIPT"===r.tagName&&"qwik/json"===r[f]("type")){t[u]=JSON.parse(r.textContent[c](/\\\\x3C(\\/?script)/gi,"<$1"));break}r=r.previousElementSibling}}},v=(e,t)=>new CustomEvent(e,{detail:t}),E=async(t,o,n,a=n.type)=>{const i="on"+o+":"+a;t.hasAttribute("preventdefault:"+a)&&n.preventDefault();const l=t._qc_,b=l&&l.li.filter((e=>e[0]===i));if(b&&b.length>0){for(const e of b){const r=e[1].getFn([t,n],(()=>t[p]))(n,t),o=n.cancelBubble;m(r)&&await r,o&&n.stopPropagation()}return}const u=t[f](i);if(u){const o=t.closest("[q\\\\:container]"),a=o[f]("q:base"),i=o[f]("q:version")||"unknown",l=o[f]("q:manifest-hash")||"dev",b=new URL(a,e.baseURI);for(const f of u.split("\\n")){const u=new URL(f,b),y=u.href,h=u.hash[c](/^#?([^?[|]*).*$/,"$1")||"default",d=performance.now();let w,v,E;const _=f.startsWith("#"),A={qBase:a,qManifest:l,qVersion:i,href:y,symbol:h,element:t,reqTime:d};if(_){const t=o.getAttribute("q:instance");w=(e["qFuncs_"+t]||[])[Number.parseInt(h)],w||(v="sync",E=Error("sync handler error for symbol: "+h))}else{const e=u.href.split("#")[0];try{const t=import(e);q(o),w=(await t)[h],w||(v="no-symbol",E=Error(`${h} not in ${e}`))}catch(e){v||(v="async"),E=e}}if(!w){g("qerror",s({importError:v,error:E},A)),console.error(E);break}const k=e[r];if(t[p])try{e[r]=[t,n,u],_||g("qsymbol",s({},A));const o=w(n,t);m(o)&&await o}catch(e){g("qerror",s({error:e},A))}finally{e[r]=k}}}},g=(t,r)=>{e.dispatchEvent(v(t,r))},_=e=>e[c](/([A-Z])/g,(e=>"-"+e.toLowerCase())),A=async e=>{let t=_(e.type),r=e[l];for(w("-document",e,t);r&&r[f];){const o=E(r,"",e,t);let n=e.cancelBubble;m(o)&&await o,n=n||e.cancelBubble||r.hasAttribute("stoppropagation:"+e.type),r=e.bubbles&&!0!==n?r.parentElement:null}},k=e=>{w("-window",e,_(e.type))},C=()=>{var r;const s=e.readyState;if(!t&&("interactive"==s||"complete"==s)&&(a.forEach(d),t=1,g("qinit"),(null!=(r=o.requestIdleCallback)?r:o.setTimeout).bind(o)((()=>g("qidle"))),n.has(b))){const e=h("[on\\\\:"+b+"]"),t=new IntersectionObserver((e=>{for(const r of e)r.isIntersecting&&(t.unobserve(r[l]),E(r[l],"",v(b,r)))}));e[i]((e=>t.observe(e)))}},O=(e,t,r,o=!1)=>e.addEventListener(t,r,{capture:o,passive:!1}),S=(...e)=>{for(const t of e)"string"==typeof t?n.has(t)||(a.forEach((e=>O(e,t,A,!0))),O(o,t,k,!0),n.add(t)):a.has(t)||(n.forEach((e=>O(t,e,A,!0))),a.add(t))};if(!(r in e)){e[r]=0;const t=o.qwikevents;Array.isArray(t)&&S(...t),o.qwikevents={events:n,roots:a,push:S},O(e,"readystatechange",C),C()}})(document)})()',Pe=`(() => {
-    var __defProp = Object.defineProperty;
-    var __getOwnPropSymbols = Object.getOwnPropertySymbols;
-    var __hasOwnProp = Object.prototype.hasOwnProperty;
-    var __propIsEnum = Object.prototype.propertyIsEnumerable;
-    var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, {
-        enumerable: !0,
-        configurable: !0,
-        writable: !0,
-        value: value
-    }) : obj[key] = value;
-    var __spreadValues = (a, b) => {
-        for (var prop in b || (b = {})) {
-            __hasOwnProp.call(b, prop) && __defNormalProp(a, prop, b[prop]);
+ */var ye=!1,ve="",we=(t,...e)=>{const n=ge(ye,t,...e);debugger;return n},je=t=>t,ge=(t,e,...n)=>{const r=e instanceof Error?e:new Error(e);return console.error("%cQWIK ERROR",ve,r.message,...je(n),r.stack),r},ke=(t,...e)=>`Code(${t}) https://github.com/QwikDev/qwik/blob/main/packages/qwik/src/core/error/error.ts#L${8+t}`,xe=11,Ee=(t,...e)=>{const n=ke(t,...e);return we(n,...e)},Se="<sync>";function $e(t,e){const n=e==null?void 0:e.mapper,r=t.symbolMapper?t.symbolMapper:(o,i,a)=>{var l;if(n){const u=B(o),c=n[u];if(!c){if(u===Se)return[u,""];if((l=globalThis.__qwik_reg_symbols)==null?void 0:l.has(u))return[o,"_"];if(a)return[o,`${a}?qrl=${o}`];console.error("Cannot resolve symbol",o,"in",n,a)}return c}};return{isServer:!0,async importSymbol(o,i,a){var c;const l=B(a),u=(c=globalThis.__qwik_reg_symbols)==null?void 0:c.get(l);if(u)return u;throw Ee(xe,a)},raf:()=>(console.error("server can not rerender"),Promise.resolve()),nextTick:o=>new Promise(i=>{setTimeout(()=>{i(o())})}),chunkForSymbol(o,i,a){return r(o,n,a)}}}async function Pe(t,e){const n=$e(t,e);ue(n)}var B=t=>{const e=t.lastIndexOf("_");return e>-1?t.slice(e+1):t},Oe="q:instance",N={$DEBUG$:!1,$invPreloadProbability$:.65},Be=Date.now(),Ae=/\.[mc]?js$/,ee=0,Ce=1,Te=2,Ie=3,R,L,De=(t,e)=>({$name$:t,$state$:Ae.test(t)?ee:Ie,$deps$:ne?e==null?void 0:e.map(n=>({...n,$factor$:1})):e,$inverseProbability$:1,$createdTs$:Date.now(),$waitedMs$:0,$loadedMs$:0}),Ne=t=>{const e=new Map;let n=0;for(;n<t.length;){const r=t[n++],s=[];let o,i=1;for(;o=t[n],typeof o=="number";)o<0?i=-o/10:s.push({$name$:t[o],$importProbability$:i,$factor$:1}),n++;e.set(r,s)}return e},te=t=>{let e=Q.get(t);if(!e){let n;if(L){if(n=L.get(t),!n)return;n.length||(n=void 0)}e=De(t,n),Q.set(t,e)}return e},Re=(t,e)=>{e&&("debug"in e&&(N.$DEBUG$=!!e.debug),typeof e.preloadProbability=="number"&&(N.$invPreloadProbability$=1-e.preloadProbability)),!(R!=null||!t)&&(R="",L=Ne(t))},Q=new Map,ne,A,re=0,S=[],Le=(...t)=>{console.log(`Preloader ${Date.now()-Be}ms ${re}/${S.length} queued>`,...t)},Qe=()=>{Q.clear(),A=!1,ne=!0,re=0,S.length=0},Fe=()=>{A&&(S.sort((t,e)=>t.$inverseProbability$-e.$inverseProbability$),A=!1)},Ue=()=>{Fe();let t=.4;const e=[];for(const n of S){const r=Math.round((1-n.$inverseProbability$)*10);r!==t&&(t=r,e.push(t)),e.push(n.$name$)}return e},se=(t,e,n)=>{if(n!=null&&n.has(t))return;const r=t.$inverseProbability$;if(t.$inverseProbability$=e,!(r-t.$inverseProbability$<.01)&&(R!=null&&t.$state$<Te&&(t.$state$===ee&&(t.$state$=Ce,S.push(t),N.$DEBUG$&&Le(`queued ${Math.round((1-t.$inverseProbability$)*100)}%`,t.$name$)),A=!0),t.$deps$)){n||(n=new Set),n.add(t);const s=1-t.$inverseProbability$;for(const o of t.$deps$){const i=te(o.$name$);if(i.$inverseProbability$===0)continue;let a;if(s===1||s>=.99&&F<100)F++,a=Math.min(.01,1-o.$importProbability$);else{const l=1-o.$importProbability$*s,u=o.$factor$,c=l/u;a=Math.max(.02,i.$inverseProbability$*c),o.$factor$=c}se(i,a,n)}}},J=(t,e)=>{const n=te(t);n&&n.$inverseProbability$>e&&se(n,e)},F,Ge=(t,e)=>{if(!(t!=null&&t.length))return;F=0;let n=e?1-e:.4;if(Array.isArray(t))for(let r=t.length-1;r>=0;r--){const s=t[r];typeof s=="number"?n=1-s/10:J(s,n)}else J(t,n)};function ze(t){const e=[],n=r=>{if(r)for(const s of r)e.includes(s.url)||(e.push(s.url),s.imports&&n(s.imports))};return n(t),e}var He=t=>{var r;const e=qe(),n=(r=t==null?void 0:t.qrls)==null?void 0:r.map(s=>{var l;const o=s.$refSymbol$||s.$symbol$,i=s.$chunk$,a=e.chunkForSymbol(o,i,(l=s.dev)==null?void 0:l.file);return a?a[1]:i}).filter(Boolean);return[...new Set(n)]};function We(t,e,n){const r=e.prefetchStrategy;if(r===null)return[];if(!(n!=null&&n.manifest.bundleGraph))return He(t);if(typeof(r==null?void 0:r.symbolsToPrefetch)=="function")try{const o=r.symbolsToPrefetch({manifest:n.manifest});return ze(o)}catch(o){console.error("getPrefetchUrls, symbolsToPrefetch()",o)}const s=new Set;for(const o of(t==null?void 0:t.qrls)||[]){const i=B(o.$refSymbol$||o.$symbol$);i&&i.length>=10&&s.add(i)}return[...s]}var Ye=(t,e)=>{if(!(e!=null&&e.manifest.bundleGraph))return[...new Set(t)];Qe();let n=.99;for(const r of t.slice(0,15))Ge(r,n),n*=.85;return Ue()},U=(t,e)=>{if(e==null)return null;const n=`${t}${e}`.split("/"),r=[];for(const s of n)s===".."&&r.length>0?r.pop():r.push(s);return r.join("/")},Xe=(t,e,n,r,s)=>{var l;const o=U(t,(l=e==null?void 0:e.manifest)==null?void 0:l.preloader),i="/"+(e==null?void 0:e.manifest.bundleGraphAsset);if(o&&i&&n!==!1){const u=typeof n=="object"?{debug:n.debug,preloadProbability:n.ssrPreloadProbability}:void 0;Re(e==null?void 0:e.manifest.bundleGraph,u);const c=[];n!=null&&n.debug&&c.push("d:1"),n!=null&&n.maxIdlePreloads&&c.push(`P:${n.maxIdlePreloads}`),n!=null&&n.preloadProbability&&c.push(`Q:${n.preloadProbability}`);const b=c.length?`,{${c.join(",")}}`:"",g=`let b=fetch("${i}");import("${o}").then(({l})=>l(${JSON.stringify(t)},b${b}));`;r.push(f("link",{rel:"modulepreload",href:o,nonce:s,crossorigin:"anonymous"}),f("link",{rel:"preload",href:i,as:"fetch",crossorigin:"anonymous",nonce:s}),f("script",{type:"module",async:!0,dangerouslySetInnerHTML:g,nonce:s}))}const a=U(t,e==null?void 0:e.manifest.core);a&&r.push(f("link",{rel:"modulepreload",href:a,nonce:s}))},Ke=(t,e,n,r,s)=>{if(r.length===0||n===!1)return null;const{ssrPreloads:o,ssrPreloadProbability:i}=Je(typeof n=="boolean"?void 0:n);let a=o;const l=[],u=[],c=e==null?void 0:e.manifest.manifestHash;if(a){const p=e==null?void 0:e.manifest.preloader,d=e==null?void 0:e.manifest.core,_=Ye(r,e);let x=4;const $=i*10;for(const h of _)if(typeof h=="string"){if(x<$)break;if(h===p||h===d)continue;if(u.push(h),--a===0)break}else x=h}const b=U(t,c&&(e==null?void 0:e.manifest.preloader));let k=u.length?`${JSON.stringify(u)}.map((l,e)=>{e=document.createElement('link');e.rel='modulepreload';e.href=${JSON.stringify(t)}+l;document.head.appendChild(e)});`:"";return b&&(k+=`window.addEventListener('load',f=>{f=_=>import("${b}").then(({p})=>p(${JSON.stringify(r)}));try{requestIdleCallback(f,{timeout:2000})}catch(e){setTimeout(f,200)}})`),k&&l.push(f("script",{type:"module","q:type":"preload",async:!0,dangerouslySetInnerHTML:k,nonce:s})),l.length>0?f(G,{children:l}):null},Ve=(t,e,n,r,s)=>{var o;if(n.preloader!==!1){const i=We(e,n,r);if(i.length>0){const a=Ke(t,r,n.preloader,i,(o=n.serverData)==null?void 0:o.nonce);a&&s.push(a)}}};function Je(t){return{...Ze,...t}}var Ze={ssrPreloads:7,ssrPreloadProbability:.5,debug:!1,maxIdlePreloads:25,preloadProbability:.35},Me='const t=document,e=window,n=new Set,o=new Set([t]);let r;const s=(t,e)=>Array.from(t.querySelectorAll(e)),a=t=>{const e=[];return o.forEach(n=>e.push(...s(n,t))),e},i=t=>{w(t),s(t,"[q\\\\:shadowroot]").forEach(t=>{const e=t.shadowRoot;e&&i(e)})},c=t=>t&&"function"==typeof t.then,l=(t,e,n=e.type)=>{a("[on"+t+"\\\\:"+n+"]").forEach(o=>{b(o,t,e,n)})},f=e=>{if(void 0===e._qwikjson_){let n=(e===t.documentElement?t.body:e).lastElementChild;for(;n;){if("SCRIPT"===n.tagName&&"qwik/json"===n.getAttribute("type")){e._qwikjson_=JSON.parse(n.textContent.replace(/\\\\x3C(\\/?script)/gi,"<$1"));break}n=n.previousElementSibling}}},p=(t,e)=>new CustomEvent(t,{detail:e}),b=async(e,n,o,r=o.type)=>{const s="on"+n+":"+r;e.hasAttribute("preventdefault:"+r)&&o.preventDefault(),e.hasAttribute("stoppropagation:"+r)&&o.stopPropagation();const a=e._qc_,i=a&&a.li.filter(t=>t[0]===s);if(i&&i.length>0){for(const t of i){const n=t[1].getFn([e,o],()=>e.isConnected)(o,e),r=o.cancelBubble;c(n)&&await n,r&&o.stopPropagation()}return}const l=e.getAttribute(s);if(l){const n=e.closest("[q\\\\:container]"),r=n.getAttribute("q:base"),s=n.getAttribute("q:version")||"unknown",a=n.getAttribute("q:manifest-hash")||"dev",i=new URL(r,t.baseURI);for(const p of l.split("\\n")){const l=new URL(p,i),b=l.href,h=l.hash.replace(/^#?([^?[|]*).*$/,"$1")||"default",q=performance.now();let _,d,y;const w=p.startsWith("#"),g={qBase:r,qManifest:a,qVersion:s,href:b,symbol:h,element:e,reqTime:q};if(w){const e=n.getAttribute("q:instance");_=(t["qFuncs_"+e]||[])[Number.parseInt(h)],_||(d="sync",y=Error("sym:"+h))}else{u("qsymbol",g);const t=l.href.split("#")[0];try{const e=import(t);f(n),_=(await e)[h],_||(d="no-symbol",y=Error(`${h} not in ${t}`))}catch(t){d||(d="async"),y=t}}if(!_){u("qerror",{importError:d,error:y,...g}),console.error(y);break}const m=t.__q_context__;if(e.isConnected)try{t.__q_context__=[e,o,l];const n=_(o,e);c(n)&&await n}catch(t){u("qerror",{error:t,...g})}finally{t.__q_context__=m}}}},u=(e,n)=>{t.dispatchEvent(p(e,n))},h=t=>t.replace(/([A-Z])/g,t=>"-"+t.toLowerCase()),q=async t=>{let e=h(t.type),n=t.target;for(l("-document",t,e);n&&n.getAttribute;){const o=b(n,"",t,e);let r=t.cancelBubble;c(o)&&await o,r||(r=r||t.cancelBubble||n.hasAttribute("stoppropagation:"+t.type)),n=t.bubbles&&!0!==r?n.parentElement:null}},_=t=>{l("-window",t,h(t.type))},d=()=>{const s=t.readyState;if(!r&&("interactive"==s||"complete"==s)&&(o.forEach(i),r=1,u("qinit"),(e.requestIdleCallback??e.setTimeout).bind(e)(()=>u("qidle")),n.has("qvisible"))){const t=a("[on\\\\:qvisible]"),e=new IntersectionObserver(t=>{for(const n of t)n.isIntersecting&&(e.unobserve(n.target),b(n.target,"",p("qvisible",n)))});t.forEach(t=>e.observe(t))}},y=(t,e,n,o=!1)=>{t.addEventListener(e,n,{capture:o,passive:!1})},w=(...t)=>{for(const r of t)"string"==typeof r?n.has(r)||(o.forEach(t=>y(t,r,q,!0)),y(e,r,_,!0),n.add(r)):o.has(r)||(n.forEach(t=>y(r,t,q,!0)),o.add(r))};if(!("__q_context__"in t)){t.__q_context__=0;const r=e.qwikevents;r&&(Array.isArray(r)?w(...r):w("click","input")),e.qwikevents={events:n,roots:o,push:w},y(t,"readystatechange",d),d()}',et=`const doc = document;
+const win = window;
+const events = /* @__PURE__ */ new Set();
+const roots = /* @__PURE__ */ new Set([doc]);
+let hasInitialized;
+const nativeQuerySelectorAll = (root, selector) => Array.from(root.querySelectorAll(selector));
+const querySelectorAll = (query) => {
+  const elements = [];
+  roots.forEach((root) => elements.push(...nativeQuerySelectorAll(root, query)));
+  return elements;
+};
+const findShadowRoots = (fragment) => {
+  processEventOrNode(fragment);
+  nativeQuerySelectorAll(fragment, "[q\\\\:shadowroot]").forEach((parent) => {
+    const shadowRoot = parent.shadowRoot;
+    shadowRoot && findShadowRoots(shadowRoot);
+  });
+};
+const isPromise = (promise) => promise && typeof promise.then === "function";
+const broadcast = (infix, ev, type = ev.type) => {
+  querySelectorAll("[on" + infix + "\\\\:" + type + "]").forEach((el) => {
+    dispatch(el, infix, ev, type);
+  });
+};
+const resolveContainer = (containerEl) => {
+  if (containerEl._qwikjson_ === void 0) {
+    const parentJSON = containerEl === doc.documentElement ? doc.body : containerEl;
+    let script = parentJSON.lastElementChild;
+    while (script) {
+      if (script.tagName === "SCRIPT" && script.getAttribute("type") === "qwik/json") {
+        containerEl._qwikjson_ = JSON.parse(
+          script.textContent.replace(/\\\\x3C(\\/?script)/gi, "<$1")
+        );
+        break;
+      }
+      script = script.previousElementSibling;
+    }
+  }
+};
+const createEvent = (eventName, detail) => new CustomEvent(eventName, {
+  detail
+});
+const dispatch = async (element, onPrefix, ev, eventName = ev.type) => {
+  const attrName = "on" + onPrefix + ":" + eventName;
+  if (element.hasAttribute("preventdefault:" + eventName)) {
+    ev.preventDefault();
+  }
+  if (element.hasAttribute("stoppropagation:" + eventName)) {
+    ev.stopPropagation();
+  }
+  const ctx = element._qc_;
+  const relevantListeners = ctx && ctx.li.filter((li) => li[0] === attrName);
+  if (relevantListeners && relevantListeners.length > 0) {
+    for (const listener of relevantListeners) {
+      const results = listener[1].getFn([element, ev], () => element.isConnected)(ev, element);
+      const cancelBubble = ev.cancelBubble;
+      if (isPromise(results)) {
+        await results;
+      }
+      if (cancelBubble) {
+        ev.stopPropagation();
+      }
+    }
+    return;
+  }
+  const attrValue = element.getAttribute(attrName);
+  if (attrValue) {
+    const container = element.closest("[q\\\\:container]");
+    const qBase = container.getAttribute("q:base");
+    const qVersion = container.getAttribute("q:version") || "unknown";
+    const qManifest = container.getAttribute("q:manifest-hash") || "dev";
+    const base = new URL(qBase, doc.baseURI);
+    for (const qrl of attrValue.split("\\n")) {
+      const url = new URL(qrl, base);
+      const href = url.href;
+      const symbol = url.hash.replace(/^#?([^?[|]*).*$/, "$1") || "default";
+      const reqTime = performance.now();
+      let handler;
+      let importError;
+      let error;
+      const isSync = qrl.startsWith("#");
+      const eventData = {
+        qBase,
+        qManifest,
+        qVersion,
+        href,
+        symbol,
+        element,
+        reqTime
+      };
+      if (isSync) {
+        const hash = container.getAttribute("q:instance");
+        handler = (doc["qFuncs_" + hash] || [])[Number.parseInt(symbol)];
+        if (!handler) {
+          importError = "sync";
+          error = new Error("sym:" + symbol);
         }
-        if (__getOwnPropSymbols) {
-            for (var prop of __getOwnPropSymbols(b)) {
-                __propIsEnum.call(b, prop) && __defNormalProp(a, prop, b[prop]);
-            }
+      } else {
+        emitEvent("qsymbol", eventData);
+        const uri = url.href.split("#")[0];
+        try {
+          const module = import(
+                        uri
+          );
+          resolveContainer(container);
+          handler = (await module)[symbol];
+          if (!handler) {
+            importError = "no-symbol";
+            error = new Error(\`\${symbol} not in \${uri}\`);
+          }
+        } catch (err) {
+          importError || (importError = "async");
+          error = err;
         }
-        return a;
-    };
-    ((doc, hasInitialized) => {
-        const Q_CONTEXT = "__q_context__";
-        const win = window;
-        const events =  new Set;
-        const roots =  new Set([ doc ]);
-        const nativeQuerySelectorAll = (root, selector) => Array.from(root.querySelectorAll(selector));
-        const querySelectorAll = query => {
-            const elements = [];
-            roots.forEach((root => elements.push(...nativeQuerySelectorAll(root, query))));
-            return elements;
-        };
-        const findShadowRoots = fragment => {
-            processEventOrNode(fragment);
-            nativeQuerySelectorAll(fragment, "[q\\\\:shadowroot]").forEach((parent => {
-                const shadowRoot = parent.shadowRoot;
-                shadowRoot && findShadowRoots(shadowRoot);
-            }));
-        };
-        const isPromise = promise => promise && "function" == typeof promise.then;
-        const broadcast = (infix, ev, type = ev.type) => {
-            querySelectorAll("[on" + infix + "\\\\:" + type + "]").forEach((el => dispatch(el, infix, ev, type)));
-        };
-        const resolveContainer = containerEl => {
-            if (void 0 === containerEl._qwikjson_) {
-                let script = (containerEl === doc.documentElement ? doc.body : containerEl).lastElementChild;
-                while (script) {
-                    if ("SCRIPT" === script.tagName && "qwik/json" === script.getAttribute("type")) {
-                        containerEl._qwikjson_ = JSON.parse(script.textContent.replace(/\\\\x3C(\\/?script)/gi, "<$1"));
-                        break;
-                    }
-                    script = script.previousElementSibling;
-                }
-            }
-        };
-        const createEvent = (eventName, detail) => new CustomEvent(eventName, {
-            detail: detail
+      }
+      if (!handler) {
+        emitEvent("qerror", {
+          importError,
+          error,
+          ...eventData
         });
-        const dispatch = async (element, onPrefix, ev, eventName = ev.type) => {
-            const attrName = "on" + onPrefix + ":" + eventName;
-            element.hasAttribute("preventdefault:" + eventName) && ev.preventDefault();
-            const ctx = element._qc_;
-            const relevantListeners = ctx && ctx.li.filter((li => li[0] === attrName));
-            if (relevantListeners && relevantListeners.length > 0) {
-                for (const listener of relevantListeners) {
-                    const results = listener[1].getFn([ element, ev ], (() => element.isConnected))(ev, element);
-                    const cancelBubble = ev.cancelBubble;
-                    isPromise(results) && await results;
-                    cancelBubble && ev.stopPropagation();
-                }
-                return;
-            }
-            const attrValue = element.getAttribute(attrName);
-            if (attrValue) {
-                const container = element.closest("[q\\\\:container]");
-                const qBase = container.getAttribute("q:base");
-                const qVersion = container.getAttribute("q:version") || "unknown";
-                const qManifest = container.getAttribute("q:manifest-hash") || "dev";
-                const base = new URL(qBase, doc.baseURI);
-                for (const qrl of attrValue.split("\\n")) {
-                    const url = new URL(qrl, base);
-                    const href = url.href;
-                    const symbol = url.hash.replace(/^#?([^?[|]*).*$/, "$1") || "default";
-                    const reqTime = performance.now();
-                    let handler;
-                    let importError;
-                    let error;
-                    const isSync = qrl.startsWith("#");
-                    const eventData = {
-                        qBase: qBase,
-                        qManifest: qManifest,
-                        qVersion: qVersion,
-                        href: href,
-                        symbol: symbol,
-                        element: element,
-                        reqTime: reqTime
-                    };
-                    if (isSync) {
-                        const hash = container.getAttribute("q:instance");
-                        handler = (doc["qFuncs_" + hash] || [])[Number.parseInt(symbol)];
-                        if (!handler) {
-                            importError = "sync";
-                            error = new Error("sync handler error for symbol: " + symbol);
-                        }
-                    } else {
-                        const uri = url.href.split("#")[0];
-                        try {
-                            const module = import(
-                                                        uri);
-                            resolveContainer(container);
-                            handler = (await module)[symbol];
-                            if (!handler) {
-                                importError = "no-symbol";
-                                error = new Error(\`\${symbol} not in \${uri}\`);
-                            }
-                        } catch (err) {
-                            importError || (importError = "async");
-                            error = err;
-                        }
-                    }
-                    if (!handler) {
-                        emitEvent("qerror", __spreadValues({
-                            importError: importError,
-                            error: error
-                        }, eventData));
-                        console.error(error);
-                        break;
-                    }
-                    const previousCtx = doc[Q_CONTEXT];
-                    if (element.isConnected) {
-                        try {
-                            doc[Q_CONTEXT] = [ element, ev, url ];
-                            isSync || emitEvent("qsymbol", __spreadValues({}, eventData));
-                            const results = handler(ev, element);
-                            isPromise(results) && await results;
-                        } catch (error2) {
-                            emitEvent("qerror", __spreadValues({
-                                error: error2
-                            }, eventData));
-                        } finally {
-                            doc[Q_CONTEXT] = previousCtx;
-                        }
-                    }
-                }
-            }
-        };
-        const emitEvent = (eventName, detail) => {
-            doc.dispatchEvent(createEvent(eventName, detail));
-        };
-        const camelToKebab = str => str.replace(/([A-Z])/g, (a => "-" + a.toLowerCase()));
-        const processDocumentEvent = async ev => {
-            let type = camelToKebab(ev.type);
-            let element = ev.target;
-            broadcast("-document", ev, type);
-            while (element && element.getAttribute) {
-                const results = dispatch(element, "", ev, type);
-                let cancelBubble = ev.cancelBubble;
-                isPromise(results) && await results;
-                cancelBubble = cancelBubble || ev.cancelBubble || element.hasAttribute("stoppropagation:" + ev.type);
-                element = ev.bubbles && !0 !== cancelBubble ? element.parentElement : null;
-            }
-        };
-        const processWindowEvent = ev => {
-            broadcast("-window", ev, camelToKebab(ev.type));
-        };
-        const processReadyStateChange = () => {
-            var _a;
-            const readyState = doc.readyState;
-            if (!hasInitialized && ("interactive" == readyState || "complete" == readyState)) {
-                roots.forEach(findShadowRoots);
-                hasInitialized = 1;
-                emitEvent("qinit");
-                (null != (_a = win.requestIdleCallback) ? _a : win.setTimeout).bind(win)((() => emitEvent("qidle")));
-                if (events.has("qvisible")) {
-                    const results = querySelectorAll("[on\\\\:qvisible]");
-                    const observer = new IntersectionObserver((entries => {
-                        for (const entry of entries) {
-                            if (entry.isIntersecting) {
-                                observer.unobserve(entry.target);
-                                dispatch(entry.target, "", createEvent("qvisible", entry));
-                            }
-                        }
-                    }));
-                    results.forEach((el => observer.observe(el)));
-                }
-            }
-        };
-        const addEventListener = (el, eventName, handler, capture = !1) => el.addEventListener(eventName, handler, {
-            capture: capture,
-            passive: !1
-        });
-        const processEventOrNode = (...eventNames) => {
-            for (const eventNameOrNode of eventNames) {
-                if ("string" == typeof eventNameOrNode) {
-                    if (!events.has(eventNameOrNode)) {
-                        roots.forEach((root => addEventListener(root, eventNameOrNode, processDocumentEvent, !0)));
-                        addEventListener(win, eventNameOrNode, processWindowEvent, !0);
-                        events.add(eventNameOrNode);
-                    }
-                } else if (!roots.has(eventNameOrNode)) {
-                    events.forEach((eventName => addEventListener(eventNameOrNode, eventName, processDocumentEvent, !0)));
-                    roots.add(eventNameOrNode);
-                }
-            }
-        };
-        if (!(Q_CONTEXT in doc)) {
-            doc[Q_CONTEXT] = 0;
-            const qwikevents = win.qwikevents;
-            Array.isArray(qwikevents) && processEventOrNode(...qwikevents);
-            win.qwikevents = {
-                events: events,
-                roots: roots,
-                push: processEventOrNode
-            };
-            addEventListener(doc, "readystatechange", processReadyStateChange);
-            processReadyStateChange();
+        console.error(error);
+        break;
+      }
+      const previousCtx = doc.__q_context__;
+      if (element.isConnected) {
+        try {
+          doc.__q_context__ = [element, ev, url];
+          const results = handler(ev, element);
+          if (isPromise(results)) {
+            await results;
+          }
+        } catch (error2) {
+          emitEvent("qerror", { error: error2, ...eventData });
+        } finally {
+          doc.__q_context__ = previousCtx;
         }
-    })(document);
-})()`;function Y(t={}){return t.debug?Pe:Le}var Ae="<!DOCTYPE html>";async function Be(t,e){var B,R,O;let n=e.stream,i=0,s=0,o=0,a=0,r="",l;const c=((B=e.streaming)==null?void 0:B.inOrder)??{strategy:"auto",maximunInitialChunk:5e4,maximunChunk:3e4},d=e.containerTagName??"html",w=e.containerAttributes??{},q=n,ee=E(),te=X(e),m=Oe(e.manifest);function C(){r&&(q.write(r),r="",i=0,o++,o===1&&(a=ee()))}function I(u){const _=u.length;i+=_,s+=_,r+=u}switch(c.strategy){case"disabled":n={write:I};break;case"direct":n=q;break;case"auto":let u=0,_=!1;const F=c.maximunChunk??0,v=c.maximunInitialChunk??0;n={write(h){h==="<!--qkssr-f-->"?_||(_=!0):h==="<!--qkssr-pu-->"?u++:h==="<!--qkssr-po-->"?u--:I(h),u===0&&(_||i>=(o===0?v:F))&&(_=!1,C())}};break}d==="html"?n.write(Ae):(n.write("<!--cq-->"),e.qwikLoader?(e.qwikLoader.include===void 0&&(e.qwikLoader.include="never"),e.qwikLoader.position===void 0&&(e.qwikLoader.position="bottom")):e.qwikLoader={include:"never"},e.qwikPrefetchServiceWorker||(e.qwikPrefetchServiceWorker={}),e.qwikPrefetchServiceWorker.include||(e.qwikPrefetchServiceWorker.include=!1),e.qwikPrefetchServiceWorker.position||(e.qwikPrefetchServiceWorker.position="top")),e.manifest||console.warn("Missing client manifest, loading symbols in the client might 404. Please ensure the client build has run and generated the manifest for the server build."),await he(e,m);const T=m==null?void 0:m.manifest.injections,x=T?T.map(u=>p(u.tag,u.attributes??{})):[],j=((R=e.qwikLoader)==null?void 0:R.include)??"auto";if((((O=e.qwikLoader)==null?void 0:O.position)??"bottom")==="top"&&j!=="never"){const u=Y({debug:e.debug});x.push(p("script",{id:"qwikloader",dangerouslySetInnerHTML:u})),x.push(p("script",{dangerouslySetInnerHTML:"window.qwikevents.push('click')"}))}const ne=E(),L=[];let P=0,A=0;await ae(t,{stream:n,containerTagName:d,containerAttributes:w,serverData:e.serverData,base:te,beforeContent:x,beforeClose:async(u,_,F,v)=>{var $,K,U,M,W;P=ne();const h=E();l=await ce(u,_,void 0,v);const b=[];if(e.prefetchStrategy!==null){const y=Ie(l,e,m),re=w["q:base"];if(y.length>0){const H=je(re,e.prefetchStrategy,y,($=e.serverData)==null?void 0:$.nonce);H&&b.push(H)}}const ie=JSON.stringify(l.state,void 0,void 0);if(b.push(p("script",{type:"qwik/json",dangerouslySetInnerHTML:Fe(ie),nonce:(K=e.serverData)==null?void 0:K.nonce})),l.funcs.length>0){const y=w[qe];b.push(p("script",{"q:func":"qwik/json",dangerouslySetInnerHTML:$e(y,l.funcs),nonce:(U=e.serverData)==null?void 0:U.nonce}))}const se=!l||l.mode!=="static",Q=j==="always"||j==="auto"&&se;if(Q){const y=Y({debug:e.debug});b.push(p("script",{id:"qwikloader",dangerouslySetInnerHTML:y,nonce:(M=e.serverData)==null?void 0:M.nonce}))}const D=Array.from(_.$events$,y=>JSON.stringify(y));if(D.length>0){const y=(Q?"window.qwikevents":"(window.qwikevents||=[])")+`.push(${D.join(", ")})`;b.push(p("script",{dangerouslySetInnerHTML:y,nonce:(W=e.serverData)==null?void 0:W.nonce}))}return Qe(L,u),A=h(),p(z,{children:b})},manifestHash:(m==null?void 0:m.manifest.manifestHash)||"dev"+Re()}),d!=="html"&&n.write("<!--/cq-->"),C();const oe=l.resources.some(u=>u._cache!==1/0);return{prefetchResources:void 0,snapshotResult:l,flushes:o,manifest:m==null?void 0:m.manifest,size:s,isStatic:!oe,timing:{render:P,snapshot:A,firstFlush:a},_symbols:L}}function Re(){return Math.random().toString(36).slice(2)}function Oe(t){if(t){if("mapper"in t)return t;if(t=ke(t),t){const e={};return Object.entries(t.mapping).forEach(([n,i])=>{e[N(n)]=[n,i]}),{mapper:e,manifest:t}}}}var Fe=t=>t.replace(/<(\/?script)/gi,"\\x3C$1");function Qe(t,e){var n;for(const i of e){const s=(n=i.$componentQrl$)==null?void 0:n.getSymbol();s&&!t.includes(s)&&t.push(s)}}var De='document["qFuncs_HASH"]=';function $e(t,e){return De.replace("HASH",t)+`[${e.join(`,
-`)}]`}const Ke={manifestHash:"s8akis",symbols:{s_qVdru7g24SY:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityProvider_component_useTask",canonicalFilename:"index.qwik.mjs_qwikcityprovider_component_usetask_qvdru7g24sy",hash:"qVdru7g24SY",ctxKind:"function",ctxName:"useTask$",captures:!0,parent:"s_J5PTBuzEmjk",loc:[29131,38395]},s_TwoFIh0CQaI:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_usePreventNavigateQrl_useVisibleTask",canonicalFilename:"index.qwik.mjs_usepreventnavigateqrl_usevisibletask_twofih0cqai",hash:"TwoFIh0CQaI",ctxKind:"function",ctxName:"useVisibleTask$",captures:!0,loc:[22878,22906]},s_zDvLPQgAWuE:{origin:"routes/layout.tsx",displayName:"layout.tsx_layout_component_useVisibleTask",canonicalFilename:"layout.tsx_layout_component_usevisibletask_zdvlpqgawue",hash:"zDvLPQgAWuE",ctxKind:"function",ctxName:"useVisibleTask$",captures:!1,parent:"s_cP1MN6aKI1E",loc:[346,481]},s_Cxj0z7qQ5tk:{origin:"routes/running/index.tsx",displayName:"index.tsx_running_component",canonicalFilename:"index.tsx_running_component_cxj0z7qq5tk",hash:"Cxj0z7qQ5tk",ctxKind:"function",ctxName:"component$",captures:!1,loc:[294,561]},s_HEjtAYNHpIU:{origin:"components/layout/Footer.tsx",displayName:"Footer.tsx_Footer_component",canonicalFilename:"footer.tsx_footer_component_hejtaynhpiu",hash:"HEjtAYNHpIU",ctxKind:"function",ctxName:"component$",captures:!1,loc:[82,350]},s_J5PTBuzEmjk:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityProvider_component",canonicalFilename:"index.qwik.mjs_qwikcityprovider_component_j5ptbuzemjk",hash:"J5PTBuzEmjk",ctxKind:"function",ctxName:"component$",captures:!1,loc:[24314,38441]},s_LqnNyU1Iy8c:{origin:"routes/index.tsx",displayName:"index.tsx_routes_component",canonicalFilename:"index.tsx_routes_component_lqnnyu1iy8c",hash:"LqnNyU1Iy8c",ctxKind:"function",ctxName:"component$",captures:!1,loc:[659,1262]},s_TG0a9Yb7gLI:{origin:"root.tsx",displayName:"root.tsx_root_component",canonicalFilename:"root.tsx_root_component_tg0a9yb7gli",hash:"TG0a9Yb7gLI",ctxKind:"function",ctxName:"component$",captures:!1,loc:[254,696]},s_aWuxeOnBXyE:{origin:"components/layout/RouterHead.tsx",displayName:"RouterHead.tsx_RouterHead_component",canonicalFilename:"routerhead.tsx_routerhead_component_awuxeonbxye",hash:"aWuxeOnBXyE",ctxKind:"function",ctxName:"component$",captures:!1,loc:[304,699]},s_b41QemphEJg:{origin:"components/layout/Header.tsx",displayName:"Header.tsx_Header_component",canonicalFilename:"header.tsx_header_component_b41qemphejg",hash:"b41QemphEJg",ctxKind:"function",ctxName:"component$",captures:!1,loc:[318,1346]},s_cP1MN6aKI1E:{origin:"routes/layout.tsx",displayName:"layout.tsx_layout_component",canonicalFilename:"layout.tsx_layout_component_cp1mn6aki1e",hash:"cP1MN6aKI1E",ctxKind:"function",ctxName:"component$",captures:!1,loc:[206,631]},s_ho6GxbXxAAw:{origin:"routes/skills/index.tsx",displayName:"index.tsx_skills_component",canonicalFilename:"index.tsx_skills_component_ho6gxbxxaaw",hash:"ho6GxbXxAAw",ctxKind:"function",ctxName:"component$",captures:!1,loc:[236,449]},s_kGNPz0bUkv4:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_GetForm_component",canonicalFilename:"index.qwik.mjs_getform_component_kgnpz0bukv4",hash:"kGNPz0bUkv4",ctxKind:"function",ctxName:"component$",captures:!1,loc:[58730,59883]},s_m9zBAz6sGm4:{origin:"routes/json/index.tsx",displayName:"index.tsx_json_component",canonicalFilename:"index.tsx_json_component_m9zbaz6sgm4",hash:"m9zBAz6sGm4",ctxKind:"function",ctxName:"component$",captures:!1,loc:[218,443]},s_om0yBEyz0lQ:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityMockProvider_component",canonicalFilename:"index.qwik.mjs_qwikcitymockprovider_component_om0ybeyz0lq",hash:"om0yBEyz0lQ",ctxKind:"function",ctxName:"component$",captures:!1,loc:[38643,39848]},s_wjTYUNc500I:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_Link_component",canonicalFilename:"index.qwik.mjs_link_component_wjtyunc500i",hash:"wjTYUNc500I",ctxKind:"function",ctxName:"component$",captures:!1,loc:[39875,42165]},s_wtck2o1Zl10:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_RouterOutlet_component",canonicalFilename:"index.qwik.mjs_routeroutlet_component_wtck2o1zl10",hash:"wtck2o1Zl10",ctxKind:"function",ctxName:"component$",captures:!1,loc:[7054,8293]},s_nTsxmN90oNY:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityProvider_component_useStyles",canonicalFilename:"index.qwik.mjs_qwikcityprovider_component_usestyles_ntsxmn90ony",hash:"nTsxmN90oNY",ctxKind:"function",ctxName:"useStyles$",captures:!1,parent:"s_J5PTBuzEmjk",loc:[24340,24374]},s_CH2paQKi8nU:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_routeActionQrl_action_submit",canonicalFilename:"index.qwik.mjs_routeactionqrl_action_submit_ch2paqki8nu",hash:"CH2paQKi8nU",ctxKind:"function",ctxName:"$",captures:!0,loc:[44868,46513]},s_YZIfuWcrfp8:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_Form_form_onSubmit",canonicalFilename:"index.qwik.mjs_form_form_onsubmit_yzifuwcrfp8",hash:"YZIfuWcrfp8",ctxKind:"function",ctxName:"$",captures:!0,loc:[57861,57975]},s_co8j7oynniY:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_serverQrl_rpc",canonicalFilename:"index.qwik.mjs_serverqrl_rpc_co8j7oynniy",hash:"co8j7oynniY",ctxKind:"function",ctxName:"$",captures:!0,loc:[52955,55932]},s_lBDMsb0nSaM:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_spaInit_event",canonicalFilename:"index.qwik.mjs_spainit_event_lbdmsb0nsam",hash:"lBDMsb0nSaM",ctxKind:"function",ctxName:"event$",captures:!1,loc:[1356,7019]},s_ErpWEJK4OyE:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityMockProvider_component_goto",canonicalFilename:"index.qwik.mjs_qwikcitymockprovider_component_goto_erpwejk4oye",hash:"ErpWEJK4OyE",ctxKind:"function",ctxName:"$",captures:!1,parent:"s_om0yBEyz0lQ",loc:[39033,39111]},s_I8LygX37LIk:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityProvider_component_goto",canonicalFilename:"index.qwik.mjs_qwikcityprovider_component_goto_i8lygx37lik",hash:"I8LygX37LIk",ctxKind:"function",ctxName:"$",captures:!0,parent:"s_J5PTBuzEmjk",loc:[26528,28602]},s_YBUQ0hOgohE:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_GetForm_component_form_onSubmit",canonicalFilename:"index.qwik.mjs_getform_component_form_onsubmit_ybuq0hogohe",hash:"YBUQ0hOgohE",ctxKind:"function",ctxName:"$",captures:!0,parent:"s_kGNPz0bUkv4",loc:[59094,59474]},s_ioL5i3GLOns:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_GetForm_component_form_onSubmit_1",canonicalFilename:"index.qwik.mjs_getform_component_form_onsubmit_1_iol5i3glons",hash:"ioL5i3GLOns",ctxKind:"function",ctxName:"$",captures:!1,parent:"s_kGNPz0bUkv4",loc:[59485,59821]},s_jKDh3Wk0hos:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_Link_component_handleClick",canonicalFilename:"index.qwik.mjs_link_component_handleclick_jkdh3wk0hos",hash:"jKDh3Wk0hos",ctxKind:"function",ctxName:"$",captures:!0,parent:"s_wjTYUNc500I",loc:[41186,41612]},s_vmfAwk72EZQ:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_QwikCityProvider_component_registerPreventNav",canonicalFilename:"index.qwik.mjs_qwikcityprovider_component_registerpreventnav_vmfawk72ezq",hash:"vmfAwk72EZQ",ctxKind:"function",ctxName:"$",captures:!1,parent:"s_J5PTBuzEmjk",loc:[25631,26508]},s_wcXL1au5r0M:{origin:"../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs",displayName:"index.qwik.mjs_Link_component_handlePrefetch",canonicalFilename:"index.qwik.mjs_link_component_handleprefetch_wcxl1au5r0m",hash:"wcXL1au5r0M",ctxKind:"function",ctxName:"$",captures:!1,parent:"s_wjTYUNc500I",loc:[40587,40936]}},mapping:{s_qVdru7g24SY:"q-CwiFziRd.js",s_TwoFIh0CQaI:"q-Dtp2-5UJ.js",s_zDvLPQgAWuE:"q-CzeAxi2o.js",s_Cxj0z7qQ5tk:"q-B-RniCJp.js",s_HEjtAYNHpIU:"q-2R5xcbCg.js",s_J5PTBuzEmjk:"q-CwiFziRd.js",s_LqnNyU1Iy8c:"q-WlUvqDtE.js",s_TG0a9Yb7gLI:"q-vF5_IINf.js",s_aWuxeOnBXyE:"q-C86KMAy_.js",s_b41QemphEJg:"q-BZ4STi9j.js",s_cP1MN6aKI1E:"q-CzeAxi2o.js",s_ho6GxbXxAAw:"q-DHL38aLE.js",s_kGNPz0bUkv4:"q-DNGtfS23.js",s_m9zBAz6sGm4:"q-CRO6iJOL.js",s_om0yBEyz0lQ:"q-BOS65hPG.js",s_wjTYUNc500I:"q-B5zJDpWG.js",s_wtck2o1Zl10:"q-f2p1A35B.js",s_nTsxmN90oNY:"q-CwiFziRd.js",s_CH2paQKi8nU:"q-CCXS9TgV.js",s_YZIfuWcrfp8:"q-CIgibuQ1.js",s_co8j7oynniY:"q-CIqSFLAI.js",s_lBDMsb0nSaM:"q-Bvi_ZGQ2.js",s_ErpWEJK4OyE:"q-BOS65hPG.js",s_I8LygX37LIk:"q-CwiFziRd.js",s_YBUQ0hOgohE:"q-DNGtfS23.js",s_ioL5i3GLOns:"q-DNGtfS23.js",s_jKDh3Wk0hos:"q-B5zJDpWG.js",s_vmfAwk72EZQ:"q-CwiFziRd.js",s_wcXL1au5r0M:"q-B5zJDpWG.js"},bundles:{"q-2R5xcbCg.js":{size:65471,origins:["../../node_modules/.pnpm/@builder.io+qwik@1.9.1_@types+node@20.19.43/node_modules/@builder.io/qwik/dist/core.prod.mjs","../@builder.io/qwik/build","../src/components/layout/footer.tsx_footer_component_hejtaynhpiu.js"],symbols:["s_HEjtAYNHpIU"]},"q-ATfyzbcU.js":{size:278,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-CRO6iJOL.js"],origins:["../src/routes/json/index.tsx"]},"q-B-RniCJp.js":{size:280,imports:["q-2R5xcbCg.js"],origins:["../src/routes/running/index.tsx_running_component_cxj0z7qq5tk.js"],symbols:["s_Cxj0z7qQ5tk"]},"q-B5zJDpWG.js":{size:1822,isTask:!0,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_link_component_handleclick_jkdh3wk0hos.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_link_component_handleprefetch_wcxl1au5r0m.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_link_component_wjtyunc500i.js"],symbols:["s_jKDh3Wk0hos","s_wcXL1au5r0M","s_wjTYUNc500I"]},"q-BOS65hPG.js":{size:817,isTask:!0,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcitymockprovider_component_goto_erpwejk4oye.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcitymockprovider_component_om0ybeyz0lq.js"],symbols:["s_ErpWEJK4OyE","s_om0yBEyz0lQ"]},"q-Bvi_ZGQ2.js":{size:2297,origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_spainit_event_lbdmsb0nsam.js"],symbols:["s_lBDMsb0nSaM"]},"q-BZ4STi9j.js":{size:10188,imports:["q-2R5xcbCg.js"],dynamicImports:["q-B5zJDpWG.js","q-Bvi_ZGQ2.js","q-CwiFziRd.js","q-f2p1A35B.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs","../../node_modules/.pnpm/zod@3.22.4/node_modules/zod/lib/index.mjs","../@qwik-city-sw-register","../src/components/layout/Header.tsx","../src/components/layout/header.tsx_header_component_b41qemphejg.js"],symbols:["s_b41QemphEJg"]},"q-C86KMAy_.js":{size:443,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../src/components/layout/routerhead.tsx_routerhead_component_awuxeonbxye.js"],symbols:["s_aWuxeOnBXyE"]},"q-CCXS9TgV.js":{size:811,isTask:!0,imports:["q-2R5xcbCg.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_routeactionqrl_action_submit_ch2paqki8nu.js"],symbols:["s_CH2paQKi8nU"]},"q-CIgibuQ1.js":{size:165,isTask:!0,imports:["q-2R5xcbCg.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_form_form_onsubmit_yzifuwcrfp8.js"],symbols:["s_YZIfuWcrfp8"]},"q-CIqSFLAI.js":{size:1236,isTask:!0,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_serverqrl_rpc_co8j7oynniy.js"],symbols:["s_co8j7oynniY"]},"q-CL8tYQjT.js":{size:271,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-DHL38aLE.js"],origins:["../src/routes/skills/index.tsx"]},"q-CRO6iJOL.js":{size:260,imports:["q-2R5xcbCg.js"],origins:["../src/routes/json/index.tsx_json_component_m9zbaz6sgm4.js"],symbols:["s_m9zBAz6sGm4"]},"q-CwiFziRd.js":{size:7121,isTask:!0,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-ATfyzbcU.js","q-CL8tYQjT.js","q-D6nSKirl.js","q-DM8Llp5I.js","q-WlUvqDtE.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcityprovider_component_goto_i8lygx37lik.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcityprovider_component_j5ptbuzemjk.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcityprovider_component_registerpreventnav_vmfawk72ezq.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcityprovider_component_usestyles_ntsxmn90ony.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_qwikcityprovider_component_usetask_qvdru7g24sy.js","../@qwik-city-plan"],symbols:["s_I8LygX37LIk","s_J5PTBuzEmjk","s_nTsxmN90oNY","s_qVdru7g24SY","s_vmfAwk72EZQ"]},"q-CzeAxi2o.js":{size:697,isTask:!0,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-2R5xcbCg.js"],origins:["../src/components/layout/Footer.tsx","../src/routes/layout.tsx_layout_component_cp1mn6aki1e.js","../src/routes/layout.tsx_layout_component_usevisibletask_zdvlpqgawue.js"],symbols:["s_cP1MN6aKI1E","s_zDvLPQgAWuE"]},"q-D6nSKirl.js":{size:171,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-CzeAxi2o.js"],origins:["../src/routes/layout.tsx"]},"q-DHL38aLE.js":{size:260,imports:["q-2R5xcbCg.js"],origins:["../src/routes/skills/index.tsx_skills_component_ho6gxbxxaaw.js"],symbols:["s_ho6GxbXxAAw"]},"q-DK8gEoSQ.js":{size:171,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-vF5_IINf.js"],origins:["../src/global.css","../src/root.tsx"]},"q-DM8Llp5I.js":{size:274,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-B-RniCJp.js"],origins:["../src/routes/running/index.tsx"]},"q-DNGtfS23.js":{size:1375,isTask:!0,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_getform_component_form_onsubmit_1_iol5i3glons.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_getform_component_form_onsubmit_ybuq0hogohe.js","../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_getform_component_kgnpz0bukv4.js"],symbols:["s_ioL5i3GLOns","s_kGNPz0bUkv4","s_YBUQ0hOgohE"]},"q-Dtp2-5UJ.js":{size:150,isTask:!0,imports:["q-2R5xcbCg.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_usepreventnavigateqrl_usevisibletask_twofih0cqai.js"],symbols:["s_TwoFIh0CQaI"]},"q-f2p1A35B.js":{size:1067,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../../node_modules/.pnpm/@builder.io+qwik-city@1.9.1_@types+node@20.19.43_rollup@4.63.1_typescript@5.9.3/node_modules/@builder.io/qwik-city/lib/index.qwik.mjs_routeroutlet_component_wtck2o1zl10.js"],symbols:["s_wtck2o1Zl10"]},"q-vF5_IINf.js":{size:627,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],dynamicImports:["q-C86KMAy_.js"],origins:["../src/components/layout/RouterHead.tsx","../src/root.tsx_root_component_tg0a9yb7gli.js"],symbols:["s_TG0a9Yb7gLI"]},"q-WlUvqDtE.js":{size:1375,imports:["q-2R5xcbCg.js","q-BZ4STi9j.js"],origins:["../src/routes/index.tsx","../src/routes/index.tsx_routes_component_lqnnyu1iy8c.js"],symbols:["s_LqnNyU1Iy8c"]}},injections:[{tag:"style",location:"head",attributes:{"data-src":"/assets/BZoaiQIx-style.css",dangerouslySetInnerHTML:`*,:before,:after{--tw-border-spacing-x: 0;--tw-border-spacing-y: 0;--tw-translate-x: 0;--tw-translate-y: 0;--tw-rotate: 0;--tw-skew-x: 0;--tw-skew-y: 0;--tw-scale-x: 1;--tw-scale-y: 1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness: proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width: 0px;--tw-ring-offset-color: #fff;--tw-ring-color: rgb(59 130 246 / .5);--tw-ring-offset-shadow: 0 0 #0000;--tw-ring-shadow: 0 0 #0000;--tw-shadow: 0 0 #0000;--tw-shadow-colored: 0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x: 0;--tw-border-spacing-y: 0;--tw-translate-x: 0;--tw-translate-y: 0;--tw-rotate: 0;--tw-skew-x: 0;--tw-skew-y: 0;--tw-scale-x: 1;--tw-scale-y: 1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness: proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width: 0px;--tw-ring-offset-color: #fff;--tw-ring-color: rgb(59 130 246 / .5);--tw-ring-offset-shadow: 0 0 #0000;--tw-ring-shadow: 0 0 #0000;--tw-shadow: 0 0 #0000;--tw-shadow-colored: 0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }*,:before,:after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}:before,:after{--tw-content: ""}html,:host{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:ui-sans-serif,system-ui,sans-serif,"Apple Color Emoji","Segoe UI Emoji",Segoe UI Symbol,"Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,samp,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dl,dd,h1,h2,h3,h4,h5,h6,hr,figure,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}ol,ul,menu{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}button,[role=button]{cursor:pointer}:disabled{cursor:default}img,svg,video,canvas,audio,iframe,embed,object{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}:root{--bg: #ffffff;--fg: #1f2328;--muted: #656d76;--border: #d0d7de;--hover: #f3f4f6;--accent: #0969da}:root[data-theme=dark]{--bg: #0d1117;--fg: #e6edf3;--muted: #8b949e;--border: #30363d;--hover: #21262d;--accent: #4493f8}@media (prefers-color-scheme: dark){:root:not([data-theme=light]){--bg: #0d1117;--fg: #e6edf3;--muted: #8b949e;--border: #30363d;--hover: #21262d;--accent: #4493f8}}html{scroll-behavior:smooth}body{min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,PingFang SC,Microsoft YaHei,sans-serif;line-height:1.6}
-`}}],version:"1",options:{target:"client",buildMode:"production",entryStrategy:{type:"smart"}},platform:{qwik:"1.9.1",vite:"",rollup:"4.63.1",env:"node",os:"linux",node:"24.20.0"}},Ue=()=>{const t=de(),e=ue();return k(z,{children:[f("title",null,null,t.title||"guoxin.space",1,null),f("link",null,{rel:"canonical",href:pe(n=>n.url.href,[e],"p0.url.href")},null,3,null),t.meta.map(n=>G("meta",{...n},null,0,n.key||n.name||n.property)),t.links.map(n=>G("link",{...n},null,0,n.key||n.href))]},1,"zL_0")},Me=J(Z(Ue,"s_aWuxeOnBXyE")),We=()=>k(ye,{children:[f("head",null,null,[f("meta",null,{charSet:"utf-8"},null,3,null),f("meta",null,{name:"viewport",content:"width=device-width, initial-scale=1"},null,3,null),f("link",null,{rel:"icon",type:"image/svg+xml",href:"/favicon.svg"},null,3,null),k(Me,null,3,"0t_0")],1,null),f("body",null,{lang:"zh-CN",class:"bg-[var(--bg)] text-[var(--fg)]"},[k(me,null,3,"0t_1"),k(_e,null,3,"0t_2")],1,null)]},1,"0t_3"),He=J(Z(We,"s_TG0a9Yb7gLI"));function Ze(t){return Be(He,{manifest:Ke,...t,containerAttributes:{lang:"zh-CN",...t.containerAttributes}})}export{Ze as default};
+      }
+    }
+  }
+};
+const emitEvent = (eventName, detail) => {
+  doc.dispatchEvent(createEvent(eventName, detail));
+};
+const camelToKebab = (str) => str.replace(/([A-Z])/g, (a) => "-" + a.toLowerCase());
+const processDocumentEvent = async (ev) => {
+  let type = camelToKebab(ev.type);
+  let element = ev.target;
+  broadcast("-document", ev, type);
+  while (element && element.getAttribute) {
+    const results = dispatch(element, "", ev, type);
+    let cancelBubble = ev.cancelBubble;
+    if (isPromise(results)) {
+      await results;
+    }
+    cancelBubble || (cancelBubble = cancelBubble || ev.cancelBubble || element.hasAttribute("stoppropagation:" + ev.type));
+    element = ev.bubbles && cancelBubble !== true ? element.parentElement : null;
+  }
+};
+const processWindowEvent = (ev) => {
+  broadcast("-window", ev, camelToKebab(ev.type));
+};
+const processReadyStateChange = () => {
+  const readyState = doc.readyState;
+  if (!hasInitialized && (readyState == "interactive" || readyState == "complete")) {
+    roots.forEach(findShadowRoots);
+    hasInitialized = 1;
+    emitEvent("qinit");
+    const riC = win.requestIdleCallback ?? win.setTimeout;
+    riC.bind(win)(() => emitEvent("qidle"));
+    if (events.has("qvisible")) {
+      const results = querySelectorAll("[on\\\\:qvisible]");
+      const observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            observer.unobserve(entry.target);
+            dispatch(entry.target, "", createEvent("qvisible", entry));
+          }
+        }
+      });
+      results.forEach((el) => observer.observe(el));
+    }
+  }
+};
+const addEventListener = (el, eventName, handler, capture = false) => {
+  el.addEventListener(eventName, handler, { capture, passive: false });
+};
+const processEventOrNode = (...eventNames) => {
+  for (const eventNameOrNode of eventNames) {
+    if (typeof eventNameOrNode === "string") {
+      if (!events.has(eventNameOrNode)) {
+        roots.forEach(
+          (root) => addEventListener(root, eventNameOrNode, processDocumentEvent, true)
+        );
+        addEventListener(win, eventNameOrNode, processWindowEvent, true);
+        events.add(eventNameOrNode);
+      }
+    } else {
+      if (!roots.has(eventNameOrNode)) {
+        events.forEach(
+          (eventName) => addEventListener(eventNameOrNode, eventName, processDocumentEvent, true)
+        );
+        roots.add(eventNameOrNode);
+      }
+    }
+  }
+};
+if (!("__q_context__" in doc)) {
+  doc.__q_context__ = 0;
+  const qwikevents = win.qwikevents;
+  if (qwikevents) {
+    if (Array.isArray(qwikevents)) {
+      processEventOrNode(...qwikevents);
+    } else {
+      processEventOrNode("click", "input");
+    }
+  }
+  win.qwikevents = {
+    events,
+    roots,
+    push: processEventOrNode
+  };
+  addEventListener(doc, "readystatechange", processReadyStateChange);
+  processReadyStateChange();
+}`;function tt(t={}){return t.debug?et:Me}function I(){if(typeof performance>"u")return()=>0;const t=performance.now();return()=>(performance.now()-t)/1e6}function nt(t){let e=t.base;return typeof t.base=="function"&&(e=t.base(t)),typeof e=="string"?(e.endsWith("/")||(e+="/"),e):"/build/"}var rt="<!DOCTYPE html>";async function st(t,e){var W,Y;let n=e.stream,r=0,s=0,o=0,i=0,a="",l;const u=((W=e.streaming)==null?void 0:W.inOrder)??{strategy:"auto",maximunInitialChunk:5e4,maximunChunk:3e4},c=e.containerTagName??"html",b=e.containerAttributes??{},g=n,k=I(),p=nt(e),d=it(e.manifest),_=(Y=e.serverData)==null?void 0:Y.nonce;function x(){a&&(g.write(a),a="",r=0,o++,o===1&&(i=k()))}function $(q){const m=q.length;r+=m,s+=m,a+=q}switch(u.strategy){case"disabled":n={write:$};break;case"direct":n=g;break;case"auto":let q=0,m=!1;const X=u.maximunChunk??0,T=u.maximunInitialChunk??0;n={write(v){v==="<!--qkssr-f-->"?m||(m=!0):v==="<!--qkssr-pu-->"?q++:v==="<!--qkssr-po-->"?q--:$(v),q===0&&(m||r>=(o===0?T:X))&&(m=!1,x())}};break}c==="html"?n.write(rt):n.write("<!--cq-->"),d||console.warn("Missing client manifest, loading symbols in the client might 404. Please ensure the client build has run and generated the manifest for the server build."),await Pe(e,d);const h=d==null?void 0:d.manifest.injections,P=h?h.map(q=>f(q.tag,q.attributes??{})):[];let O=e.qwikLoader?typeof e.qwikLoader=="object"?e.qwikLoader.include==="never"?2:0:e.qwikLoader==="inline"?1:e.qwikLoader==="never"?2:0:0;const C=d==null?void 0:d.manifest.qwikLoader;if(O===0&&!C&&(O=1),O===0)P.unshift(f("link",{rel:"modulepreload",href:`${p}${C}`,nonce:_}),f("script",{type:"module",async:!0,src:`${p}${C}`,nonce:_}));else if(O===1){const q=tt({debug:e.debug});P.unshift(f("script",{id:"qwikloader",type:"module",async:!0,nonce:_,dangerouslySetInnerHTML:q}))}Xe(p,d,e.preloader,P,_);const oe=I(),ie=[];let z=0,H=0;await ce(t,{stream:n,containerTagName:c,containerAttributes:b,serverData:e.serverData,base:p,beforeContent:P,beforeClose:async(q,m,X,T)=>{z=oe();const v=I();l=await de(q,m,void 0,T);const w=[];Ve(p,l,e,d,w);const le=JSON.stringify(l.state,void 0,void 0);if(w.push(f("script",{type:"qwik/json",dangerouslySetInnerHTML:at(le),nonce:_})),l.funcs.length>0){const E=b[Oe];w.push(f("script",{"q:func":"qwik/json",dangerouslySetInnerHTML:ut(E,l.funcs),nonce:_}))}const K=Array.from(m.$events$,E=>JSON.stringify(E));if(K.length>0){const E=`(window.qwikevents||(window.qwikevents=[])).push(${K.join(",")})`;w.push(f("script",{dangerouslySetInnerHTML:E,nonce:_}))}return lt(ie,q),H=v(),f(G,{children:w})},manifestHash:(d==null?void 0:d.manifest.manifestHash)||"dev"+ot()}),c!=="html"&&n.write("<!--/cq-->"),x();const ae=l.resources.some(q=>q._cache!==1/0);return{prefetchResources:void 0,snapshotResult:l,flushes:o,manifest:d==null?void 0:d.manifest,size:s,isStatic:!ae,timing:{render:z,snapshot:H,firstFlush:i}}}function ot(){return Math.random().toString(36).slice(2)}function it(t){const e=t?{...D,...t}:D;if(!e||"mapper"in e)return e;if(e.mapping){const n={};return Object.entries(e.mapping).forEach(([r,s])=>{n[B(r)]=[r,s]}),{mapper:n,manifest:e,injections:e.injections||[]}}}var at=t=>t.replace(/<(\/?script)/gi,"\\x3C$1");function lt(t,e){var n;for(const r of e){const s=(n=r.$componentQrl$)==null?void 0:n.getSymbol();s&&!t.includes(s)&&t.push(s)}}var ct='document["qFuncs_HASH"]=';function ut(t,e){return ct.replace("HASH",t)+`[${e.join(`,
+`)}]`}const dt=()=>{const t=fe(),e=me();return j(G,{children:[y("title",null,null,t.title||"guoxin.space",1,null),y("link",null,{rel:"canonical",href:_e(n=>n.url.href,[e],"p0.url.href")},null,3,null),t.meta.map(n=>V("meta",{...n},null,0,n.key||n.name||n.property)),t.links.map(n=>V("link",{...n},null,0,n.key||n.href))]},1,"zL_0")},qt=Z(M(dt,"s_aWuxeOnBXyE")),ft=()=>j(pe,{children:[y("head",null,null,[y("meta",null,{charSet:"utf-8"},null,3,null),y("meta",null,{name:"viewport",content:"width=device-width, initial-scale=1"},null,3,null),y("link",null,{rel:"icon",type:"image/svg+xml",href:"/favicon.svg"},null,3,null),j(qt,null,3,"0t_0")],1,null),y("body",null,{lang:"zh-CN",class:"bg-[var(--bg)] text-[var(--fg)]"},[j(be,null,3,"0t_1"),j(he,null,3,"0t_2")],1,null)]},1,"0t_3"),mt=Z(M(ft,"s_TG0a9Yb7gLI"));function ht(t){return st(j(mt,null,3,"05_0"),{manifest:D,...t,containerAttributes:{lang:"zh-CN",...t.containerAttributes},serverData:{...t.serverData}})}export{ht as default};

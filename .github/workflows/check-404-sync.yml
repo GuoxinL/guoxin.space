@@ -1,4 +1,8 @@
-name: 校验 404.html 同步
+name: 校验 SSG 产物（404.html / CNAME）
+
+# P7 起的产物校验：旧站的「index.html 与 404.html 字节一致」检查已废弃
+# （旧站文件在 P8 清理），改为校验 Qwik SSG 产物 app/dist 含 404.html 与 CNAME，
+# 避免切流后发布根缺 404.html / 自定义域名 CNAME 导致深层直链 404 或域名失效。
 
 on:
   push:
@@ -7,30 +11,33 @@ on:
     branches: [main]
 
 jobs:
-  check-sync:
-    name: index.html 与 404.html 一致性
+  check-artifact:
+    name: app/dist 含 404.html 与 CNAME
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 校验文件存在
-        run: |
-          test -f index.html || { echo "::error::index.html 缺失"; exit 1; }
-          test -f 404.html  || { echo "::error::404.html 缺失，请执行: cp index.html 404.html"; exit 1; }
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
-      - name: 校验内容一致
-        run: |
-          if ! cmp -s index.html 404.html; then
-            echo "::error::index.html 与 404.html 内容不一致！"
-            echo "::error::请执行: cp index.html 404.html，然后重新提交。"
-            echo "::error::(本地已在 .git/hooks/pre-commit 配置自动同步，若此处报错说明绕过了钩子或钩子未生效)"
-            exit 1
-          fi
-          echo "OK: 两文件一致 ($(wc -c < index.html) 字节)"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
 
-      - name: 校验 404.html 未被刻意定制（注释提示）
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建（客户端 + SSG 预渲染）
+        run: pnpm build
+
+      - name: 补齐 CNAME（与 deploy.yml 一致）
+        run: cp CNAME app/dist/CNAME
+
+      - name: 校验 404.html 与 CNAME 存在于产物
         run: |
-          if grep -q "CUSTOM_404" 404.html; then
-            echo "::warning::404.html 含 CUSTOM_404 标记，确认是有意定制而非误改"
-          fi
+          test -f app/dist/404.html || { echo "::error::app/dist/404.html 缺失（SSG 未生成）"; exit 1; }
+          test -s app/dist/404.html || { echo "::error::app/dist/404.html 为空"; exit 1; }
+          test -f app/dist/CNAME || { echo "::error::app/dist/CNAME 缺失（deploy.yml 会补，但此处预检）"; exit 1; }
+          echo "OK: 404.html ($(wc -c < app/dist/404.html) 字节) / CNAME ($(cat app/dist/CNAME))"

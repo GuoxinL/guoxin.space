@@ -6,7 +6,7 @@
     <title>guoxin.space</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
-  <body>
-    <script type="module" src="/src/entry.dev.tsx"></script>
-  </body>
+  <!-- 客户端入口由 Qwik City 插件在构建时注入，此处不要手写 script：
+       指向 entry.dev.tsx 会让客户端构建只打包 dev 入口链，manifest 丢失全部路由 symbol。 -->
+  <body></body>
 </html>

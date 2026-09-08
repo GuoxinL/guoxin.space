@@ -1,5 +1,6 @@
 import { component$ } from '@builder.io/qwik';
 import { Link, useLocation } from '@builder.io/qwik-city';
+import { AuthButton } from '../auth/AuthButton';
 
 const NAV = [
   { href: '/', label: '首页' },
@@ -17,26 +18,29 @@ export const Header = component$(() => {
         <Link href="/" class="text-lg font-bold">
           guoxin.space
         </Link>
-        <ul class="flex items-center gap-1 text-sm">
-          {NAV.map((item) => {
-            const active = loc.url.pathname === item.href;
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  class={
-                    active
-                      ? 'rounded px-3 py-1.5 bg-[var(--accent)] text-white'
-                      : 'rounded px-3 py-1.5 hover:bg-[var(--hover)]'
-                  }
-                >
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div class="flex items-center gap-2">
+          <ul class="flex items-center gap-1 text-sm">
+            {NAV.map((item) => {
+              const active = loc.url.pathname === item.href;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    class={
+                      active
+                        ? 'rounded px-3 py-1.5 bg-[var(--accent)] text-white'
+                        : 'rounded px-3 py-1.5 hover:bg-[var(--hover)]'
+                    }
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <AuthButton />
+        </div>
       </nav>
     </header>
   );

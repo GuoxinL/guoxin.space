@@ -1,5 +1,14 @@
 name: Deploy to GitHub Pages
 
+# P7 切流：构建 app/dist（Qwik SSG 产物）并发布到 GitHub Pages。
+# 自定义域名 guoxin.space 通过仓库根 CNAME 注入产物根。
+# 切流策略（避免 deploy-pages 在 Pages 来源=branch deploy 时报错，保持 push 仅构建验证）：
+#   1) push 到 main → 仅跑 build + 校验（check-404-sync.yml），不动线上；
+#   2) 仓库 Settings → Pages → Source 选「GitHub Actions」；
+#   3) 手动 workflow_dispatch 本工作流 → 上线（deploy 仅在 dispatch 时触发）；
+#   4) 回滚：将 Source 切回 branch deploy（旧站秒级恢复）。
+# 发布根要求含 CNAME + 404.html（SSG 已生成 404.html，CNAME 由本流程补齐）。
+
 on:
   push:
     branches: [main]
@@ -35,7 +44,7 @@ jobs:
       - name: 构建（客户端 + SSG 预渲染）
         run: pnpm build
 
-      - name: 补齐 CNAME
+      - name: 补齐 CNAME（自定义域名 guoxin.space）
         run: cp CNAME app/dist/CNAME
 
       - uses: actions/upload-pages-artifact@v3
@@ -44,8 +53,7 @@ jobs:
 
   deploy:
     needs: build
-    # P7 前 Pages 来源仍是 branch deploy（旧站在线）。push 只跑构建验证，
-    # 避免 deploy-pages 报错；切到 GitHub Actions 来源后改为手动 workflow_dispatch 上线。
+    # 切流前 Pages 来源=branch deploy，deploy-pages 会报错；仅允许手动 workflow_dispatch 触发上线。
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
