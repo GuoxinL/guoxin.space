@@ -35,3 +35,6 @@ dist/
 /server/
 .qwik/
 tsconfig.tsbuildinfo
+
+# 像素素材母版与临时产物（脚本已归档到 tools/pixel-art/）
+.tmp-art/
