@@ -107,9 +107,36 @@ raw.githubusercontent.com/guoxinl/skill-collection/main/fav-brainstorming/{_icon
 
 ## 五、待办与建议
 
-1. **重新构建 + 推送**：本次修复了 `Json` → `JSON`，需重跑 `npm run build` 后提交推送。
-2. **Skills 探针噪声**（可选）：见 §3.1，可将候选图标文件名收敛或加缓存。
-3. 无阻塞性缺陷，三个页面均可正常使用。
+1. **Skills 探针噪声**（可选）：见 §3.1，可将候选图标文件名收敛或加缓存。
+2. 无阻塞性缺陷，三个页面均可正常使用。
+
+---
+
+## 六、部署链路问题（本次一并修复）
+
+自测过程中发现**线上站点仍是旧版**，排查出三层问题：
+
+| # | 问题 | 影响 | 修复 |
+|---|---|---|---|
+| 1 | `deploy.yml:55` deploy job 带 `if: github.event_name == 'workflow_dispatch'` | push 只 build、**不发布**，线上停留在旧产物 | 不改变策略（切流期有意为之），但改为**显式手动触发**并写入 AGENTS.md |
+| 2 | `check-404-sync.yml` 写死 `pnpm/action-setup version:9` + `node-version: 20` | 与 `packageManager: pnpm@9.15.0` 冲突 → `ERR_PNPM_BAD_PM_VERSION`；且不满足 Node≥24。**自 2026-09-09 起连续 6 次失败** | 移除 version 写死、Node 升 24，对齐 `deploy.yml` |
+| 3 | 误判指标：`pages/builds/latest` | workflow 模式下该接口停留在旧 branch-deploy 记录（`5929a06`，09-09 13:01），**不能用来判断发布状态** | 改用 `gh run list --workflow=deploy.yml` 看 deploy job 结论 |
+
+**发布命令**（务必执行，push 不会自动上线）：
+
+```bash
+gh workflow run deploy.yml --ref main
+gh run list --workflow=deploy.yml --limit 2
+```
+
+**线上复验结果**（修复后）：
+
+```
+IMG 200 /img/pickaxe.png
+LIVE HERO {"src":"/img/pickaxe.png","natW":448,"natH":480,"complete":true}
+deep /skills -> 200  title= Skills — guoxin.space
+ERRORS: none
+```
 
 ---
 

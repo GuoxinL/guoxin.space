@@ -112,6 +112,13 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 - 新代码只进 app/src/；旧站静态文件（js/、css/、根 index.html/404.html、verify.js）已在 P8 删除，回滚基线改用 git 历史。
 - 构建：pnpm build 产出 app/dist/（vite root=app，static adapter 静态预渲染，Pages 直接托管）；CI 必须用 **Node ≥24**（undici@8 依赖 util.markAsUncloneable，Node 20/22 缺该 API，会令 pnpm build 失败）。
 - 部署：.github/workflows/deploy.yml；Pages Source 已切到 GitHub Actions（build_type=workflow），CNAME 由 CI `cp CNAME app/dist/CNAME` 注入，404.html 由 SSG 生成。
+- ⚠️ **push 不会自动上线**：`deploy.yml` 的 deploy job 带 `if: github.event_name == 'workflow_dispatch'`（切流期策略），push 只做 build + 产物校验。**真正发布必须手动触发**：
+  ```bash
+  gh workflow run deploy.yml --ref main
+  gh run list --workflow=deploy.yml --limit 2   # 确认 deploy job 真的跑了
+  ```
+  判断「是否已上线」不能只看 workflow 绿灯，也不能看 `pages/builds/latest`（workflow 模式下该接口不更新，会停留在旧 branch-deploy 记录）；要实测线上 DOM/图片或看 deploy job 结论。
+- CI 两个工作流（deploy.yml、check-404-sync.yml）都必须 **Node 24** 且**不要给 `pnpm/action-setup` 写死 `version`**（会与 package.json 的 `packageManager: pnpm@9.15.0` 冲突，报 `ERR_PNPM_BAD_PM_VERSION`）。
 - worker.js 与 test-worker.mjs / worker.test.mjs 不受重构影响（Cloudflare Worker 源码，线上 OAuth auth 与 Running 数据代理仍依赖，保留）。
 - 注意：根 package.json 不加 type=module（Qwik/vite 走 ESM，但 postcss/tailwind 等配置用 CJS 写法）。
 
