@@ -389,7 +389,7 @@ export const JsonWorkbench = component$(() => {
               class={`btn ${tree ? 'active' : ''}`}
               onClick$={() => toggleTree(side)}
             >
-              {tree ? 'Json' : '树形'}
+              {tree ? 'JSON' : '树形'}
             </button>
 
             <span class="jp-inline">

@@ -33,6 +33,9 @@ worker.test.mjs
 dist/
 /lib/
 /server/
+app/dist/
+app/server/
+app/lib/
 .qwik/
 tsconfig.tsbuildinfo
 
