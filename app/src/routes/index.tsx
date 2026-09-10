@@ -60,10 +60,10 @@ export default component$(() => {
         </div>
         <img
           src="/img/pickaxe.png"
-          alt="像素镐"
+          alt="水晶镐插画"
           class="mc-hero-art justify-self-end"
           width={400}
-          height={400}
+          height={430}
           loading="eager"
           decoding="async"
         />

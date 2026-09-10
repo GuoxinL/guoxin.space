@@ -19,7 +19,7 @@
 - 层次 = **1.6px 描边**（官网签名值）+ 大圆角（`16px`）
 - 高光 = 标题的 **shimmer 流光渐变**（紫 → 天蓝 → 紫，横向平移）
 - Hero 用 `violet-0`（`#F7F3FF`）淡紫底 + 绝对定位的旋转装饰图标
-- 背景大图为透明 PNG 像素镐（`app/public/img/pickaxe.png`），Hero 右侧，`drop-shadow: 6px 6px 0`
+- 背景大图为**透明 PNG 水晶镐插画**（`app/public/img/pickaxe.png`，880×946 / 143KB），Hero 右侧，`drop-shadow: 6px 6px 0`。**不做像素化**：源图含水晶切面与木纹，降采样会糊；边缘硬朗的像素感由字体与图标承担。
 
 ---
 
@@ -342,7 +342,7 @@
    > 生成 `.mc-nav`：高 64px、`border-bottom: 1.6px solid #BDCEE2`、白底、sticky `z-index: 99999`；导航项圆角 10px、11px 像素字、hover 底 `#E2EEFB`；激活项紫底白字 + `2px 2px 0` 紫阴影。
 
 4. **Hero 区块**
-   > 生成 Hero：`#F7F3FF` 淡紫底、圆角 24px、`pt-16 lg:pt-32`、`4px 4px 0` 阴影；左侧 H1 44px Press Start 2P + shimmer 渐变（紫→天蓝→紫横向平移 6s），下方副标题与两个按钮，再下方是终端命令框；右侧透明 PNG 像素镐 `pickaxe.png`，`drop-shadow: 6px 6px 0`。
+   > 生成 Hero：`#F7F3FF` 淡紫底、圆角 24px、`pt-16 lg:pt-32`、`4px 4px 0` 阴影；左侧 H1 44px Press Start 2P + shimmer 渐变（紫→天蓝→紫横向平移 6s），下方副标题与两个按钮，再下方是终端命令框；右侧透明 PNG 水晶镐插画 `pickaxe.png`（880×946），`drop-shadow: 6px 6px 0`。**不要**给它加 `image-rendering: pixelated`。
 
 5. **终端命令框**
    > 生成 `.mc-term`：深底 `#010B1A`、圆角 14px、2px 描边；顶部 27px 标题栏 `#D7F1FF` 带三个圆点（红/黄/绿）+ 1.6px 下边；命令区等宽字 `#7CE7FF`，提示符天蓝，右侧复制按钮。
@@ -360,5 +360,5 @@
 6. 新增区块优先用背景色切换（白 ↔ violet-0）分区，少用分割线。
 7. 深色主题通过覆盖变量实现（底色转 `#010B1A`、主色转 `#B688FF`、阴影转 rgba(0,0,0,.5)）。
 8. 图标统一 16×16 网格；需要放大时按 4 的倍数。
-9. 图片资源一律 `image-rendering: pixelated`（仅位图插画，不含 UI 截图）。
+9. `image-rendering: pixelated` **只用于真正像素化的位图图标**（如 `PixelIcon.tsx` 的 SVG 已用 `shape-rendering: crispEdges`）；Hero 水晶镐是精绘素材，加它会让浏览器降采样产生锯齿，禁止。
 10. 改完跑构建验证，确认字体与图片进 `dist/`。

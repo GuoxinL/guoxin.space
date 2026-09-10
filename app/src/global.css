@@ -209,9 +209,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* 位图一律最近邻放大，禁止插值糊边 */
-img,
-canvas,
+/* 真正的像素化位图才用最近邻放大：需显式加 .pixelated 类。
+   不要再全局命中 img/canvas —— 会误伤精绘素材（Hero 水晶镐）与常规缩略图，
+   使其在降采样时产生锯齿。 */
 .pixelated {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
@@ -2075,7 +2075,6 @@ h3,
   height: auto;
   pointer-events: none;
   user-select: none;
-  image-rendering: pixelated;
   filter: drop-shadow(6px 6px 0 var(--shadow-emphasis));
   animation: mc-float 3.2s ease-in-out infinite alternate;
 }

@@ -127,8 +127,12 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 - **设计真源 = 根目录 `DESIGN.md`**（9 章节）。参考基准 `https://next.qwik.dev/`；v1 Minecraft 像素版已废弃（演进记录见 `docs/BLOCKCRAFT-REDESIGN.md`，v2 交付说明见 `docs/QWIK-REDESIGN.md`）。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`。
 - 视觉规则（违反即不合格）：圆角只取 `10/12/14/16/999`；阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁止模糊半径）；描边 `1.6px`（分隔/顶栏）或 `2px`（卡片/输入/按钮）；动效 120–160ms `ease-out`；**禁止**零圆角硬边、纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms。
 - 主题变量：`--violet-*`（主色 `#A053FE`）/ `--sky-*`（强调 `#00B5F1`）/ `--slate-*`（中性 `#293749`）/ `--shadow-*`（偏移阴影）。旧的 `--bg/--surface/--text/--primary/--radius/--shadow` 等为**兼容别名**，Skills / JSON / Running 三页零改动继承皮肤。暗色主题只覆盖变量，不写组件选择器。
-- 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图插画保留 `image-rendering: pixelated`。
+- 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图图标保留 `image-rendering: pixelated`。
 - 像素图标：`app/src/components/pixel/PixelIcon.tsx`（16×16 网格，纯矩形 path，`shape-rendering: crispEdges`）；终端命令框 `TerminalBox.tsx`（官网同款窗口装饰 + 复制按钮）。新增图标往 `ICONS` 里加，不要引入图标库。
-- 背景大图：`app/public/img/pickaxe.png`（透明 PNG 像素镐，Hero 右侧，`drop-shadow: 6px 6px 0`）。用户出图后跑 `.tmp-art/pixelize_pickaxe.py <图>` 严格像素化覆盖；程序化兜底稿 `.tmp-art/draw_pickaxe.py`。
+- **Hero 主图：`app/public/img/pickaxe.png`**（Hero 右侧，`drop-shadow: 6px 6px 0`，`width: clamp(200px,30vw,400px)`）。**这张图不做像素化**——源图是带水晶切面与木纹的精绘素材，早期 `--grid 60` 把 2040px 压成 60 格（信息量仅约 3%）导致发糊，已改回**保真路线**。
+  - 当前规格：880×946（≈2.2× 最大显示宽 400px，覆盖 2x 视网膜），LANCZOS 直缩 + `PIL quantize(colors=256, method=FASTOCTREE)` → **143KB**（未量化 758KB）。
+  - 重新出图：`python tools/pixel-art/render-hero-variants.py <源RGBA PNG> --outdir <目录> --hi-width 880 --grids 200,140,60`，会产出 hi / grid200 / grid140 / grid60 四档供比选（`hi` 为推荐档）。
+  - 平滑图**不要**给 `.mc-hero-art` 加 `image-rendering: pixelated`（降采样会产生锯齿）；只有真正像素化的素材才加。
+  - `pickaxe-src.png` 已删除（旧像素化流程的副产物，且会以 2.9MB 体积混进 `app/public/` 被部署）。
 - favicon：`app/public/favicon.svg`（紫色圆角方块 + 白色像素镐），`root.tsx` 已引用，不要新增 `/favicon.ico`。
 - **本地构建踩坑**：WorkBuddy 的 safe-delete guard 会拦截 vite 清空 `app/dist/`（文件数 > 50），构建前需 `export CODEBUDDY_SAFE_DELETE_ENABLED=0`；本机无全局 pnpm，可用 `npm run build` 代替（不生成 lock 文件），Node 必须用 ≥24（`export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"`）。
