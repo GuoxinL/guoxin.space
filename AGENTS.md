@@ -46,6 +46,14 @@ personal-homepage/
 
 5. **运行 ID 精度**：活动 `run_id` 一律按**字符串**处理（源数据有 47/161 条超过 `Number.MAX_SAFE_INTEGER`），前端 `id === a.id` 用精确字符串匹配，勿用 `Number()` 转换。
 
+6. **版面宽度只有一处开关**：`Header / main / Footer` 三处容器统一用 `.mc-container` 类（定义在 `app/src/global.css`），宽度取自 `--container-w`（当前 **1280px**，宽板）。改版面宽度**只改这个变量**，不要在三个文件里各写 `max-w-*`（历史上是 `max-w-5xl`，已废弃）。页面内所有区块（Hero / Card / Terminal 等）**不设自己的宽度上限**，一律跟随 `main` 容器。
+
+7. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md` 与 `docs/style-proposal/README.md`。
+
+8. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
+
+9. **改 CSS 必须防「同特异性后置覆盖」**：`global.css` 按「页面 → 组件」顺序堆叠，同一选择器（如 `.mc-card:hover`）若在文件后半被 V1 旧规则重复定义，**会静默覆盖前面的新规则**（同特异性、后出现者胜）。改完务必用 `getComputedStyle` 在**目标状态**（尤其 `:hover` / `:focus-visible`）下回读，**不能只测静止态**。2026-09-11 的 V2 改造中，正是靠 hover 态回读才发现卡片长回了 V1 的 `box-shadow: 6px 6px 0`。
+
 ## 数据流
 
 - 前端页面数据（Running 模块）**全部经 Cloudflare Worker 代理**，不直连任何公开 raw URL：

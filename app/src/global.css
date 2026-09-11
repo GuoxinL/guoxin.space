@@ -88,6 +88,10 @@
   --purple-soft: #f7f3ff;
   --hover: rgba(41, 55, 73, 0.06);
 
+  /* 版面宽度（宽板）：全站内容容器上限，Header / main / Footer 三处共用 */
+  --container-w: 1280px;
+  --container-pad: 24px;
+
   /* 几何：大圆角 + 偏移阴影 */
   --radius: 16px;
   --radius-s: 12px;
@@ -209,6 +213,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 宽板容器：Header / main / Footer 三处共用同一个宽度上限与内边距，
+   改版面宽度只改 --container-w 一处即可。 */
+.mc-container {
+  width: 100%;
+  max-width: var(--container-w);
+  margin-inline: auto;
+  padding-inline: var(--container-pad);
+}
+
 /* 真正的像素化位图才用最近邻放大：需显式加 .pixelated 类。
    不要再全局命中 img/canvas —— 会误伤精绘素材（Hero 水晶镐）与常规缩略图，
    使其在降采样时产生锯齿。 */
@@ -278,15 +291,6 @@ a {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
-  color: var(--text2);
-}
-.btn.ghost:hover {
-  color: var(--text);
-  background: var(--hover);
-}
-.btn.ghost {
-  border-color: transparent;
-  background: transparent;
   color: var(--text2);
   padding: 0 8px;
 }
@@ -2000,18 +2004,16 @@ h3,
 }
 
 /* ---------- Hero ---------- */
+/* V2 去容器化：hero 不再是一个「面板」，内容直接落在页面背景上。
+   无底色 / 无描边 / 无阴影 / 无圆角，只用一条发丝线界定区块。 */
 .mc-hero {
   position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 32px;
+  gap: 48px;
   align-items: center;
-  padding: 64px 32px 40px;
-  border-radius: 24px;
-  background: var(--violet-0);
-  border: 1.6px solid var(--slate-25);
-  box-shadow: 4px 4px 0 var(--shadow-base);
-  overflow: hidden;
+  padding: 48px 0 44px;
+  border-bottom: 1px solid var(--slate-5);
 }
 /* 官网同款：绝对定位的旋转装饰图标 */
 .mc-hero-deco {
@@ -2070,6 +2072,34 @@ h3,
   gap: 12px;
   flex-wrap: wrap;
 }
+/* V2：按钮成为页面里仅有的「实体」。全局 .btn 被 Skills/JSON/Running 共用
+   （28 处），因此只在这里作用域覆盖，不动基类。 */
+.mc-hero-cta .btn {
+  border-radius: 10px;
+  border-width: 1px;
+  border-color: var(--slate-25);
+  background: transparent;
+  color: var(--slate-95);
+  box-shadow: none;
+}
+.mc-hero-cta .btn.primary {
+  background: var(--violet-65);
+  border-color: var(--violet-65);
+  color: #ffffff;
+}
+.mc-hero-cta .btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--violet-65);
+  color: var(--violet-80);
+}
+.mc-hero-cta .btn.primary:hover {
+  background: var(--violet-75);
+  border-color: var(--violet-75);
+  color: #ffffff;
+}
+.mc-hero-cta .btn:active {
+  transform: translateY(0);
+}
 .mc-hero-art {
   width: clamp(200px, 30vw, 400px);
   height: auto;
@@ -2088,30 +2118,40 @@ h3,
 }
 
 /* ---------- 卡片 ---------- */
+/* V2 去容器化：卡片不再是「盒子」，只用顶部发丝线 + hover 色带表达可点击。
+   margin-inline 负值让 hover 色带可外扩，同时不产生布局位移。 */
+.mc-cards {
+  gap: 0;
+}
 .mc-card {
-  background: var(--white);
-  border: 2px solid var(--slate-25);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 4px 4px 0 var(--shadow-base);
-  transition: transform 140ms ease-out, box-shadow 140ms ease-out,
-    border-color 140ms ease-out;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 26px 16px;
+  margin-inline: -16px;
+  border-top: 1px solid var(--slate-5);
+  transition: background-color 140ms ease-out;
 }
-.mc-card:hover {
-  transform: translate(-2px, -2px);
-  border-color: var(--violet-45);
-  box-shadow: 6px 6px 0 var(--shadow-emphasis);
+.mc-card:hover,
+.mc-card:focus-visible {
+  background: var(--violet-0);
 }
+/* V2：图标不再装进小方框，直接以主色呈现 */
 .mc-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  background: var(--violet-15);
+  border-radius: 0;
+  background: none;
   color: var(--violet-75);
+  transition: color 140ms ease-out;
+}
+.mc-card:hover .mc-card-icon {
+  color: var(--violet-80);
 }
 .mc-card-icon svg {
   width: 26px;
@@ -2124,6 +2164,10 @@ h3,
   font-size: 14px;
   line-height: 1.5;
   color: var(--slate-95);
+  transition: color 140ms ease-out;
+}
+.mc-card:hover .mc-card-title {
+  color: var(--violet-80);
 }
 .mc-footer-title {
   font-family: var(--font-heading);
@@ -2143,24 +2187,33 @@ h3,
 }
 
 /* ---------- 标签 ---------- */
+/* V2：药丸改成「主色方块 + 大字距文字」，去掉填充与圆角 */
 .mc-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   font-family: var(--font-heading);
   font-size: 10px;
   line-height: 1;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: var(--violet-15);
+  padding: 0;
+  border-radius: 0;
+  background: none;
   color: var(--violet-80);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.14em;
 }
+.mc-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  background: var(--violet-65);
+}
+/* V2：tag 变体只换前景色与前置方块色，不再有底色药丸 / 虚线边框 */
 .mc-tag.sky {
-  background: var(--sky-15);
   color: var(--sky-75);
 }
-.mc-tag.dashed {
-  background: transparent;
-  border: 1.6px dashed var(--violet-45);
+.mc-tag.sky::before {
+  background: var(--sky-75);
 }
 
 /* ---------- 顶栏（官网规格：h-16 + 1.6px 底边） ---------- */
@@ -2209,12 +2262,13 @@ h3,
 }
 
 /* ---------- 终端命令框（官网同款窗口装饰） ---------- */
+/* V2：终端框保留深色「窗口」语义，但去掉描边与偏移阴影 */
 .mc-term {
-  border: 2px solid var(--slate-25);
-  border-radius: 14px;
+  border: none;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--slate-deep);
-  box-shadow: 4px 4px 0 var(--shadow-base);
+  box-shadow: none;
   max-width: 100%;
 }
 .mc-term-bar {
@@ -2294,7 +2348,8 @@ h3,
   image-rendering: pixelated;
 }
 
-/* ---------- 形态兜底：旧组件的硬编码圆角统一到新语言 ---------- */
+/* ---------- 形态兜底：三页（Skills/JSON/Running）旧组件的硬编码圆角统一到 12px。
+   首页走 V2 去容器化（容器圆角 0），不在此列。 ---------- */
 .sk-card,
 .sk-card-dl,
 .sk-icon,
@@ -2377,7 +2432,7 @@ select:focus-visible {
 @media (max-width: 720px) {
   .mc-hero {
     grid-template-columns: 1fr;
-    padding: 40px 20px 32px;
+    padding: 36px 0 32px;
     gap: 20px;
   }
   .mc-hero-art {

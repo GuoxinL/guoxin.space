@@ -28,7 +28,7 @@ const CARDS: { href: string; title: string; icon: PixelIconName; desc: string }[
 export default component$(() => {
   return (
     <section class="flex flex-col gap-8">
-      {/* Hero：淡紫分区 + 流光标题 + 终端框 + 像素镐大图（对齐 next.qwik.dev） */}
+      {/* Hero：V2 去容器化——无面板底色/描边/阴影，仅底部 1px 发丝线 + 流光标题 + 终端框 + 像素镐大图（对齐 next.qwik.dev） */}
       <div class="mc-hero">
         {/* 官网同款：绝对定位的旋转装饰图标 */}
         <PixelIcon name="pickaxe" size={72} class="mc-hero-deco a" />
@@ -69,7 +69,7 @@ export default component$(() => {
         />
       </div>
 
-      <ul class="grid gap-4 sm:grid-cols-3">
+      <ul class="mc-cards grid sm:grid-cols-3">
         {CARDS.map((c) => (
           <li key={c.href}>
             <Link href={c.href} class="mc-card flex h-full items-start gap-3">

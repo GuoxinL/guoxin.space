@@ -18,7 +18,7 @@ export default component$(() => {
   return (
     <>
       <Header />
-      <main class="mx-auto max-w-5xl px-4 py-8">
+      <main class="mc-container py-10">
         <Slot />
       </main>
       <Footer />

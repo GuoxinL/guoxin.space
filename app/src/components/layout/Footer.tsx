@@ -10,7 +10,7 @@ const SECTIONS = [
 export const Footer = component$(() => {
   return (
     <footer class="mt-16 border-t-[1.6px] border-[var(--slate-25)] bg-[var(--violet-0)] py-12 text-sm">
-      <div class="mx-auto grid max-w-5xl gap-8 px-4 sm:grid-cols-3">
+      <div class="mc-container grid gap-8 sm:grid-cols-3">
         <div>
           <p class="mc-footer-title">guoxin.space</p>
           <p class="mt-2 text-[var(--muted)]">AI 友好的个人主页 · 像素世界</p>

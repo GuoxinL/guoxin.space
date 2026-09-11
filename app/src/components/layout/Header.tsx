@@ -26,7 +26,7 @@ export const Header = component$(() => {
 
   return (
     <header class="mc-nav sticky top-0 z-50">
-      <nav class="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+      <nav class="mc-container flex items-center justify-between gap-3 py-2.5">
         <Link href="/" class="mc-logo" aria-label="guoxin.space 首页">
           <span class="mc-logo-block" aria-hidden="true" />
           guoxin.space
