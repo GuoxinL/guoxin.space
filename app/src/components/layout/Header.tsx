@@ -6,7 +6,7 @@ import { PixelIcon, type PixelIconName } from '../pixel/PixelIcon';
 const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: '/', label: '首页', icon: 'home' },
   { href: '/skills', label: 'Skills', icon: 'chest' },
-  { href: '/json', label: 'JSON 工具', icon: 'scroll' },
+  { href: '/toolbox/json', label: '万能工具箱', icon: 'scroll' },
   { href: '/running', label: 'Running', icon: 'boot' },
 ];
 

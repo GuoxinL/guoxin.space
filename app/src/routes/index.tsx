@@ -12,8 +12,8 @@ const CARDS: { href: string; title: string; icon: PixelIconName; desc: string }[
     desc: '技能夹：列表、详情、文件树与 Markdown 渲染，支持 Worker 同步与收藏。',
   },
   {
-    href: '/json',
-    title: 'JSON 工具',
+    href: '/toolbox/json',
+    title: '万能工具箱',
     icon: 'scroll',
     desc: '格式化、压缩、对比、树形浏览与历史记录，纯前端实现。',
   },

@@ -105,7 +105,7 @@ NODE_PATH=$HOME/.workbuddy/binaries/node/workspace/node_modules \
 gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 ```
 
-线上页面 URL：`https://guoxin.space/#/running`（Running）、`https://guoxin.space/#/skills`（Skills）、`https://guoxin.space/#/json`（JSON 工具）。
+线上页面 URL：`https://guoxin.space/#/running`（Running）、`https://guoxin.space/#/skills`（Skills）、`https://guoxin.space/toolbox/json`（万能工具箱 · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）。
 
 ## 易错点备忘
 

@@ -316,6 +316,17 @@ a {
   font-size: 18px;
   font-weight: 600;
 }
+.json-head-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.json-slogan {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
 .toolbar {
   display: flex;
   gap: 8px;

@@ -496,7 +496,10 @@ export const JsonWorkbench = component$(() => {
   return (
     <div class="json-wrap">
       <div class="json-head">
-        <h2>万能工具箱</h2>
+        <div class="json-head-title">
+          <h2>万能工具箱</h2>
+          <p class="json-slogan">Small tools for everyday bytes.</p>
+        </div>
         <div class="toolbar">
           <select
             class="indent"

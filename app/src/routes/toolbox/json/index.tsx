@@ -1,14 +1,14 @@
 import { component$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 
-import { JsonWorkbench } from '../../components/json/JsonWorkbench';
+import { JsonWorkbench } from '../../../components/json/JsonWorkbench';
 
 export default component$(() => {
   return <JsonWorkbench />;
 });
 
 export const head: DocumentHead = {
-  title: 'JSON 工具 — guoxin.space',
+  title: '万能工具箱 — guoxin.space',
   meta: [
     {
       name: 'description',
