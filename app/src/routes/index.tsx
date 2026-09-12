@@ -58,15 +58,27 @@ export default component$(() => {
             />
           </div>
         </div>
-        <img
-          src="/img/pickaxe.png"
-          alt="水晶镐插画"
-          class="mc-hero-art justify-self-end"
-          width={400}
-          height={448}
-          loading="eager"
-          decoding="async"
-        />
+        <div class="mc-hero-art-wrap">
+          {/* 蓝紫粒子光效层（独立图层置于镐子之后，z-index 更低；CSS drop-shadow 仅作用于镐子本身） */}
+          <img
+            src="/img/pickaxe-particles.png"
+            alt=""
+            aria-hidden="true"
+            class="mc-hero-particles"
+            width={1180}
+            height={1286}
+            decoding="async"
+          />
+          <img
+            src="/img/pickaxe.png"
+            alt="水晶镐插画"
+            class="mc-hero-art"
+            width={400}
+            height={448}
+            loading="eager"
+            decoding="async"
+          />
+        </div>
       </div>
 
       <ul class="mc-cards grid sm:grid-cols-3">

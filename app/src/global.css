@@ -2100,13 +2100,34 @@ h3,
 .mc-hero-cta .btn:active {
   transform: translateY(0);
 }
-.mc-hero-art {
+/* 镐子 + 粒子光效共用一个相对定位容器：浮动动画挂容器（两者同步），
+   粒子层绝对定位居中置于镐子之后，drop-shadow 只作用于镐子本身。 */
+.mc-hero-art-wrap {
+  position: relative;
+  justify-self: end;
   width: clamp(200px, 30vw, 400px);
+  animation: mc-float 3.2s ease-in-out infinite alternate;
+}
+.mc-hero-art {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
   height: auto;
   pointer-events: none;
   user-select: none;
   filter: drop-shadow(6px 6px 0 var(--shadow-emphasis));
-  animation: mc-float 3.2s ease-in-out infinite alternate;
+}
+/* 独立粒子图层：与镐子同中心，画布比镐子大（四周留白环），object-fit:contain 居中覆盖 */
+.mc-hero-particles {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 @keyframes mc-float {
   from {
@@ -2435,7 +2456,7 @@ select:focus-visible {
     padding: 36px 0 32px;
     gap: 20px;
   }
-  .mc-hero-art {
+  .mc-hero-art-wrap {
     width: min(62%, 260px);
     order: -1;
     margin: 0 auto;
