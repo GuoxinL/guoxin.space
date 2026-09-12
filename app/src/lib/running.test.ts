@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import {
   rkParse,
   rkMovingSec,
@@ -11,6 +11,8 @@ import {
   rkHeatYear,
   rkHeatColor,
   rkPbs,
+  rkPbsItems,
+  rkSortDate,
   rkMonthDist,
   rkYearDist,
   rkDecodePolyline,
@@ -26,6 +28,9 @@ import {
   rkHeatYearHTML,
   rkTrendHTML,
   rkMapTracks,
+  rkFetchPreview,
+  rkLoadRides,
+  tracksUrl,
   type RkActivity,
 } from './running';
 
@@ -256,5 +261,102 @@ describe('rkMapTracks', () => {
     const tracks = rkMapTracks(rkParse(sample), null);
     expect(tracks).toHaveLength(1); // 第二条 polyline 为空
     expect(tracks[0].id).toBe('123');
+  });
+});
+
+describe('tracksUrl（Worker 通道拼接）', () => {
+  beforeAll(() => {
+    if (typeof (globalThis as any).localStorage === 'undefined') {
+      const m = new Map<string, string>();
+      (globalThis as any).localStorage = {
+        getItem: (k: string) => (m.has(k) ? m.get(k)! : null),
+        setItem: (k: string, v: string) => m.set(k, String(v)),
+        removeItem: (k: string) => m.delete(k),
+        clear: () => m.clear(),
+      };
+    }
+  });
+  it('默认 Worker 拼接 preview.json 路径', () => {
+    const u = tracksUrl('preview.json');
+    expect(u).toContain('skillboard-collect.lgx31.workers.dev');
+    expect(u).toContain('api/tracks/raw?f=preview.json');
+  });
+  it('对含空格的文件名做 encodeURIComponent', () => {
+    expect(tracksUrl('my file.png')).toContain('f=my%20file.png');
+  });
+});
+
+describe('rkFetchPreview / rkLoadRides（fetch 层）', () => {
+  const previewJson = JSON.stringify([
+    { run_id: 1, distance: 5000, type: 'Run', start_date_local: '2026-01-01T08:00:00Z', summary_polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@' },
+    { run_id: 2, distance: 20000, type: 'Ride', start_date_local: '2026-02-01T08:00:00Z', summary_polyline: '' },
+  ]);
+  beforeAll(() => {
+    if (typeof (globalThis as any).localStorage === 'undefined') {
+      const m = new Map<string, string>();
+      (globalThis as any).localStorage = {
+        getItem: (k: string) => (m.has(k) ? m.get(k)! : null),
+        setItem: (k: string, v: string) => m.set(k, String(v)),
+        removeItem: (k: string) => m.delete(k),
+        clear: () => m.clear(),
+      };
+    }
+  });
+  it('rkFetchPreview 拉取并解析 preview.json', async () => {
+    (globalThis as any).fetch = vi.fn(async (url: string) => {
+      const f = new URL(url).searchParams.get('f') || '';
+      if (f === 'preview.json') return { ok: true, status: 200, text: async () => previewJson, json: async () => JSON.parse(previewJson) };
+      return { ok: true, status: 200, text: async () => '', json: async () => ({}) };
+    });
+    const txt = await rkFetchPreview();
+    const acts = rkParse(txt);
+    expect(acts).toHaveLength(2);
+    expect(acts[0].id).toBe('1');
+  });
+  it('rkLoadRides：无 token 静默返回 null', async () => {
+    (globalThis as any).fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, rides: [] }) }));
+    expect(await rkLoadRides('')).toBeNull();
+  });
+  it('rkLoadRides：401 静默降级返回 null', async () => {
+    (globalThis as any).fetch = vi.fn(async () => ({ ok: false, status: 401, json: async () => null }));
+    expect(await rkLoadRides('tok')).toBeNull();
+  });
+  it('rkLoadRides：200 构建 run_id -> 完整 polyline 映射', async () => {
+    (globalThis as any).fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, rides: [{ run_id: 2, summary_polyline: 'FULLPOLY' }, { run_id: 9, summary_polyline: 'X' }] }),
+    }));
+    const m = await rkLoadRides('tok');
+    expect(m).not.toBeNull();
+    expect(m!['2']).toBe('FULLPOLY');
+    expect(m!['9']).toBe('X');
+  });
+});
+
+describe('rkPbsItems / rkSortDate', () => {
+  it('rkPbsItems 输出 6 项（3 PB + 3 总览）', () => {
+    const items = rkPbsItems(rkParse(sample));
+    expect(items).toHaveLength(6);
+    expect(items.map((i) => i.k)).toEqual(['最远距离', '平均时速', '极限冲刺速度', '总距离', '总时长', '运动次数']);
+    expect(items[0].v).toBe('20.0'); // 20000m -> 20 km；按 rkPbsItems 的 <100km toFixed(1) 显示规则保留一位小数
+  });
+  it('rkSortDate 按日期降序', () => {
+    const a = [{ date: '2026-01-01T00:00:00Z' } as RkActivity, { date: '2026-03-01T00:00:00Z' } as RkActivity];
+    const s = [...a].sort(rkSortDate);
+    expect(s[0].date).toBe('2026-03-01T00:00:00Z');
+  });
+});
+
+describe('rkStats 含 rides 聚合', () => {
+  it('同日多活动只计 1 个活跃天', () => {
+    const acts = rkParse([
+      { run_id: 1, distance: 1000, type: 'Run', start_date_local: '2026-01-01T08:00:00Z', summary_polyline: '' },
+      { run_id: 2, distance: 2000, type: 'Run', start_date_local: '2026-01-01T09:00:00Z', summary_polyline: '' },
+    ]);
+    const s = rkStats(acts);
+    expect(s.days).toBe(1);
+    expect(s.dist).toBe(3000);
+    expect(s.count).toBe(2);
   });
 });

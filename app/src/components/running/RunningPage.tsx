@@ -22,7 +22,6 @@ import {
   rkFetchPreview,
   tracksUrl,
   type RkActivity,
-  type RkReplayHandle,
 } from '../../lib/running';
 import { authInit, getAuthToken, isAdmin } from '../../lib/auth';
 
@@ -56,7 +55,6 @@ export const RunningPage = component$(() => {
 
   const mapRef = useSignal<HTMLElement>();
   const replayRef = useSignal<HTMLElement>();
-  const replayHandle = useSignal<RkReplayHandle | null>(null);
 
   /* 加载数据（客户端 Worker 通道） */
   useVisibleTask$(async () => {
@@ -106,16 +104,19 @@ export const RunningPage = component$(() => {
     rkShowMap({ container: el, acts: state.acts, ridesFull: state.ridesFull, selId: state.selId });
   });
 
-  /* 轨迹回放：actOpen 变化时（重）启动 canvas 动画 */
+  /* 轨迹回放：actOpen 变化时（重）启动 canvas 动画。
+     回放 handle 含 stop() 函数、不可序列化，不能存进 Qwik signal（dev 下报
+     Value cannot be serialized，并触发 vitest 跨进程 DataCloneError）。改为挂在 wrap DOM
+     元素上（随元素生命周期存活），原 stop→start 语义不变。 */
   useVisibleTask$(({ track }) => {
     track(() => state.actOpen?.id);
-    if (replayHandle.value) {
-      replayHandle.value.stop();
-      replayHandle.value = null;
-    }
     const wrap = replayRef.value;
-    if (!wrap || !state.actOpen) return;
-    replayHandle.value = rkActReplay(wrap, state.actOpen, state.ridesFull);
+    if (!wrap) return;
+    const prev = (wrap as any).__replay;
+    if (prev && typeof prev.stop === 'function') prev.stop();
+    (wrap as any).__replay = null;
+    if (!state.actOpen) return;
+    (wrap as any).__replay = rkActReplay(wrap, state.actOpen, state.ridesFull);
   });
 
   /* 主题联动：刷新缩略图 / 矢量层 */
@@ -134,10 +135,10 @@ export const RunningPage = component$(() => {
   });
   const closeAct = $(() => {
     state.actOpen = null;
-    if (replayHandle.value) {
-      replayHandle.value.stop();
-      replayHandle.value = null;
-    }
+    const wrap = replayRef.value;
+    const prev = wrap && (wrap as any).__replay;
+    if (prev && typeof prev.stop === 'function') prev.stop();
+    if (wrap) (wrap as any).__replay = null;
   });
 
   return (
