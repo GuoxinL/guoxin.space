@@ -20,7 +20,7 @@
 - 圆角**只保留在交互控件**：按钮 `10px`、终端框 `10px`；容器一律 `0`
 - 高光 = 标题的 **shimmer 流光渐变**（紫 → 天蓝 → 紫，横向平移）
 - Hero **不用面板底色**（V2 去容器化），仅靠 `border-bottom: 1px solid var(--slate-5)` 界定区块；保留绝对定位的旋转装饰图标
-- 背景大图为**透明 PNG 水晶镐插画**（`app/public/img/pickaxe.png`，880×946 / 143KB），Hero 右侧，`drop-shadow: 6px 6px 0`。源图为**像素艺术风格**——4K 原图即块状笔触，缩放到显示尺寸后仍保留像素块观感，这是**原图特征而非渲染锯齿**。**不要**给它加 `image-rendering: pixelated`。
+- 背景大图为**透明 PNG 水晶镐插画**（`app/public/img/pickaxe.png`，880×986 / 133KB，去光效版），Hero 右侧，`drop-shadow: 6px 6px 0`。源图为**像素方块风格**——4K 原图即清晰色块构成，缩放到显示尺寸后仍保留方块观感，这是**原图特征而非渲染锯齿**。**不要**给它加 `image-rendering: pixelated`。
 
 ---
 
@@ -359,7 +359,7 @@ V2：**不再用药丸**。改为「前置 6px 方块 + 字距加宽」的极简
    > 生成 `.mc-nav`：高 64px、`border-bottom: 1.6px solid #BDCEE2`、白底、sticky `z-index: 99999`；导航项圆角 10px、11px 像素字、hover 底 `#E2EEFB`；激活项紫底白字 + `2px 2px 0` 紫阴影。
 
 4. **Hero 区块**
-   > 生成 Hero（V2 去容器化）：**无面板底色、无描边、无阴影、无圆角**，`padding: 48px 0 44px` + `border-bottom: 1px solid var(--slate-5)`，两列 `1fr auto` / `gap: 48px`；左侧 H1 44px Press Start 2P + shimmer 渐变（紫→天蓝→紫横向平移 6s），下方副标题与两个按钮，再下方是终端命令框；右侧透明 PNG 水晶镐插画 `pickaxe.png`（880×946），`drop-shadow: 6px 6px 0`。**不要**给它加 `image-rendering: pixelated`。
+   > 生成 Hero（V2 去容器化）：**无面板底色、无描边、无阴影、无圆角**，`padding: 48px 0 44px` + `border-bottom: 1px solid var(--slate-5)`，两列 `1fr auto` / `gap: 48px`；左侧 H1 44px Press Start 2P + shimmer 渐变（紫→天蓝→紫横向平移 6s），下方副标题与两个按钮，再下方是终端命令框；右侧透明 PNG 水晶镐插画 `pickaxe.png`（880×986），`drop-shadow: 6px 6px 0`。**不要**给它加 `image-rendering: pixelated`。
 
 5. **终端命令框**
    > 生成 `.mc-term`（V2）：深底 `#010B1A`、圆角 10px、**无描边无阴影**（保留深色「窗口」语义即可，深底在浅色背景上已足够成立）；顶部 27px 标题栏 `#D7F1FF` 带三个圆点（红/黄/绿）；命令区等宽字 `#7CE7FF`，提示符天蓝，右侧复制按钮。

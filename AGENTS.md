@@ -137,8 +137,10 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 - 主题变量：`--violet-*`（主色 `#A053FE`）/ `--sky-*`（强调 `#00B5F1`）/ `--slate-*`（中性 `#293749`）/ `--shadow-*`（偏移阴影）。旧的 `--bg/--surface/--text/--primary/--radius/--shadow` 等为**兼容别名**，Skills / JSON / Running 三页零改动继承皮肤。暗色主题只覆盖变量，不写组件选择器。
 - 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图图标保留 `image-rendering: pixelated`。
 - 像素图标：`app/src/components/pixel/PixelIcon.tsx`（16×16 网格，纯矩形 path，`shape-rendering: crispEdges`）；终端命令框 `TerminalBox.tsx`（官网同款窗口装饰 + 复制按钮）。新增图标往 `ICONS` 里加，不要引入图标库。
-- **Hero 主图：`app/public/img/pickaxe.png`**（Hero 右侧，`drop-shadow: 6px 6px 0`，`width: clamp(200px,30vw,400px)`）。**这张图不做像素化**——源图是带水晶切面与木纹的精绘素材，早期 `--grid 60` 把 2040px 压成 60 格（信息量仅约 3%）导致发糊，已改回**保真路线**。
-  - 当前规格：880×946（≈2.2× 最大显示宽 400px，覆盖 2x 视网膜），LANCZOS 直缩 + `PIL quantize(colors=256, method=FASTOCTREE)` → **143KB**（未量化 758KB）。
+- **Hero 主图：`app/public/img/pickaxe.png`**（Hero 右侧，`drop-shadow: 6px 6px 0`，`width: clamp(200px,30vw,400px)`）。**这张图不做额外像素化**——源图本身就是像素方块风格（水晶镐头由清晰色块构成），早期 `--grid 60` 把 2040px 压成 60 格（信息量仅约 3%）反而发糊，已改回**保真路线**（LANCZOS 直缩）。
+  - 当前规格：**880×986**（≈2.2× 最大显示宽 400px，覆盖 2x 视网膜），LANCZOS 直缩 + `PIL quantize(colors=256, method=FASTOCTREE)` → **133KB**（未量化 693KB）。
+  - 素材来源：`MC镐子_K2去光效_p3_4K_透明.png`（3840×2160 真 RGBA；**去光效版**，无青色辉光雾）。裁切后 1820×2040，**aspect 0.892**。
+  - ⚠️ **换图必须同步 `index.tsx` 的 `width/height`**：它们是 CLS 占位，须匹配真实宽高比。当前 880×986 → 显示宽 400 时 **`width={400} height={448}`**（上一版 880×946 对应 height=430）。计算公式 `height ≈ round(400 × 原图高 / 原图宽)`。
   - 重新出图：`python tools/pixel-art/render-hero-variants.py <源RGBA PNG> --outdir <目录> --hi-width 880 --grids 200,140,60`，会产出 hi / grid200 / grid140 / grid60 四档供比选（`hi` 为推荐档）。
   - 平滑图**不要**给 `.mc-hero-art` 加 `image-rendering: pixelated`（降采样会产生锯齿）；只有真正像素化的素材才加。
   - `pickaxe-src.png` 已删除（旧像素化流程的副产物，且会以 2.9MB 体积混进 `app/public/` 被部署）。

@@ -63,7 +63,7 @@ export default component$(() => {
           alt="水晶镐插画"
           class="mc-hero-art justify-self-end"
           width={400}
-          height={430}
+          height={448}
           loading="eager"
           decoding="async"
         />
