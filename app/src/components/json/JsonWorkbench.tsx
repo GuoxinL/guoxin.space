@@ -86,6 +86,8 @@ export const JsonWorkbench = component$(() => {
   const jpR = useSignal('');
   const hlL = useSignal<Range[]>([]);
   const hlR = useSignal<Range[]>([]);
+  const jpPathsL = useSignal<string[]>([]);
+  const jpPathsR = useSignal<string[]>([]);
   const scL = useSignal(0);
   const scR = useSignal(0);
   const gutL = useSignal<HTMLElement>();
@@ -116,9 +118,11 @@ export const JsonWorkbench = component$(() => {
     if (side === 'L') {
       textL.value = text;
       hlL.value = [];
+      jpPathsL.value = [];
     } else {
       textR.value = text;
       hlR.value = [];
+      jpPathsR.value = [];
     }
     scheduleSave(side, text);
   });
@@ -209,8 +213,13 @@ export const JsonWorkbench = component$(() => {
       toast.value = { msg: `${sideName(side)}${r.msg}`, kind: 'err' };
       return;
     }
-    if (side === 'L') hlL.value = r.ranges;
-    else hlR.value = r.ranges;
+    if (side === 'L') {
+      hlL.value = r.ranges;
+      jpPathsL.value = r.paths;
+    } else {
+      hlR.value = r.ranges;
+      jpPathsR.value = r.paths;
+    }
     toast.value = {
       msg: r.count
         ? `${sideName(side)} JSONPath 命中 ${r.count} 项 · 已在原文高亮 ${r.ranges.length} 处文字`
@@ -223,9 +232,11 @@ export const JsonWorkbench = component$(() => {
     if (side === 'L') {
       jpL.value = '';
       hlL.value = [];
+      jpPathsL.value = [];
     } else {
       jpR.value = '';
       hlR.value = [];
+      jpPathsR.value = [];
     }
     toast.value = { msg: `已清除${sideName(side)} JSONPath 高亮`, kind: 'ok' };
   });
@@ -331,6 +342,7 @@ export const JsonWorkbench = component$(() => {
     const v = side === 'L' ? valL.value : valR.value;
     const jp = side === 'L' ? jpL.value : jpR.value;
     const hl = side === 'L' ? hlL.value : hlR.value;
+    const hlPaths = side === 'L' ? jpPathsL.value : jpPathsR.value;
     const scroll = side === 'L' ? scL.value : scR.value;
     const diff = diffRes.value;
     const diffLinesOut = diff ? (side === 'L' ? diff.a : diff.b) : null;
@@ -468,7 +480,7 @@ export const JsonWorkbench = component$(() => {
           {showTree &&
             (v.ok ? (
               <div class="view tree-view">
-                <JsonTree val={v.val} name="root" depth={0} />
+                <JsonTree val={v.val} name="root" depth={0} path="$" hlPaths={hlPaths} />
               </div>
             ) : (
               <div class="view tree-view">

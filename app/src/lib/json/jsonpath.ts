@@ -4,7 +4,7 @@ import type { DataValue, Lang, Range } from '../../types/json';
 import { parseByLang } from './lang';
 
 export type JpResult =
-  | { ok: true; count: number; ranges: Range[] }
+  | { ok: true; count: number; ranges: Range[]; paths: string[] }
   | { ok: false; msg: string };
 
 /**
@@ -28,6 +28,22 @@ export function jpNeedles(value: DataValue, lang: Lang): string[] {
     list.push(String(value));
   }
   return list;
+}
+
+/**
+ * 从 jsonpath-plus 的 path（如 `$['roles']`、`$['roles']['admin']`、`$['tags'][0]`）提取末级键名。
+ * 仅返回对象键（带引号形式）；数组下标返回 null（文本视图无可对应键，但树形视图仍可凭路径高亮）。
+ */
+export function jpLeafKey(path: string): string | null {
+  const quoted = path.match(/\['([^']+)'\]$/) || path.match(/\["([^"]+)"\]$/);
+  if (quoted) return quoted[1];
+  return null;
+}
+
+/** 末级键名在原文中的搜索候选文本（JSON 带引号、其他语言裸键） */
+export function jpKeyNeedles(key: string, lang: Lang): string[] {
+  if (lang === 'json' || lang === 'json5') return [`"${key}"`];
+  return [key];
 }
 
 /** 在原文中查找所有候选文本的出现区间 */
@@ -73,22 +89,31 @@ export function queryJsonPath(raw: string, lang: Lang, expr: string): JpResult {
   const parsed = parseByLang(raw, lang);
   if (!parsed.ok) return { ok: false, msg: `本侧解析失败，无法查询：${parsed.err.msg}` };
 
-  let res: Array<{ value: DataValue }>;
+  let res: Array<{ value: DataValue; path: string }>;
   try {
     res = JSONPath({ path, json: parsed.val as object, resultType: 'all' }) as Array<{
       value: DataValue;
+      path: string;
     }>;
   } catch (e) {
     return { ok: false, msg: `JSONPath 语法错误：${(e as Error).message}` };
   }
 
-  if (!res || !res.length) return { ok: true, count: 0, ranges: [] };
+  const paths = (res || []).map((r) => r.path);
+  if (!res || !res.length) return { ok: true, count: 0, ranges: [], paths };
 
   let ranges: Range[] = [];
   for (const r of res) {
-    ranges = ranges.concat(jpFindRanges(raw, jpNeedles(r.value, lang)));
+    const needles = jpNeedles(r.value, lang);
+    // 容器值（对象 / 数组）用紧凑 JSON.stringify 无法命中美化后的原文，
+    // 改用路径末级键名在原文定位（JSON 带引号、其他语言裸键），保证至少高亮键。
+    if (r.value !== null && typeof r.value === 'object') {
+      const leaf = jpLeafKey(r.path);
+      if (leaf != null) needles.push(...jpKeyNeedles(leaf, lang));
+    }
+    ranges = ranges.concat(jpFindRanges(raw, needles));
   }
-  return { ok: true, count: res.length, ranges: jpMergeRanges(ranges) };
+  return { ok: true, count: res.length, ranges: jpMergeRanges(ranges), paths };
 }
 
 /** 把区间按行切分，返回每行的高亮片段（列偏移相对行首） */

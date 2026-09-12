@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   jpFindRanges,
+  jpKeyNeedles,
+  jpLeafKey,
   jpMergeRanges,
   jpNeedles,
   queryJsonPath,
@@ -9,6 +11,7 @@ import {
 } from './jsonpath';
 
 const SAMPLE = '{\n  "type": "cycling",\n  "km": 42\n}';
+const SAMPLE_OBJ = '{\n  "name": "guoxin",\n  "roles": {\n    "admin": true\n  }\n}';
 
 describe('jpNeedles', () => {
   it('JSON 下字符串同时给出带引号与裸值两种候选', () => {
@@ -64,6 +67,24 @@ describe('queryJsonPath', () => {
     }
   });
 
+  it('返回命中路径（jsonpath-plus 风格），供树形视图按路径高亮', () => {
+    const r = queryJsonPath(SAMPLE, 'json', '$.type');
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.paths).toEqual(["$['type']"]);
+  });
+
+  it('对象值用末级键名在原文高亮（紧凑 JSON.stringify 无法命中美化文本）', () => {
+    const r = queryJsonPath(SAMPLE_OBJ, 'json', '$.roles');
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.count).toBe(1);
+      expect(r.paths).toEqual(["$['roles']"]);
+      // 应能定位到键 "roles"（而非去匹配整段对象文本）
+      const hit = r.ranges.find(([s, e]) => SAMPLE_OBJ.slice(s, e) === '"roles"');
+      expect(hit).toBeDefined();
+    }
+  });
+
   it('未命中时返回 0 项且无区间', () => {
     const r = queryJsonPath(SAMPLE, 'json', '$.notExist');
     expect(r.ok).toBe(true);
@@ -89,6 +110,20 @@ describe('queryJsonPath', () => {
     const r = queryJsonPath('type: cycling\nkm: 42\n', 'yaml', '$.type');
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.count).toBe(1);
+  });
+});
+
+describe('jpLeafKey / jpKeyNeedles', () => {
+  it('从路径提取对象键名', () => {
+    expect(jpLeafKey("$['roles']")).toBe('roles');
+    expect(jpLeafKey("$['roles']['admin']")).toBe('admin');
+  });
+  it('数组下标返回 null（文本视图无对应键，树形仍按路径高亮）', () => {
+    expect(jpLeafKey("$['tags'][0]")).toBeNull();
+  });
+  it('JSON 键名带引号、其他语言裸键', () => {
+    expect(jpKeyNeedles('roles', 'json')).toEqual(['"roles"']);
+    expect(jpKeyNeedles('roles', 'yaml')).toEqual(['roles']);
   });
 });
 

@@ -573,6 +573,18 @@ select.lang-sel {
 .jt-node > summary:hover {
   color: var(--text);
 }
+/* JSONPath 命中的树形节点高亮（与原文视图 .jp-overlay .jp-hl 同色变量） */
+.jt-node.jp-hl > summary,
+.jt-leaf.jp-hl {
+  background: var(--jp-hit);
+  border-radius: 3px;
+  outline: 1px solid var(--jp-hit-border);
+}
+.jt-leaf.jp-hl {
+  display: inline-block;
+  padding: 0 3px;
+  margin-left: -3px;
+}
 .j-meta {
   color: var(--text3);
   font-size: 12px;
