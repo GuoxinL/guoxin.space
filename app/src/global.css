@@ -2026,22 +2026,55 @@ h3,
   padding: 48px 0 44px;
   border-bottom: 1px solid var(--slate-5);
 }
-/* 官网同款：绝对定位的旋转装饰图标 */
+/* 官网同款：绝对定位的旋转装饰图标 + 漂浮特效（Arcade DNA 玩心） */
 .mc-hero-deco {
   position: absolute;
   color: var(--violet-45);
   opacity: 0.55;
   pointer-events: none;
+  --deco-rot: 0deg;
+  will-change: transform;
+  animation: mc-float 6s ease-in-out infinite;
 }
 .mc-hero-deco.a {
   right: 34%;
   top: 10px;
-  rotate: 14deg;
+  --deco-rot: 14deg;
+  animation-name: mc-float-bob;
+  animation-duration: 7s;
+  animation-delay: -1.2s;
 }
 .mc-hero-deco.b {
   left: 10px;
   bottom: 12%;
-  rotate: -12deg;
+  --deco-rot: -12deg;
+  animation-name: mc-float-slow;
+  animation-duration: 9s;
+  animation-delay: -3s;
+}
+.mc-hero-deco.c {
+  right: 48%;
+  top: 52%;
+  --deco-rot: 8deg;
+  animation-name: mc-float;
+  animation-duration: 6.5s;
+  animation-delay: -2s;
+}
+/* 漂浮特效：3 个变体，错落节奏；仅 transform 位移 + 极轻旋转摆动，无 glow，遵守循环动画红线 */
+@keyframes mc-float {
+  from, to { transform: translateY(-6px) rotate(var(--deco-rot, 0deg)); }
+  50%      { transform: translateY(6px)  rotate(var(--deco-rot, 0deg)); }
+}
+@keyframes mc-float-slow {
+  from, to { transform: translateY(-10px) rotate(var(--deco-rot, 0deg)); }
+  50%      { transform: translateY(10px)  rotate(var(--deco-rot, 0deg)); }
+}
+@keyframes mc-float-bob {
+  from, to { transform: translateY(-4px) rotate(calc(var(--deco-rot, 0deg) - 2deg)); }
+  50%      { transform: translateY(4px)  rotate(calc(var(--deco-rot, 0deg) + 2deg)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-hero-deco { animation: none; rotate: var(--deco-rot, 0deg); }
 }
 .mc-hero-h1 {
   font-family: var(--font-display);
@@ -2453,5 +2486,6 @@ select:focus-visible {
   }
   .mc-hero-deco {
     display: none;
+    animation: none;
   }
 }

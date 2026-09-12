@@ -30,9 +30,10 @@ export default component$(() => {
     <section class="flex flex-col gap-8">
       {/* Hero：V2 去容器化——无面板底色/描边/阴影，仅底部 1px 发丝线 + 流光标题 + 终端框 + 像素镐大图（对齐 next.qwik.dev） */}
       <div class="mc-hero">
-        {/* 官网同款：绝对定位的旋转装饰图标 */}
+        {/* 官网同款：绝对定位的旋转装饰图标 + 漂浮特效（Arcade DNA 玩心） */}
         <PixelIcon name="pickaxe" size={72} class="mc-hero-deco a" />
         <PixelIcon name="chest" size={56} class="mc-hero-deco b" />
+        <PixelIcon name="scroll" size={44} class="mc-hero-deco c" />
 
         <div class="min-w-0">
           <span class="mc-tag">QWIK · 像素基因</span>
