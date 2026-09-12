@@ -898,6 +898,13 @@ select.lang-sel {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+.sk-name-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .sk-desc {
   font-size: 12.5px;

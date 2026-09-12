@@ -45,7 +45,7 @@ export const SkillCard = component$<{ row: SkillMeta; toast: Signal<string> }>((
         </div>
         <div class="sk-body">
           <div class="sk-name">
-            {row.name}
+            <span class="sk-name-text">{row.name}</span>
             {badge}
           </div>
           <div class="sk-desc">{row.description || '（无简介）'}</div>
