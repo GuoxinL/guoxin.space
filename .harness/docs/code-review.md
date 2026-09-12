@@ -66,13 +66,7 @@ ln -sf ../../scripts/commit_msg_check.sh .git/hooks/commit-msg
 - scope 可选，建议带上模块，如 `style(hero):`、`ci(deploy):`
 - 示例：`feat(hero): add AI-friendly badge` / `fix(parser): handle escaped quotes` / `ci(deploy): bump node to 24`
 
-⚠️ **本项目无 TAPD**：该 hook 默认还强制 TAPD 单号脚注（`--story=<id>`），本仓库不适用。本地提交时须关闭该检查：
-
-```bash
-DISABLE_TAPD_FOOTER=1 git commit -m "fix(parser): ..."
-```
-
-（CI 构建不依赖该 hook，仅本地提交校验；团队约定默认带上 `DISABLE_TAPD_FOOTER=1` 以符合本仓库实际。）
+⚠️ **commit-msg 校验**：`scripts/commit_msg_check.sh`（经 `.git/hooks/commit-msg` 软链生效）仅校验 Conventional Commits 格式，**不要求** TAPD / 其他外部单号脚注；本地提交直接 `git commit` 即可，无需环境变量开关。
 
 ## 3. Reviewer 检查清单
 

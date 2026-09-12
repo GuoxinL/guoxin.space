@@ -1,6 +1,6 @@
 # 个人主页 · 工作台（Skills 技能夹）
 
-一个**零依赖、全内联**的个人主页单页应用，核心是「Skills 技能夹」——浏览 GitHub 仓库中的 `SKILL.md`，提供 GitHub 风格的 Markdown 渲染、文件树抽屉、收藏（proxy / mirror）、同步与通道管理。
+一个零第三方运行时依赖的个人主页单页应用（Qwik + Qwik City SSG 静态预渲染），核心是「Skills 技能夹」——浏览 GitHub 仓库中的 `SKILL.md`，提供 GitHub 风格的 Markdown 渲染、文件树抽屉、收藏（proxy / mirror）、同步与通道管理。`npm run build` 产出静态站，推送 `main` 即 GitHub Pages 自动上线。
 
 ## 功能特性
 
@@ -21,8 +21,8 @@
 | `worker.js` | Cloudflare Worker 写通道：`/api/health`、`/api/collect`、`/api/remove`、`/api/sync` |
 | `verify.js` | 页面回归测试 144 条（Node 直接运行） |
 | `test-worker.mjs` | Worker mock 单测 60 条（自动同步 `worker.js`） |
-| `docs/DEPLOY-WORKER.md` | Worker 部署指引 |
-| `docs/overview.md` | 迭代交付概览 |
+| `docs/deploy/DEPLOY-WORKER.md` | Worker 部署指引 |
+| `docs/archive/overview.md` | 迭代交付概览（已归档） |
 
 ## 快速开始
 
@@ -40,4 +40,4 @@ node test-worker.mjs
 
 ## 部署
 
-后端为 Cloudflare Worker，部署前需在 Worker 环境变量中配置 `GH_TOKEN`（细粒度 PAT，仅授权目标仓库 Contents 读写）与 `COLLECT_REPO`。详见 [DEPLOY-WORKER.md](./docs/DEPLOY-WORKER.md)。
+后端为 Cloudflare Worker，部署前需在 Worker 环境变量中配置 `GH_TOKEN`（细粒度 PAT，仅授权目标仓库 Contents 读写）与 `COLLECT_REPO`。详见 [DEPLOY-WORKER.md](./docs/deploy/DEPLOY-WORKER.md)。

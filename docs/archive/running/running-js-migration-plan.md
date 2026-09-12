@@ -1,3 +1,5 @@
+> ⚠️ **归档文档**：本文件为历史 / 已落地过程稿。本仓库现行规范以 `.harness/docs/`（架构·部署·开发准则）与根 `DESIGN.md`、`AGENTS.md` 为准；重构相关以同目录 `QWIK-REFACTORING-PLAN.md` / `REFACTOR-SUMMARY.md` 为历史权威。
+
 # running 仓库脚本 JS 化迁移方案
 
 > 背景：running 页地图样式与主页不一致 → 探索「基于 MapCN 同源重写」→ 进一步追问「脚本语言是否也切 JS」。

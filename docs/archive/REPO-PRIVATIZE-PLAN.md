@@ -1,3 +1,5 @@
+> ⚠️ **归档文档**：本文件为历史 / 已落地过程稿。本仓库现行规范以 `.harness/docs/`（架构·部署·开发准则）与根 `DESIGN.md`、`AGENTS.md` 为准；重构相关以同目录 `QWIK-REFACTORING-PLAN.md` / `REFACTOR-SUMMARY.md` 为历史权威。
+
 # 仓库整理与数据链路私有化方案（guoxin.space × running）
 
 > 状态：方案定稿（2026-08-25）。背景需求：① 整理主仓库（文档归 docs/、清无用图片）；② running 数据仓库可否以 `running-private` 替换；③ 所有脚本基于 `running-private`；④ 脚本 Python → 前端语言（JS）迁移。

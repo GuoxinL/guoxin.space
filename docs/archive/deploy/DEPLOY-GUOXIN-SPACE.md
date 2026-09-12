@@ -1,3 +1,5 @@
+> ⚠️ **归档文档**：本文件为历史 / 已落地过程稿。本仓库现行规范以 `.harness/docs/`（架构·部署·开发准则）与根 `DESIGN.md`、`AGENTS.md` 为准；重构相关以同目录 `QWIK-REFACTORING-PLAN.md` / `REFACTOR-SUMMARY.md` 为历史权威。
+
 # guoxin.space 腾讯云部署手册
 
 > 把单文件个人工作台（`index.html`）从 workbuddy.link 迁移映射到 **guoxin.space**（域名在腾讯云 DNSPod 管理）。

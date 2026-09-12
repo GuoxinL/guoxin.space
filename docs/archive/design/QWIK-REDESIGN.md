@@ -1,7 +1,9 @@
+> ⚠️ **归档文档**：本文件为历史 / 已落地过程稿。本仓库现行规范以 `.harness/docs/`（架构·部署·开发准则）与根 `DESIGN.md`、`AGENTS.md` 为准；重构相关以同目录 `QWIK-REFACTORING-PLAN.md` / `REFACTOR-SUMMARY.md` 为历史权威。
+
 # QWIK-INSPIRED 改版交付说明 v2（2026-09-10）
 
 > 参考基准：https://next.qwik.dev/（Qwik 官方文档站）
-> 取代 v1 的 Minecraft 像素版（见 `docs/BLOCKCRAFT-REDESIGN.md`，v1 文档保留作演进记录）。
+> 取代 v1 的 Minecraft 像素版（见 `./BLOCKCRAFT-REDESIGN.md`，v1 文档保留作演进记录）。
 
 ## 一、与 v1 的差异
 

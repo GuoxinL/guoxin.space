@@ -3,6 +3,7 @@
 > 执行摘要，与设计稿 `QWIK-REFACTORING-PLAN.md` 互补：本文记录**实际落地过程、关键决策与坑、验证结论**，不重复设计论证。
 > 仓库：`GuoxinL/guoxin.space`　域名：`guoxin.space`（自定义域名 + HTTPS）
 > 完成时间：2026-09-09　终态：新站已通过 **GitHub Actions** 上线，旧站文件已清理。
+> ⚠️ **历史实录声明**：本文写于 2026-09-09 重构完成时，其中**部署策略已演进**——当时 `deploy.yml` 带手动门控（push 只构建、需 `gh workflow run` 才上线），现改为 **push `main` 即自动部署**。部署的现行规范以 `.harness/docs/devops/deployment.md` 为准；本文的架构/重构结论仍有效。
 
 ---
 
@@ -12,7 +13,7 @@
 |---|---|
 | 架构 | Qwik City 1.20 SSG（`vite build` + `vite build --ssr`）→ 静态产物 `app/dist/` |
 | 路由 | 4 个预渲染页 `/`、`/skills`、`/json`、`/running` + `404.html`；旧 hash 链接 `#/skills` 等由 `layout.tsx` 客户端重定向 |
-| 部署 | Pages Source = **GitHub Actions**（`build_type: workflow`）；`deploy.yml` 限 `workflow_dispatch` 才 deploy |
+| 部署 | Pages Source = **GitHub Actions**（`build_type: workflow`）；**push `main` 即自动 build + deploy**（`on: push: branches:[main]` + `workflow_dispatch` 仅应急入口） |
 | 自定义域名 | `CNAME=guoxin.space` 由 CI `cp CNAME app/dist/CNAME` 注入；`custom_404=true`、`https_enforced=true` 保留 |
 | CI Node | **必须 ≥ 24**（undici@8 依赖 `util.markAsUncloneable`，Node 20/22 缺失） |
 | 包管理 | pnpm 9.15.0（`packageManager` 字段，移除 action 里的 `version: 9` 写死） |

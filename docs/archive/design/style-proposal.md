@@ -1,3 +1,5 @@
+> ⚠️ **归档文档**：本文件为历史 / 已落地过程稿。本仓库现行规范以 `.harness/docs/`（架构·部署·开发准则）与根 `DESIGN.md`、`AGENTS.md` 为准；重构相关以同目录 `QWIK-REFACTORING-PLAN.md` / `REFACTOR-SUMMARY.md` 为历史权威。
+
 # 首页样式优化方案（2026-09-11）
 
 > 起因：用户反馈「不喜欢这种圆角框框的样式」。本文件记录问题定性、四个候选方向与推荐。
@@ -113,7 +115,7 @@ V3 是正解——它保留了站点的签名元素（偏移实心阴影），�
 
 **单元测试**：`npx vitest run` → **7 files / 110 tests passed**。（本轮改动为 CSS + 文档 + 模板 class，未触及 `src/lib/` 下的测试范围；`prepare` 阶段约 10 分钟为 Qwik wasm 优化器开销。）
 
-截图存档：`docs/style-proposal/`（`compare.png` 四方向对照、`dir-v2-editorial.png`、`dir-v3-pixel-block.png`）。
+截图存档：`docs/archive/design/`（`compare.png` 四方向对照、`dir-v2-editorial.png`、`dir-v3-pixel-block.png`）。
 
 ### 附注：主图观感
 

@@ -1,38 +1,38 @@
 # AGENTS.md — 仓库操作指南（供 AI Agent 阅读）
 
-个人主页「工作台」单页应用，托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖，纯原生 HTML/CSS/JS，无构建步骤，推送 `main` 即上线。
+个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（4 页静态预渲染），推送 `main` 即 GitHub Actions 自动构建并上线。
 
 ## 目录结构
 
 ```
 personal-homepage/
-├── index.html          # 唯一页面：纯 HTML 结构 + 外链引用（不再内联 CSS/JS）
-├── 404.html            # GitHub Pages SPA fallback（custom_404），必须与 index.html 内容一致
-├── AGENTS.md           # 本文档（仓库操作指南，供 AI Agent 阅读，固定在根目录）
-├── css/
-│   └── style.css       # 全部样式（约 400 行，:root 主题变量 + 各区块样式）
-├── js/                 # 业务脚本，按模块拆分，加载顺序固定（见下）
-│   ├── util.js         # 常量 + 工具函数 + 主题 + 路由 + 时钟 + 天气
-│   ├── auth.js         # GitHub OAuth 登录态（admin 判定 UI 侧）；token 存 localStorage
-│   ├── json.js         # JSON 工具（双编辑区：格式化/压缩/对比/树形/历史/导入导出）
-│   ├── skills.js       # Skills 技能夹（列表/详情/文件树/MD 渲染/收藏/同步/通道配置）
-│   ├── app.js          # 初始化入口 init() + DOMContentLoaded + window.* 暴露
-│   └── running.js      # Running 骑行/跑步数据（地图/统计/活动卡片/轨迹回放）
-├── worker.js           # Cloudflare Worker：鉴权（OAuth + Bearer）+ 收藏写通道 + 轨迹私有仓库代理
-├── verify.js           # 页面 vm 回归测试（270 条断言，Node 直接运行）
-├── test-worker.mjs     # Worker mock 单测（自动同步 worker.js）
-├── docs/               # 仓库文档（与运行时代码分离，改文档只动这里）
-│   ├── AUTH-PERMISSION-DESIGN.md # 权限控制方案（admin/游客）存档
-│   ├── DEPLOY-GUOXIN-SPACE.md    # GitHub Pages 部署细节
-│   ├── DEPLOY-WORKER.md          # Worker 部署细节
-│   ├── FOLLOWUP-OPERATIONS.md    # 权限系统上线操作清单
-│   ├── overview.md               # 迭代交付概览（每次迭代追加章节）
-│   ├── REPO-PRIVATIZE-PLAN.md    # 仓库私有化方案（submodule 评估 + 产物私库化）
-│   ├── running-js-migration-plan.md # running 脚本 Python→JS 迁移方案
-│   ├── RUNNING-MAP-FIX-PLAN.md   # 轨迹地图修复计划
-│   └── RUNNING-MAP-PERF.md       # 轨迹地图性能分析
-└── README.md           # 项目简介（留在根目录，GitHub 展示用）
+├── AGENTS.md           # 本文档（AI 操作指南，根目录固定；CLAUDE.md / CODEBUDDY.md 为其符号链接）
+├── DESIGN.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
+├── README.md           # 项目简介（GitHub 展示用）
+├── package.json        # Qwik 项目；packageManager: pnpm@9.15.0（禁用 npm / yarn，禁止提交 package-lock.json）
+├── vite.config.ts / tsconfig*.json
+├── app/                # Qwik 应用源码（唯一改动区）
+│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 7 文件 110 用例）
+│   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
+│   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
+│   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
+├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（独立部署，非本仓库 CI）
+├── worker.test.mjs     # Worker 单测
+├── running-private/    # git submodule：Running 数据生产（轨迹同步 / 预览图），本仓库只读引用
+├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、skills 同步等）
+├── .harness/           # SOP 真源（AI 开发流程）
+│   ├── plans/          # 各任务目录（00-overview ~ 09-commit）；_template 为模板
+│   └── docs/           # 现行规范：architecture / devops / coding-style / 单测·IT 等
+└── docs/               # 文档（与 .harness/docs 分工见下；外部 / 历史 / 报告）
+    ├── deploy/         # 现行有效：Worker 部署、权限方案
+    ├── design/         # 现行有效设计稿（hero-art 等；伴生 PNG 同目录）
+    ├── reports/        # 自测 / 报告（TOOLBOX-SELFTEST 等）
+    └── archive/        # 历史 / 已落地过程稿；design / deploy / running 子目录 + 顶层旧计划
 ```
+
+> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、单测·IT）；`docs/` 只放**外部 / 历史 / 报告**类文档——现行有效的 Worker 部署与权限方案在 `docs/deploy/`，设计稿在 `docs/design/`，历史过程稿全部归档到 `docs/archive/`（带「⚠️ 归档文档」声明）。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
+
+> ⚠️ **历史段落提示**：下方「核心约定」「构建与验证」「易错点备忘」三节描述的是 2026-09-09 Qwik 重构**前**的单文件站（`index.html` / `css/style.css` / `js/*.js` / `verify.js`，已在 P8 删除），仅作历史参考。现行代码规范以 `.harness/docs/coding-style.md` 与下方「Qwik 重构（已完成）」「设计系统」章节为准；改代码直接看 `app/src/`。
 
 ## 核心约定（拆分后必须遵守）
 
@@ -48,7 +48,7 @@ personal-homepage/
 
 6. **版面宽度只有一处开关**：`Header / main / Footer` 三处容器统一用 `.mc-container` 类（定义在 `app/src/global.css`），宽度取自 `--container-w`（当前 **1280px**，宽板）。改版面宽度**只改这个变量**，不要在三个文件里各写 `max-w-*`（历史上是 `max-w-5xl`，已废弃）。页面内所有区块（Hero / Card / Terminal 等）**不设自己的宽度上限**，一律跟随 `main` 容器。
 
-7. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md` 与 `docs/style-proposal/README.md`。
+7. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md` 与 `docs/archive/design/style-proposal.md`。
 
 8. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
 
@@ -116,23 +116,18 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 
 ## Qwik 重构（已完成，2026-09-09）
 
-- 权威方案：docs/QWIK-REFACTORING-PLAN.md；包管理器统一 pnpm（禁用 npm / yarn，禁止提交 package-lock.json）。
+- 权威方案：`docs/archive/QWIK-REFACTORING-PLAN.md`；包管理器统一 pnpm（禁用 npm / yarn，禁止提交 package-lock.json）。
 - 新代码只进 app/src/；旧站静态文件（js/、css/、根 index.html/404.html、verify.js）已在 P8 删除，回滚基线改用 git 历史。
 - 构建：pnpm build 产出 app/dist/（vite root=app，static adapter 静态预渲染，Pages 直接托管）；CI 必须用 **Node ≥24**（undici@8 依赖 util.markAsUncloneable，Node 20/22 缺该 API，会令 pnpm build 失败）。
 - 部署：.github/workflows/deploy.yml；Pages Source 已切到 GitHub Actions（build_type=workflow），CNAME 由 CI `cp CNAME app/dist/CNAME` 注入，404.html 由 SSG 生成。
-- ⚠️ **push 不会自动上线**：`deploy.yml` 的 deploy job 带 `if: github.event_name == 'workflow_dispatch'`（切流期策略），push 只做 build + 产物校验。**真正发布必须手动触发**：
-  ```bash
-  gh workflow run deploy.yml --ref main
-  gh run list --workflow=deploy.yml --limit 2   # 确认 deploy job 真的跑了
-  ```
-  判断「是否已上线」不能只看 workflow 绿灯，也不能看 `pages/builds/latest`（workflow 模式下该接口不更新，会停留在旧 branch-deploy 记录）；要实测线上 DOM/图片或看 deploy job 结论。
+- **部署全自动（现行）**：`deploy.yml` 监听 `push` 到 `main` 即自动 build + deploy，**无需**手动 `gh workflow run`。判断「是否已上线」看 `gh run list --workflow=deploy.yml` 的 deploy job 结论，或实测线上 DOM/图片；不要依赖 `pages/builds/latest`（workflow 模式下该接口停留在旧 branch-deploy 记录，不更新）。
 - CI 两个工作流（deploy.yml、check-404-sync.yml）都必须 **Node 24** 且**不要给 `pnpm/action-setup` 写死 `version`**（会与 package.json 的 `packageManager: pnpm@9.15.0` 冲突，报 `ERR_PNPM_BAD_PM_VERSION`）。
 - worker.js 与 test-worker.mjs / worker.test.mjs 不受重构影响（Cloudflare Worker 源码，线上 OAuth auth 与 Running 数据代理仍依赖，保留）。
 - 注意：根 package.json 不加 type=module（Qwik/vite 走 ESM，但 postcss/tailwind 等配置用 CJS 写法）。
 
 ## 设计系统 QWIK-INSPIRED v2（2026-09-10 起，取代 v1 像素版）
 
-- **设计真源 = 根目录 `DESIGN.md`**（9 章节）。参考基准 `https://next.qwik.dev/`；v1 Minecraft 像素版已废弃（演进记录见 `docs/BLOCKCRAFT-REDESIGN.md`，v2 交付说明见 `docs/QWIK-REDESIGN.md`）。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`。
+- **设计真源 = 根目录 `DESIGN.md`**（9 章节）。参考基准 `https://next.qwik.dev/`；v1 Minecraft 像素版已废弃（演进记录见 `docs/archive/design/BLOCKCRAFT-REDESIGN.md`，v2 交付说明见 `docs/archive/design/QWIK-REDESIGN.md`）。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`。
 - 视觉规则（违反即不合格）：圆角只取 `10/12/14/16/999`；阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁止模糊半径）；描边 `1.6px`（分隔/顶栏）或 `2px`（卡片/输入/按钮）；动效 120–160ms `ease-out`；**禁止**零圆角硬边、纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms。
 - 主题变量：`--violet-*`（主色 `#A053FE`）/ `--sky-*`（强调 `#00B5F1`）/ `--slate-*`（中性 `#293749`）/ `--shadow-*`（偏移阴影）。旧的 `--bg/--surface/--text/--primary/--radius/--shadow` 等为**兼容别名**，Skills / JSON / Running 三页零改动继承皮肤。暗色主题只覆盖变量，不写组件选择器。
 - 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图图标保留 `image-rendering: pixelated`。
@@ -190,7 +185,7 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 | 6 | **IT** | `06-it.md` | 每条用例贴关键日志（含 reqid）；协同模式不跳过 |
 | 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` |
 | 8 | **Review** | `08-review.md` | 代码审查结果 |
-| 9 | **Commit** | `09-commit.md` | ① 询问 TAPD → ② 释放环境 → ③ TAPD 状态推进到「开发中」→ ④ 写 commit message → ⑤ 更新 overview（边界点 A）→ ⑥ 一次性 `git add` → ⑦ `git commit`（首次仅一次）→ ⑧ `git push` 产生 MR 触发 TAPD「开发中→CR」→ ⑨（可反复直到 MR 合入）amend 累积修复（一个 MR 一个 commit 原则） |
+| 9 | **Commit** | `09-commit.md` | ① 释放环境 → ② 写 commit message → ③ 更新 overview（边界点 A）→ ④ 一次性 `git add` → ⑤ `git commit`（首次仅一次）→ ⑥ `git push`（个人项目直推 `main` 即触发自动部署）→ ⑦（可反复直到完成）amend 累积修复（一个 commit 原则，禁止新增第二个 commit） |
 
 ### 任务规模分支
 
@@ -228,19 +223,17 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 
 ### Commit 规范
 
-> 本节是 **SOP 入口**——`09-commit.md` 给出**清单 + 填表**，完整规则在团队 TAPD SKILL.md / `SKILL.md` 红线 4。
+> 本节是 **SOP 入口**——`09-commit.md` 给出**清单 + 填表**，完整规则见 `.harness/docs/coding-style.md` 与红线 4。
 
-**顺序**：① 询问 TAPD → ② 释放环境（团队环境管理 Skill）→ ③ TAPD 状态推进到「开发中」（团队 TAPD Skill）→ ④ 写 `09-commit.md` commit message → ⑤ 更新 `00-overview.md`（触发**边界点 A**）→ ⑥ 一次性 `git add`（代码 + plans 产物 + 00-overview.md + docs）→ ⑦ `git commit`（首次仅一次）→ ⑧ `git push` 产生 MR，触发 TAPD **开发中 → CR** → ⑨（可反复，直到 MR 合入）代码修复 amend → 合入后触发**边界点 B**。
+**顺序**：① 释放环境 → ② 写 `09-commit.md` commit message → ③ 更新 `00-overview.md`（触发**边界点 A**）→ ④ 一次性 `git add`（代码 + plans 产物 + 00-overview.md + docs）→ ⑤ `git commit`（首次仅一次）→ ⑥ `git push`（个人项目直推 `main` 触发自动部署；或按仓库约定开 PR）→ ⑦（可反复，直到完成）代码修复 amend → 触发**边界点 B**。
 
-> **注意时序**：TAPD 状态"开发中 → CR"的触发条件是"MR 提交后自动"，只有 push（步骤 ⑧）产生 MR 才能触发，**不属于**步骤 ③ 的前置条件；步骤 ③ 只需推进到「开发中」。
+
 >
 > **新增：禁止在边界点 A / B 之后修改 `00-overview.md` / `09-commit.md`**——步骤 ④+⑤ 完成即触发边界点 A（commit 内容定稿）；MR 合入即触发边界点 B（任务收尾）。两者之间**唯一例外**是步骤 ⑨ 代码修复走 amend——**仅改代码本身，不碰 md**；可反复不限次数，始终只有一个 commit；一旦合入就彻底冻结。完整规则见 `09-commit.md`「1. 执行顺序」节。
 
-**进入 commit 时必先询问 TAPD**（AI 必执行入口）：不要直接看 `00-overview.md` Meta 字段就当有 / 没有；没有则必须**引导用户创建**（默认推荐路径 A：AI 通过团队 TAPD skill 代创建）。4 种情况：① 用户给 ID ② AI 代创建 ③ 用户手动建后给 ID ④ 跳过（需记原因到关键决策备忘）。详见 `09-commit.md`「0.0 询问 TAPD」节。
+**本项目不使用 TAPD / 其他外部需求跟踪系统**：commit 前无需询问需求单，也无需推进任何外部状态。直接按「顺序」执行即可；commit message 采用 Conventional Commits（见红线 4），不要求 `--story` / `--bug` 等外部单号脚注。
 
-**TAPD 状态推进**（属于团队流程时强制）：commit 之前调团队 TAPD Skill 把状态从当前节点推到「开发中」（方案已评审 → 排期中 → 开发中）；**CR 由 push 后 MR 提交自动触发**，不在 commit 前完成，也**不强制**在 `09-commit.md` 里回填（TAPD 系统状态是唯一来源）。**任务收尾前**用团队 TAPD Skill 查一次 TAPD 真实状态，确认已落到 **CR**。详见 `09-commit.md`「0.2 TAPD 状态推进」节。
-
-**格式**：`<type>(<scope>): <subject>` + 脚注 `--<kind>=<id>`（**默认 `--story=<id>`**；bug fix 时改 `--bug=<id>`；CI 校验正则 `--(bug|story|task|test|other)=\d+`）。
+**格式**：`<type>(<scope>): <subject>`（Conventional Commits；CI 仅校验该格式，不要求外部单号脚注）。允许的 type 见红线 4。
 
 **一个 MR 一个 commit（铁律）**：本任务所在 MR 只能有一个 commit。任何修正（push 前 / SOP 走完后的 follow-up / push 元信息补登）一律走 `git commit --amend` 累积到原 commit，**严禁**新增第二个 commit。amend 后 push 必须用 `git push --force-with-lease`（**禁止**裸 `--force`）。详见 `09-commit.md`「2. amend 流程」节。
 

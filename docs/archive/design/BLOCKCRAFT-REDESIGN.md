@@ -1,7 +1,9 @@
+> ⚠️ **归档文档**：本文件为历史 / 已落地过程稿。本仓库现行规范以 `.harness/docs/`（架构·部署·开发准则）与根 `DESIGN.md`、`AGENTS.md` 为准；重构相关以同目录 `QWIK-REFACTORING-PLAN.md` / `REFACTOR-SUMMARY.md` 为历史权威。
+
 # BLOCKCRAFT 像素改版交付说明 v1（2026-09-09）
 
 > **注意：本 v1 已被 v2 取代**（用户 2026-09-10 要求对齐 https://next.qwik.dev/ 风格）。
-> 当前版本见 [`docs/QWIK-REDESIGN.md`](./QWIK-REDESIGN.md) 与根目录 `DESIGN.md` v2。
+> 当前版本见 [`QWIK-REDESIGN.md`](./QWIK-REDESIGN.md) 与根目录 `DESIGN.md` v2。
 > 本文保留作为演进记录与像素资产（字体、镐子图、生成脚本）的来源说明。
 
 全站从「通用 SaaS 风」切换为 **Minecraft 像素风 BLOCKCRAFT**。设计真源为根目录 `DESIGN.md`（9 章节）。

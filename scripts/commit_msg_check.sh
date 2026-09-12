@@ -99,41 +99,4 @@ if [[ "${DISABLE_CONV_COMMITS:-}" != "1" ]]; then
   fi
 fi
 
-# ── Check 5: TAPD 单号脚注（SOP 红线 4 强制）─────────────────────
-# 格式：message body 任意行含 --<kind>=<id>
-#   kind: story（默认）/ bug（bug fix）/ task / test / other
-#   id:   纯数字
-# 正则与 agents.md.tmpl Commit 规范一致：--(bug|story|task|test|other)=\d+
-# 禁用：export DISABLE_TAPD_FOOTER=1（仅非本团队项目 / 无 TAPD 时，需在 00-overview.md 关键决策备忘记原因）
-if [[ "${DISABLE_TAPD_FOOTER:-}" != "1" ]]; then
-  FOOTER_PATTERN='--(bug|story|task|test|other)=[0-9]+'
-  if ! grep -E -- "${FOOTER_PATTERN}" "${COMMIT_MSG_FILE}" >/dev/null 2>&1; then
-    error "Commit message 缺少 TAPD 单号脚注（SOP 红线 4 强制）。"
-    echo "" >&2
-    echo -e "  ${CYAN}Expected format:${RESET} 在 commit message body 任意行追加脚注" >&2
-    echo -e "    --story=<id>      # 默认（需求 / 故事）" >&2
-    echo -e "    --bug=<id>        # bug fix 时改用" >&2
-    echo -e "    --task=<id>       # 任务类" >&2
-    echo -e "    --test=<id>       # 测试相关" >&2
-    echo -e "    --other=<id>      # 不属于以上分类" >&2
-    echo "" >&2
-    echo -e "  ${CYAN}Examples:${RESET}" >&2
-    echo -e "    feat(user): add login throttling" >&2
-    echo -e "" >&2
-    echo -e "    --story=1234567" >&2
-    echo "" >&2
-    echo -e "    fix(parser): handle escaped quotes" >&2
-    echo -e "" >&2
-    echo -e "    --bug=7654321" >&2
-    echo "" >&2
-    echo -e "  ${CYAN}Your message:${RESET}" >&2
-    sed 's/^/    /' "${COMMIT_MSG_FILE}" >&2
-    echo "" >&2
-    echo -e "  ${CYAN}Action:${RESET} git commit --amend（在 body 追加 '--<kind>=<id>' 脚注）" >&2
-    echo -e "  ${CYAN}Skip:${RESET} 非本团队项目 / 无 TAPD 时，在 00-overview.md 关键决策备忘记原因后，重设环境变量重试：" >&2
-    echo -e "    DISABLE_TAPD_FOOTER=1 git commit ..." >&2
-    exit 1
-  fi
-fi
-
 exit 0
