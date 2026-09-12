@@ -3,7 +3,7 @@ import { Link } from '@builder.io/qwik-city';
 
 const SECTIONS = [
   { href: '/skills', label: 'Skills 技能夹' },
-  { href: '/toolbox/json', label: '万能工具箱' },
+  { href: '/toolbox/json', label: 'Toolbox' },
   { href: '/running', label: 'Running 数据' },
 ];
 

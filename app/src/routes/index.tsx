@@ -13,7 +13,7 @@ const CARDS: { href: string; title: string; icon: PixelIconName; desc: string }[
   },
   {
     href: '/toolbox/json',
-    title: '万能工具箱',
+    title: 'Toolbox',
     icon: 'scroll',
     desc: '格式化、压缩、对比、树形浏览与历史记录，纯前端实现。',
   },
