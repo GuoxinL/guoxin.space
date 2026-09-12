@@ -146,3 +146,146 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
   - `pickaxe-src.png` 已删除（旧像素化流程的副产物，且会以 2.9MB 体积混进 `app/public/` 被部署）。
 - favicon：`app/public/favicon.svg`（紫色圆角方块 + 白色像素镐），`root.tsx` 已引用，不要新增 `/favicon.ico`。
 - **本地构建踩坑**：WorkBuddy 的 safe-delete guard 会拦截 vite 清空 `app/dist/`（文件数 > 50），构建前需 `export CODEBUDDY_SAFE_DELETE_ENABLED=0`；本机无全局 pnpm，可用 `npm run build` 代替（不生成 lock 文件），Node 必须用 ≥24（`export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"`）。
+## 二、SOP（标准开发流程）
+
+> **触发**：用户描述需求 / 说「开始 SOP」「新建任务：<描述>」时自动进入，从 Step 1 Clarify 逐步推进。
+> **入口判定**：建立/定位任务目录后，若 `01-clarify.md` 已有有效内容 → 跳过 Clarify 直接进 Plan（需用户确认 + 在 `00-overview.md` 标记跳过）。
+
+### 上下文恢复（每次会话/clear/compact 必做）
+
+> 1. 读 `AGENTS.md` → 2. `git branch --show-current` → 3. 遍历 `.harness/plans/*/00-overview.md` 匹配分支 → 4. 读当前任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
+> 匹配不到 → 按「SOP 启动前置」处理。
+
+### 任务隔离（强制）
+
+> **严禁** AI 主动读取/参考**其他**任务目录 `.harness/plans/<其他任务>/` 下的任何 md。任务之间物理隔离、互为独立真相源，跨任务参考会污染设计判断。
+> **唯一例外**：用户**显式**说「参考任务 X」→ 仅读指定目录，内容只留对话上下文，**禁止**自动写回当前任务产物。
+
+### SOP 启动前置：分支与任务判断
+
+> 1. `git branch --show-current` 获取分支名
+> 2. 在 `.harness/plans/` 匹配分支：
+>    - **有对应任务** → 按 `00-overview.md` 继续
+>    - **无 + 在 master/main** → 全新需求：`git checkout -b feature/<name> origin/master` → `cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` → **精简注释**（见下方 ③）→ 填 Meta → 进入入口判定
+>    - **无 + 在 feature/ 分支** → 「协同开发检测」
+> 3. **复制 _template/ 后必须精简注释**（全新需求 / 协同开发通用，**AI 必执行**）：打开新建的 `plans/<task>/00-overview.md`，把所有 `<!-- TEMPLATE-ONLY-DO-NOT-COPY: -->` 标记的 HTML 注释块**整段删除**（含标记行），替换为单行指针指向 `_template/00-overview.md`；**头部 "⚠️ TEMPLATE ONLY" 段也整段删除**。SOP 规则只在 `_template/` 维护，**禁止**在每个任务文件里重复 ~30 行规则（噪音 + 版本漂移）。详见 `_template/00-overview.md` 顶部说明。
+>
+> **禁止**在 `master`/`main` 上做 SOP；一个分支只允许对应一个任务目录。
+
+### 协同开发检测（design.md 驱动）
+
+> 触发：当前分支非 master/main 且无对应任务。
+> - `.harness/design.md` 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 design.md 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同、`测试环境`）→ 自检后删除 design.md → 从 Step 3 开始
+> - design.md 不存在 → 标准流程
+
+### 9 步骤定义
+
+| # | 步骤 | 产物 | 说明 |
+|---|------|------|------|
+| 1 | **Clarify** | `01-clarify.md` | `skill: clarify` 澄清需求，产出背景/目标/待确认问题 |
+| 2 | **Plan** | `02-plan.md` | 改动文件、调用链、**§6 UT 用例（TDD 必填）**、IT 用例、风险 |
+| 3 | **Implement** | `03-implement.md` | 按 Plan §6 红绿循环：先写 UT 跑红 → 最小实现转绿 → 重构 |
+| 4 | **UT** | `04-ut.md` | 用例与 Plan §6 逐条对齐、覆盖率、未覆盖行 |
+| 5 | **Deploy** | `05-deploy.md` | 通过团队环境管理 Skill 热更代码到测试环境 |
+| 6 | **IT** | `06-it.md` | 每条用例贴关键日志（含 reqid）；协同模式不跳过 |
+| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` |
+| 8 | **Review** | `08-review.md` | 代码审查结果 |
+| 9 | **Commit** | `09-commit.md` | ① 询问 TAPD → ② 释放环境 → ③ TAPD 状态推进到「开发中」→ ④ 写 commit message → ⑤ 更新 overview（边界点 A）→ ⑥ 一次性 `git add` → ⑦ `git commit`（首次仅一次）→ ⑧ `git push` 产生 MR 触发 TAPD「开发中→CR」→ ⑨（可反复直到 MR 合入）amend 累积修复（一个 MR 一个 commit 原则） |
+
+### 任务规模分支
+
+> **触发条件**：02 Plan 阶段估算 `预估代码改动行数 ≤ 10` 时，在 `00-overview.md` Meta 把 `小需求模式` 设为 ✅。进入 03 起按下方规则执行。
+
+| # | 步骤 | 标准模式 | 小需求模式 |
+|---|------|----------|------------|
+| 1 | Clarify  | 确认 | **确认** |
+| 2 | Plan     | 确认 | **确认** |
+| 3 | Implement | 确认 | **自动**（与 04 合并跑，结束一次性汇报） |
+| 4 | UT       | 确认 | **自动**（与 03 合并跑，结束一次性汇报） |
+| 5 | Deploy   | 确认 | **确认**（环境敏感，必须显式确认） |
+| 6 | IT       | 确认 | **确认**（涉及真实链路 / reqid 核验，不允许跳过确认） |
+| 7 | Docs     | 确认 | **自动** |
+| 8 | Review   | 确认 | **自动** |
+| 9 | Commit   | 确认 | **自动**（环境释放仍按 `09-commit.md` 0 节执行） |
+
+> "自动" ≠ 跳过产物：03-04 / 07-09 的 md 产物、`00-overview.md` 时间记录、Progress 勾选**仍然必须**按正常流程写完。"自动"仅指把该步骤的开始/结束两次确认合并为一次——AI 一次说完"我准备做 X-Y-Z"后开始跑，跑完一次性汇报"03-04 已完成（结论摘要）"，**中间不再打断用户**。
+>
+> **05 Deploy / 06 IT 仍必须显式确认**：Deploy 涉及环境副作用，IT 涉及真实链路核验，是 SOP 中两个最易出错的环节，不纳入自动批次。
+>
+> **批次时间记录**：`00-overview.md` 时间记录表对 03-04 / 07-09 这两批的每一行写**同一**开始时间和**同一**结束时间（批次起止那一刻），耗时也是同一值；备注列写「小需求模式批次：03-04」或「小需求模式批次：07-09」便于聚合归并。详见 `00-overview.md` 时间记录节规则 9。
+>
+> **回退机制**：若进入 03 后发现实际改动 > 10 行（漏估），AI 应在汇报 03-04 结论时同步把 `小需求模式` 改回 ⬜，从 05 起按标准模式跑（05/06 仍确认，07-09 在新的判断下决定是否走自动）。已按批次写入的时间记录**不回填**——批次记录能正确反映实际工作窗口，跨任务统计靠「小需求模式批次」前缀识别即可。
+
+### 步骤执行规则
+
+> 每步遵循**五段式**：开始确认 → 记录开始时间 → 执行 → 记录结束时间 → 结束确认。
+>
+> - **开始确认**：必须得到用户明确同意
+> - **时间记录**：开始/结束时间用 `date "+%Y-%m-%d %H:%M:%S"` 精确到秒写入 `00-overview.md`；禁止事后回填
+> - **结束确认**：展示「✅ 步骤完成 + 核心结论 + 耗时 + 下一步概览」→ 等用户回复同意/暂停/调整
+> - **禁止**未经确认自动跳步；**禁止**合并开始/结束为单次提问
+> - **小需求模式例外**：03-04、07-09 的开始/结束确认可合并为单次提问（"我准备做 03-04，做完一次性汇报"），但产物文件 + 时间记录 + Progress 勾选**不豁免**
+
+### Commit 规范
+
+> 本节是 **SOP 入口**——`09-commit.md` 给出**清单 + 填表**，完整规则在团队 TAPD SKILL.md / `SKILL.md` 红线 4。
+
+**顺序**：① 询问 TAPD → ② 释放环境（团队环境管理 Skill）→ ③ TAPD 状态推进到「开发中」（团队 TAPD Skill）→ ④ 写 `09-commit.md` commit message → ⑤ 更新 `00-overview.md`（触发**边界点 A**）→ ⑥ 一次性 `git add`（代码 + plans 产物 + 00-overview.md + docs）→ ⑦ `git commit`（首次仅一次）→ ⑧ `git push` 产生 MR，触发 TAPD **开发中 → CR** → ⑨（可反复，直到 MR 合入）代码修复 amend → 合入后触发**边界点 B**。
+
+> **注意时序**：TAPD 状态"开发中 → CR"的触发条件是"MR 提交后自动"，只有 push（步骤 ⑧）产生 MR 才能触发，**不属于**步骤 ③ 的前置条件；步骤 ③ 只需推进到「开发中」。
+>
+> **新增：禁止在边界点 A / B 之后修改 `00-overview.md` / `09-commit.md`**——步骤 ④+⑤ 完成即触发边界点 A（commit 内容定稿）；MR 合入即触发边界点 B（任务收尾）。两者之间**唯一例外**是步骤 ⑨ 代码修复走 amend——**仅改代码本身，不碰 md**；可反复不限次数，始终只有一个 commit；一旦合入就彻底冻结。完整规则见 `09-commit.md`「1. 执行顺序」节。
+
+**进入 commit 时必先询问 TAPD**（AI 必执行入口）：不要直接看 `00-overview.md` Meta 字段就当有 / 没有；没有则必须**引导用户创建**（默认推荐路径 A：AI 通过团队 TAPD skill 代创建）。4 种情况：① 用户给 ID ② AI 代创建 ③ 用户手动建后给 ID ④ 跳过（需记原因到关键决策备忘）。详见 `09-commit.md`「0.0 询问 TAPD」节。
+
+**TAPD 状态推进**（属于团队流程时强制）：commit 之前调团队 TAPD Skill 把状态从当前节点推到「开发中」（方案已评审 → 排期中 → 开发中）；**CR 由 push 后 MR 提交自动触发**，不在 commit 前完成，也**不强制**在 `09-commit.md` 里回填（TAPD 系统状态是唯一来源）。**任务收尾前**用团队 TAPD Skill 查一次 TAPD 真实状态，确认已落到 **CR**。详见 `09-commit.md`「0.2 TAPD 状态推进」节。
+
+**格式**：`<type>(<scope>): <subject>` + 脚注 `--<kind>=<id>`（**默认 `--story=<id>`**；bug fix 时改 `--bug=<id>`；CI 校验正则 `--(bug|story|task|test|other)=\d+`）。
+
+**一个 MR 一个 commit（铁律）**：本任务所在 MR 只能有一个 commit。任何修正（push 前 / SOP 走完后的 follow-up / push 元信息补登）一律走 `git commit --amend` 累积到原 commit，**严禁**新增第二个 commit。amend 后 push 必须用 `git push --force-with-lease`（**禁止**裸 `--force`）。详见 `09-commit.md`「2. amend 流程」节。
+
+---
+
+## 三、开发准则
+
+### 代码检测（本地 + CI 强制）
+
+| 命令 | 作用 | 备注 |
+|------|------|------|
+| `npm run lint` | ESLint 检查 `app/src` | 配置见 `eslint-plugin-qwik` + `@typescript-eslint` |
+| `npm run fmt` | Prettier 格式化 `app/src` | 提交前建议跑；`pre-commit` hook 会 `--check` |
+| `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
+| `npm run test` | `vitest run` 单测（`app/src/lib/`，7 文件 / 110 用例） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
+| `npm run build` | Qwik SSG 构建（client + SSR 预渲染 4 页） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
+
+### 语言 / 框架版本约束
+
+- 框架：Qwik ~1.20 / Qwik City ~1.20（SSG static adapter）
+- 语言：TypeScript 5.5，严格模式
+- 运行时：Node ≥20（**CI 必须 ≥24**——否则 `undici@8` 缺 `util.markAsUncloneable` 令 build 失败）
+- 包管理：**pnpm 9.15.0**（禁用 npm / yarn，禁止提交 `package-lock.json`；本地无全局 pnpm 时用 `npm run build` 代替，不生成 lock）
+- 样式：Tailwind 3.4 + PostCSS + 自托管字体；**设计真源 `DESIGN.md`**（改视觉先改它，再同步 `app/src/global.css`）
+
+### 安全基线
+
+1. 禁止硬编码密钥 / Token / 密码；GitHub Secret 经 CI 注入。
+2. 外部输入（JSON 工具、URL 参数）必须校验，输出按场景转义。
+3. 加密 / 签名使用标准库，禁止自研算法。
+4. 静态站零后端运行时依赖；任何需要服务端的逻辑走 Cloudflare Worker（独立仓库，见 `relationship.md`）。
+
+---
+
+## 四、禁止红线
+
+| # | 红线 | 后果 |
+|---|------|------|
+| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `00-overview.md`、`01-clarify.md` … `09-commit.md`、`.harness/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
+| 2 | **禁止改动全局 `.btn` 基类**（Skills/JSON/Running 三页 28 处共用）；首页差异样式只能在 `.mc-hero-cta .btn` 作用域内覆盖。 | 三页按钮视觉一致性被破坏 |
+| 3 | **禁止写全局 `img, canvas { image-rendering: pixelated }`**；只给显式 `.pixelated` 类。 | 精绘素材 / 缩略图产生锯齿 |
+| 4 | **改 CSS 必须 `getComputedStyle` 在目标交互态（`:hover`/`:focus-visible`）下回读**，不只测静止态。 | 同特异性后置规则静默覆盖，发版后才发现 |
+| 5 | **本地构建必须 Node ≥24 且 `export CODEBUDDY_SAFE_DELETE_ENABLED=0`**；CI 两个 workflow 必须 Node 24 且**不给 `pnpm/action-setup` 写死 version**。 | build 失败 / `ERR_PNPM_BAD_PM_VERSION` |
+| 6 | **部署全自动**：push `main` 即 GitHub Actions 构建+上线，**无需**手动 `gh workflow run deploy.yml`。 | 手动闸门与 CI 双轨冲突、线上不更新 |
+| 7 | **禁止提交 `package-lock.json` / 用 npm 安装**；包管理统一 pnpm。 | 与 `packageManager: pnpm@9.15.0` 冲突 |
+| 8 | **换 Hero 主图必须同步 `index.tsx` 的 `width/height`**（CLS 占位，须匹配真实宽高比）。 | 布局偏移 / 累计布局抖动 |
+| 9 | **禁止新增 `/favicon.ico`**（用 `app/public/favicon.svg`）。 | 404 控制台报错 |
+| 10 | **改 Running 数据链路改 `running-private` 仓库，非本仓库**；原公开 `GuoxinL/running` 已废弃。 | 数据生产链路错位 |
