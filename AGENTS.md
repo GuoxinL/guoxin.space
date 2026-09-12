@@ -2,6 +2,8 @@
 
 个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（4 页静态预渲染），推送 `main` 即 GitHub Actions 自动构建并上线。
 
+> 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：AI 开发动作一律走 `.harness/plans/_template/` 的 8 步 SOP；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若本文档（操作指南 / 上下文）与 CONSTRAINTS.md / 对应 SOP 步骤冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文档定位 = AI 操作入口与项目上下文（目录 / 数据流 / 红线速览），非硬约束真源。
+
 ## 目录结构
 
 ```
@@ -16,12 +18,11 @@ personal-homepage/
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
 │   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
-├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（独立部署，非本仓库 CI）
-├── worker.test.mjs     # Worker 单测
-├── running-private/    # git submodule：Running 数据生产（轨迹同步 / 预览图），本仓库只读引用
+├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（独立部署，非本仓库 CI；无独立单测）
+├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、skills 同步等）
 ├── .harness/           # SOP 真源（AI 开发流程）
-│   ├── plans/          # 各任务目录（00-overview ~ 09-commit）；_template 为模板
+│   ├── plans/          # 各任务目录（00-overview ~ 08-review）；_template 为模板
 │   └── docs/           # 现行规范：architecture / devops / coding-style / 单测·IT 等
 └── docs/               # 文档（与 .harness/docs 分工见下；外部 / 历史 / 报告）
     ├── deploy/         # 现行有效：Worker 部署、权限方案
@@ -32,27 +33,26 @@ personal-homepage/
 
 > **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、单测·IT）；`docs/` 只放**外部 / 历史 / 报告**类文档——现行有效的 Worker 部署与权限方案在 `docs/deploy/`，设计稿在 `docs/design/`，历史过程稿全部归档到 `docs/archive/`（带「⚠️ 归档文档」声明）。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
 
-> ⚠️ **历史段落提示**：下方「核心约定」「构建与验证」「易错点备忘」三节描述的是 2026-09-09 Qwik 重构**前**的单文件站（`index.html` / `css/style.css` / `js/*.js` / `verify.js`，已在 P8 删除），仅作历史参考。现行代码规范以 `.harness/docs/coding-style.md` 与下方「Qwik 重构（已完成）」「设计系统」章节为准；改代码直接看 `app/src/`。
+> ⚠️ **历史段落提示**：下方「旧单文件站机制」一节描述 2026-09-09 Qwik 重构**前**的机制（`index.html` / `css/style.css` / `js/*.js` / `verify.js`，已在 P8 删除），仅作历史参考，**不得**按其操作。现行代码规范以 `.harness/docs/coding-style.md` 为准；改代码直接看 `app/src/`。
 
-## 核心约定（拆分后必须遵守）
+## 核心约定（现行，必须遵守）
 
-1. **脚本加载顺序固定**：`index.html` 底部按 `util → auth → json → skills → app → running` 顺序引入。拆分前整体包在一个 IIFE 里，现已**移除 IIFE**，各文件顶层 `var`/`function` 声明**共享全局作用域**（跨文件可直接互相调用）。新增文件务必插在正确位置：被依赖者在前、依赖者在后。
+1. **运行 ID 精度**：活动 `run_id` 一律按**字符串**处理（源数据有 47/161 条超过 `Number.MAX_SAFE_INTEGER`），前端 `id === a.id` 用精确字符串匹配，勿用 `Number()` 转换。
 
-2. **每个 js 文件顶部保留 `"use strict";`**：保持与原 IIFE 严格模式行为一致。
+2. **版面宽度只有一处开关**：`Header / main / Footer` 三处容器统一用 `.mc-container` 类（定义在 `app/src/global.css`），宽度取自 `--container-w`（当前 **1280px**，宽板）。改版面宽度**只改这个变量**，不要在三个文件里各写 `max-w-*`（历史上是 `max-w-5xl`，已废弃）。页面内所有区块（Hero / Card / Terminal 等）**不设自己的宽度上限**，一律跟随 `main` 容器。
 
-3. **HTML 内联 `onclick` 依赖全局函数**：页面 `onclick="xxx()"` 引用的函数必须在全局可见。由于已无 IIFE，顶层 `function` 声明天然全局；但为保持显式、稳定，`app.js` 的 `init()` 内仍保留 `window.xxx = xxx` 显式暴露（既有约定）。**新增被 HTML 直接调用的函数时，在 `init()` 里补一行 `window.xxx = xxx`**。
+3. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md` 与 `docs/archive/design/style-proposal.md`。
 
-4. **`app.js` 含少量「跨模块」声明**：`SAMPLE`/`SAMPLE_B`（JSON 工具示例数据）与 `skStickySync()`（Skills 吸顶）历史上位于「初始化」区，拆分时未重排、随原顺序留在 `app.js`。它们被 `json.js`/`skills.js` 引用，依赖变量/函数提升 + 运行时（DOMContentLoaded 后）调用，功能正确。若要归位到所属模块，可安全整体搬移（纯声明，无副作用）。
+4. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
 
-5. **运行 ID 精度**：活动 `run_id` 一律按**字符串**处理（源数据有 47/161 条超过 `Number.MAX_SAFE_INTEGER`），前端 `id === a.id` 用精确字符串匹配，勿用 `Number()` 转换。
+5. **改 CSS 必须防「同特异性后置覆盖」**：`global.css` 按「页面 → 组件」顺序堆叠，同一选择器（如 `.mc-card:hover`）若在文件后半被 V1 旧规则重复定义，**会静默覆盖前面的新规则**（同特异性、后出现者胜）。改完务必用 `getComputedStyle` 在**目标状态**（尤其 `:hover` / `:focus-visible`）下回读，**不能只测静止态**。2026-09-11 的 V2 改造中，正是靠 hover 态回读才发现卡片长回了 V1 的 `box-shadow: 6px 6px 0`。
 
-6. **版面宽度只有一处开关**：`Header / main / Footer` 三处容器统一用 `.mc-container` 类（定义在 `app/src/global.css`），宽度取自 `--container-w`（当前 **1280px**，宽板）。改版面宽度**只改这个变量**，不要在三个文件里各写 `max-w-*`（历史上是 `max-w-5xl`，已废弃）。页面内所有区块（Hero / Card / Terminal 等）**不设自己的宽度上限**，一律跟随 `main` 容器。
+## 旧单文件站机制（历史存档，2026-09-09 前有效，文件已在 P8 删除）
 
-7. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md` 与 `docs/archive/design/style-proposal.md`。
-
-8. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
-
-9. **改 CSS 必须防「同特异性后置覆盖」**：`global.css` 按「页面 → 组件」顺序堆叠，同一选择器（如 `.mc-card:hover`）若在文件后半被 V1 旧规则重复定义，**会静默覆盖前面的新规则**（同特异性、后出现者胜）。改完务必用 `getComputedStyle` 在**目标状态**（尤其 `:hover` / `:focus-visible`）下回读，**不能只测静止态**。2026-09-11 的 V2 改造中，正是靠 hover 态回读才发现卡片长回了 V1 的 `box-shadow: 6px 6px 0`。
+- `index.html` 底部按 `util → auth → json → skills → app → running` 顺序加载脚本；IIFE 移除后各文件顶层 `var`/`function` 共享全局作用域；各 js 顶部保留 `"use strict";`。
+- HTML 内联 `onclick` 依赖全局函数，`app.js` 的 `init()` 内以 `window.xxx = xxx` 显式暴露；`SAMPLE`/`SAMPLE_B`/`skStickySync()` 为留在 `app.js` 的跨模块声明。
+- 页面回归 `node verify.js`（vm 沙箱 + mock DOM，289 断言；源码字符串断言统一用 `html + css + js` 拼接的 `src`）。
+- 改 HTML 结构需 `cp index.html 404.html` 同步 SPA fallback——现行由 SSG 生成 404.html 并由 `check-404-sync.yml` 校验产物（见「部署」节）。
 
 ## 数据流
 
@@ -74,51 +74,51 @@ personal-homepage/
 ## 构建与验证
 
 ```bash
-# 页面回归测试（改任何 js/css/html 后必跑）
-node verify.js          # 期望：289 / 289 ALL TESTS PASSED
+npm run build      # Qwik SSG 构建（需 Node ≥24 + export CODEBUDDY_SAFE_DELETE_ENABLED=0）
+npm run test       # vitest 单测（改 app/src/lib/ 后必跑）
+npm run test:e2e   # Playwright 页面自动化（改任何页面/交互/CSS 后必跑，强制门禁）
 
-# 本地预览
-python3 -m http.server 8734   # 打开 http://127.0.0.1:8734/index.html#/running
-
-# Worker 单测（仅改 worker.js 时）
-node test-worker.mjs
+# 本地静态预览构建产物
+python3 -m http.server 8734 --bind 127.0.0.1 --directory app/dist
 ```
 
-- `verify.js` 通过 **vm 沙箱 + mock DOM** 运行页面脚本：它读取 `css/style.css` 与 `js/*.js` 拼接后 `vm.runInContext`（顺序与 `index.html` 一致）。断言分两类：**运行时行为**（`ctx.xxx()` 调用）与**源码字符串检索**（统一用 `src` 全文 = `html + css + js` 拼接，勿改回 `html`）。
-- **新增断言注意**：源码字符串若含 `"`，写进 `src.indexOf('...')` 单引号字符串时需写成 `\"`（或 `\\"`）；正则断言用 `/.../.test(src)`。
+- 命令矩阵与门禁详见「三、开发准则 → 代码检测」；页面自动化统一用 **Playwright**（原 puppeteer-core 已废弃）。
+- ⚠️ Worker（`worker.js`）当前**无独立单测**；根目录若见 `worker.test.mjs`，那是旧脚本自动复制的 `worker.js` 副本（gitignore、生成脚本已删），不是测试文件，勿执行勿提交。
 
 ## 部署（GitHub Pages）
 
-- 推送 `main` 分支触发 GitHub Pages 自动构建部署（仓库已迁移至 `GuoxinL/guoxin.space`，`custom_404: true`）。
-- **每次改动 index.html 后，必须同步 `404.html`**：`cp index.html 404.html`（深层路径会走 404.html 作 SPA fallback，不同步则深层路径返回旧版）。
+- 推送 `main` 分支触发 GitHub Actions 自动构建部署（仓库 `GuoxinL/guoxin.space`，全自动无手动闸门，见红线 6）。
+- `404.html` 由 Qwik SSG 生成、`CNAME` 由 CI `cp CNAME app/dist/CNAME` 注入产物根；CI 另有 `check-404-sync.yml` 校验产物含两者。
 - `CNAME` 文件不可删（绑定 `guoxin.space`）。
-- favicon 已内联为 SVG data URI（`<link rel="icon">`），**不要**新增 `/favicon.ico` 文件（曾导致 404 控制台报错）。
+- favicon 用 `app/public/favicon.svg`（`root.tsx` 引用），**不要**新增 `/favicon.ico` 文件（曾导致 404 控制台报错）。
 
 ## 验证部署是否生效
 
 ```bash
-# 线上复验（puppeteer-core 直连系统 Chrome，避免下载 Chromium）
-NODE_PATH=$HOME/.workbuddy/binaries/node/workspace/node_modules \
-  $HOME/.workbuddy/binaries/node/versions/22.22.2/bin/node /tmp/xxx.cjs
+# 线上复验（Playwright 驱动 chromium 回读关键 DOM；需先安装浏览器：npx playwright install chromium）
+BASE_URL=https://guoxin.space npx playwright test
 
-# 查询 Pages 构建状态
-gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
+# 查询部署结论（event=push 且 success = 已上线）
+gh run list --workflow=deploy.yml --limit 5
 ```
 
-线上页面 URL：`https://guoxin.space/#/running`（Running）、`https://guoxin.space/#/skills`（Skills）、`https://guoxin.space/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）。
+> **不要**用 `gh api repos/GuoxinL/guoxin.space/pages/builds/latest` 判断上线——workflow 模式下该接口停留在旧 branch-deploy 记录，不更新（见红线 6 / CONSTRAINTS C-19）。
+> 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动起 `vite preview` 服务 `app/dist`）。
+
+线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/running`（Running）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）。
 
 ## 易错点备忘
 
-- **改 HTML 结构**（新增/删除 `id`、`data-*`、`onclick`）→ 同步 `404.html`，并在 `verify.js` 补对应断言。
-- **改 CSS** → 只改 `css/style.css`，不要回写 `index.html`。
-- **改 JS** → 只改对应 `js/*.js`，不要回写 `index.html`；跑 `node verify.js`。
+- **改 CSS** → 只改 `app/src/global.css`；改完用 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读（红线 4）。
+- **改页面 / 交互 / 结构** → 跑 `npm run test:e2e`（强制门禁），必要时在 `e2e/` 补用例。
+- **改 `app/src/lib/` 逻辑** → 跑 `npm run test`。
 - **GitHub Pages 缓存**：raw.githubusercontent.com 约 5 分钟 CDN 缓存，改 `running-private` 仓库产物后浏览器需强制刷新。
 
 ## Qwik 重构（已完成，2026-09-09）
 
 - 权威方案：`docs/archive/QWIK-REFACTORING-PLAN.md`；包管理器统一 pnpm（禁用 npm / yarn，禁止提交 package-lock.json）。
 - 新代码只进 app/src/；旧站静态文件（js/、css/、根 index.html/404.html、verify.js）已在 P8 删除，回滚基线改用 git 历史。
-- 构建：pnpm build 产出 app/dist/（vite root=app，static adapter 静态预渲染，Pages 直接托管）；CI 必须用 **Node ≥24**（undici@8 依赖 util.markAsUncloneable，Node 20/22 缺该 API，会令 pnpm build 失败）。
+- 构建：pnpm build 产出 app/dist/（vite root=app，static adapter 静态预渲染，Pages 直接托管）；构建（本地 + CI）必须 **Node ≥24**（undici@8 依赖 util.markAsUncloneable，Node 20/22 缺该 API，会令 pnpm build 失败）。
 - 部署：.github/workflows/deploy.yml；Pages Source 已切到 GitHub Actions（build_type=workflow），CNAME 由 CI `cp CNAME app/dist/CNAME` 注入，404.html 由 SSG 生成。
 - **部署全自动（现行）**：`deploy.yml` 监听 `push` 到 `main` 即自动 build + deploy，**无需**手动 `gh workflow run`。判断「是否已上线」看 `gh run list --workflow=deploy.yml` 的 deploy job 结论，或实测线上 DOM/图片；不要依赖 `pages/builds/latest`（workflow 模式下该接口停留在旧 branch-deploy 记录，不更新）。
 - CI 两个工作流（deploy.yml、check-404-sync.yml）都必须 **Node 24** 且**不要给 `pnpm/action-setup` 写死 `version`**（会与 package.json 的 `packageManager: pnpm@9.15.0` 冲突，报 `ERR_PNPM_BAD_PM_VERSION`）。
@@ -128,7 +128,7 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 ## 设计系统 QWIK-INSPIRED v2（2026-09-10 起，取代 v1 像素版）
 
 - **设计真源 = 根目录 `DESIGN.md`**（9 章节）。参考基准 `https://next.qwik.dev/`；v1 Minecraft 像素版已废弃（演进记录见 `docs/archive/design/BLOCKCRAFT-REDESIGN.md`，v2 交付说明见 `docs/archive/design/QWIK-REDESIGN.md`）。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`。
-- 视觉规则（违反即不合格）：圆角只取 `10/12/14/16/999`；阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁止模糊半径）；描边 `1.6px`（分隔/顶栏）或 `2px`（卡片/输入/按钮）；动效 120–160ms `ease-out`；**禁止**零圆角硬边、纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms。
+- 视觉规则（违反即不合格）：圆角只取 `10/12/14/16/999`；阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁止模糊半径）；描边 `1.6px`（分隔/顶栏）或 `2px`（输入/弹窗等交互控件，容器不画边框）；动效 120–160ms `ease-out`；**禁止**纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms。
 - 主题变量：`--violet-*`（主色 `#A053FE`）/ `--sky-*`（强调 `#00B5F1`）/ `--slate-*`（中性 `#293749`）/ `--shadow-*`（偏移阴影）。旧的 `--bg/--surface/--text/--primary/--radius/--shadow` 等为**兼容别名**，Skills / JSON / Running 三页零改动继承皮肤。暗色主题只覆盖变量，不写组件选择器。
 - 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图图标保留 `image-rendering: pixelated`。
 - 像素图标：`app/src/components/pixel/PixelIcon.tsx`（16×16 网格，纯矩形 path，`shape-rendering: crispEdges`）；终端命令框 `TerminalBox.tsx`（官网同款窗口装饰 + 复制按钮）。新增图标往 `ICONS` 里加，不要引入图标库。
@@ -161,19 +161,19 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 > 1. `git branch --show-current` 获取分支名
 > 2. 在 `.harness/plans/` 匹配分支：
 >    - **有对应任务** → 按 `00-overview.md` 继续
->    - **无 + 在 master/main** → 全新需求：`git checkout -b feature/<name> origin/master` → `cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` → **精简注释**（见下方 ③）→ 填 Meta → 进入入口判定
+>    - **无 + 在 main** → 全新需求：`git checkout -b feature/<name> origin/main` → `cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` → **精简注释**（见下方 ③）→ 填 Meta → 进入入口判定
 >    - **无 + 在 feature/ 分支** → 「协同开发检测」
 > 3. **复制 _template/ 后必须精简注释**（全新需求 / 协同开发通用，**AI 必执行**）：打开新建的 `plans/<task>/00-overview.md`，把所有 `<!-- TEMPLATE-ONLY-DO-NOT-COPY: -->` 标记的 HTML 注释块**整段删除**（含标记行），替换为单行指针指向 `_template/00-overview.md`；**头部 "⚠️ TEMPLATE ONLY" 段也整段删除**。SOP 规则只在 `_template/` 维护，**禁止**在每个任务文件里重复 ~30 行规则（噪音 + 版本漂移）。详见 `_template/00-overview.md` 顶部说明。
 >
-> **禁止**在 `master`/`main` 上做 SOP；一个分支只允许对应一个任务目录。
+> **禁止**在 `main` 上做 SOP；一个分支只允许对应一个任务目录。
 
 ### 协同开发检测（design.md 驱动）
 
-> 触发：当前分支非 master/main 且无对应任务。
-> - `.harness/design.md` 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 design.md 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同、`测试环境`）→ 自检后删除 design.md → 从 Step 3 开始
+> 触发：当前分支非 main 且无对应任务。
+> - `.harness/design.md` 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 design.md 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同）→ 自检后删除 design.md → 从 Step 3 开始
 > - design.md 不存在 → 标准流程
 
-### 9 步骤定义
+### 8 步骤定义
 
 | # | 步骤 | 产物 | 说明 |
 |---|------|------|------|
@@ -181,11 +181,12 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 | 2 | **Plan** | `02-plan.md` | 改动文件、调用链、**§6 UT 用例（TDD 必填）**、IT 用例、风险 |
 | 3 | **Implement** | `03-implement.md` | 按 Plan §6 红绿循环：先写 UT 跑红 → 最小实现转绿 → 重构 |
 | 4 | **UT** | `04-ut.md` | 用例与 Plan §6 逐条对齐、覆盖率、未覆盖行 |
-| 5 | **Deploy** | `05-deploy.md` | 通过团队环境管理 Skill 热更代码到测试环境 |
-| 6 | **IT** | `06-it.md` | 每条用例贴关键日志（含 reqid）；协同模式不跳过 |
-| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` |
-| 8 | **Review** | `08-review.md` | 代码审查结果 |
-| 9 | **Commit** | `09-commit.md` | ① 释放环境 → ② 写 commit message → ③ 更新 overview（边界点 A）→ ④ 一次性 `git add` → ⑤ `git commit`（首次仅一次）→ ⑥ `git push`（个人项目直推 `main` 即触发自动部署）→ ⑦（可反复直到完成）amend 累积修复（一个 commit 原则，禁止新增第二个 commit） |
+| 5 | **Deploy** | `05-deploy.md` | 本任务唯一 commit（首次仅一次，= **边界点 A**）+ push `main` 触发 GitHub Pages 自动部署；amend 修复流程定义于此 |
+| 6 | **IT** | `06-it.md` | 每条用例贴关键 Playwright 断言 / 失败截图；失败 → 修复 → 回 05 amend 重部署，**循环直到全绿**；协同模式不跳过 |
+| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/`（md 变更随收尾 amend 入库） |
+| 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（收尾 amend → **边界点 B** 冻结） |
+
+> 状态机：`Deploy(提交+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾确认 = 边界点 B)`。
 
 ### 任务规模分支
 
@@ -198,18 +199,17 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 | 3 | Implement | 确认 | **自动**（与 04 合并跑，结束一次性汇报） |
 | 4 | UT       | 确认 | **自动**（与 03 合并跑，结束一次性汇报） |
 | 5 | Deploy   | 确认 | **确认**（环境敏感，必须显式确认） |
-| 6 | IT       | 确认 | **确认**（涉及真实链路 / reqid 核验，不允许跳过确认） |
+| 6 | IT       | 确认 | **确认**（涉及真实链路 / 线上 DOM 核验，不允许跳过确认） |
 | 7 | Docs     | 确认 | **自动** |
-| 8 | Review   | 确认 | **自动** |
-| 9 | Commit   | 确认 | **自动**（环境释放仍按 `09-commit.md` 0 节执行） |
+| 8 | Review   | 确认 | **自动**（含收尾 amend，仍按 `05-deploy.md` §2 部署前检查执行） |
 
-> "自动" ≠ 跳过产物：03-04 / 07-09 的 md 产物、`00-overview.md` 时间记录、Progress 勾选**仍然必须**按正常流程写完。"自动"仅指把该步骤的开始/结束两次确认合并为一次——AI 一次说完"我准备做 X-Y-Z"后开始跑，跑完一次性汇报"03-04 已完成（结论摘要）"，**中间不再打断用户**。
+> "自动" ≠ 跳过产物：03-04 / 07-08 的 md 产物、`00-overview.md` 时间记录、Progress 勾选**仍然必须**按正常流程写完。"自动"仅指把该步骤的开始/结束两次确认合并为一次——AI 一次说完"我准备做 X-Y-Z"后开始跑，跑完一次性汇报"03-04 已完成（结论摘要）"，**中间不再打断用户**。
 >
 > **05 Deploy / 06 IT 仍必须显式确认**：Deploy 涉及环境副作用，IT 涉及真实链路核验，是 SOP 中两个最易出错的环节，不纳入自动批次。
 >
-> **批次时间记录**：`00-overview.md` 时间记录表对 03-04 / 07-09 这两批的每一行写**同一**开始时间和**同一**结束时间（批次起止那一刻），耗时也是同一值；备注列写「小需求模式批次：03-04」或「小需求模式批次：07-09」便于聚合归并。详见 `00-overview.md` 时间记录节规则 9。
+> **批次时间记录**：`00-overview.md` 时间记录表对 03-04 / 07-08 这两批的每一行写**同一**开始时间和**同一**结束时间（批次起止那一刻），耗时也是同一值；备注列写「小需求模式批次：03-04」或「小需求模式批次：07-08」便于聚合归并。详见 `00-overview.md` 时间记录节规则 9。
 >
-> **回退机制**：若进入 03 后发现实际改动 > 10 行（漏估），AI 应在汇报 03-04 结论时同步把 `小需求模式` 改回 ⬜，从 05 起按标准模式跑（05/06 仍确认，07-09 在新的判断下决定是否走自动）。已按批次写入的时间记录**不回填**——批次记录能正确反映实际工作窗口，跨任务统计靠「小需求模式批次」前缀识别即可。
+> **回退机制**：若进入 03 后发现实际改动 > 10 行（漏估），AI 应在汇报 03-04 结论时同步把 `小需求模式` 改回 ⬜，从 05 起按标准模式跑（05/06 仍确认，07-08 在新的判断下决定是否走自动）。已按批次写入的时间记录**不回填**——批次记录能正确反映实际工作窗口，跨任务统计靠「小需求模式批次」前缀识别即可。
 
 ### 步骤执行规则
 
@@ -219,23 +219,17 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 > - **时间记录**：开始/结束时间用 `date "+%Y-%m-%d %H:%M:%S"` 精确到秒写入 `00-overview.md`；禁止事后回填
 > - **结束确认**：展示「✅ 步骤完成 + 核心结论 + 耗时 + 下一步概览」→ 等用户回复同意/暂停/调整
 > - **禁止**未经确认自动跳步；**禁止**合并开始/结束为单次提问
-> - **小需求模式例外**：03-04、07-09 的开始/结束确认可合并为单次提问（"我准备做 03-04，做完一次性汇报"），但产物文件 + 时间记录 + Progress 勾选**不豁免**
+> - **小需求模式例外**：03-04、07-08 的开始/结束确认可合并为单次提问（"我准备做 03-04，做完一次性汇报"），但产物文件 + 时间记录 + Progress 勾选**不豁免**
 
-### Commit 规范
+### 提交规范（并入 Step 5 Deploy）
 
-> 本节是 **SOP 入口**——`09-commit.md` 给出**清单 + 填表**，完整规则见 `.harness/docs/coding-style.md` 与红线 4。
+> **提交（原独立 Commit 步骤）已并入 Deploy**——完整清单与流程见 `05-deploy.md`；本节只保留铁律。
 
-**顺序**：① 释放环境 → ② 写 `09-commit.md` commit message → ③ 更新 `00-overview.md`（触发**边界点 A**）→ ④ 一次性 `git add`（代码 + plans 产物 + 00-overview.md + docs）→ ⑤ `git commit`（首次仅一次）→ ⑥ `git push`（个人项目直推 `main` 触发自动部署；或按仓库约定开 PR）→ ⑦（可反复，直到完成）代码修复 amend → 触发**边界点 B**。
-
-
->
-> **新增：禁止在边界点 A / B 之后修改 `00-overview.md` / `09-commit.md`**——步骤 ④+⑤ 完成即触发边界点 A（commit 内容定稿）；MR 合入即触发边界点 B（任务收尾）。两者之间**唯一例外**是步骤 ⑨ 代码修复走 amend——**仅改代码本身，不碰 md**；可反复不限次数，始终只有一个 commit；一旦合入就彻底冻结。完整规则见 `09-commit.md`「1. 执行顺序」节。
-
-**本项目不使用 TAPD / 其他外部需求跟踪系统**：commit 前无需询问需求单，也无需推进任何外部状态。直接按「顺序」执行即可；commit message 采用 Conventional Commits（见红线 4），不要求 `--story` / `--bug` 等外部单号脚注。
-
-**格式**：`<type>(<scope>): <subject>`（Conventional Commits；CI 仅校验该格式，不要求外部单号脚注）。允许的 type 见红线 4。
-
-**一个 MR 一个 commit（铁律）**：本任务所在 MR 只能有一个 commit。任何修正（push 前 / SOP 走完后的 follow-up / push 元信息补登）一律走 `git commit --amend` 累积到原 commit，**严禁**新增第二个 commit。amend 后 push 必须用 `git push --force-with-lease`（**禁止**裸 `--force`）。详见 `09-commit.md`「2. amend 流程」节。
+- commit message 采用 **Conventional Commits**：`<type>(<scope>): <subject>`（允许的 type 见 `code-review.md` §2；不要求 `--story` / `--bug` 等外部单号脚注）。本项目不使用 TAPD / 其他外部需求跟踪系统。
+- **一个任务一个 commit（铁律）**：唯一一次 `git commit` 在 Step 5 Deploy 完成；此后任何修正（IT 修复 / follow-up / 收尾产物入库）一律走 `git commit --amend` 累积到原 commit，**严禁**新增第二个 commit。amend 后 push 必须用 `git push --force-with-lease`（**禁止**裸 `--force`）。
+- **边界点 A**（首次 commit 完成）：commit message 定稿冻结，此后只 `--amend --no-edit`。
+- **边界点 A 与 B 之间**：代码修复（IT 失败循环，见 05 §5）只 amend 代码；Docs / Review 产生的 md 变更随 08 的**收尾 amend**（见 08-review.md §6）一次性并入。
+- **边界点 B**（08 Review 用户确认收尾 + 最后一次 push 完成）：任务全冻结，再改动另开任务 / 新分支。
 
 ---
 
@@ -249,13 +243,14 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 | `npm run fmt` | Prettier 格式化 `app/src` | 提交前建议跑；`pre-commit` hook 会 `--check` |
 | `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
 | `npm run test` | `vitest run` 单测（`app/src/lib/`，7 文件 / 110 用例） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
+| `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动起 `vite preview` 服务 `app/dist`；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
 | `npm run build` | Qwik SSG 构建（client + SSR 预渲染 4 页） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
 
 ### 语言 / 框架版本约束
 
 - 框架：Qwik ~1.20 / Qwik City ~1.20（SSG static adapter）
 - 语言：TypeScript 5.5，严格模式
-- 运行时：Node ≥20（**CI 必须 ≥24**——否则 `undici@8` 缺 `util.markAsUncloneable` 令 build 失败）
+- 运行时：Node **≥24**（本地与 CI 一致——否则 `undici@8` 缺 `util.markAsUncloneable` 令 build 失败；`package.json` engines 标 `>=20` 仅为下限声明，实操以 24 为准）
 - 包管理：**pnpm 9.15.0**（禁用 npm / yarn，禁止提交 `package-lock.json`；本地无全局 pnpm 时用 `npm run build` 代替，不生成 lock）
 - 样式：Tailwind 3.4 + PostCSS + 自托管字体；**设计真源 `DESIGN.md`**（改视觉先改它，再同步 `app/src/global.css`）
 
@@ -272,7 +267,7 @@ gh api repos/GuoxinL/guoxin.space/pages/builds/latest --jq '.status'
 
 | # | 红线 | 后果 |
 |---|------|------|
-| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `00-overview.md`、`01-clarify.md` … `09-commit.md`、`.harness/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
+| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `00-overview.md`、`01-clarify.md` … `08-review.md`、`.harness/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
 | 2 | **禁止改动全局 `.btn` 基类**（Skills/JSON/Running 三页 28 处共用）；首页差异样式只能在 `.mc-hero-cta .btn` 作用域内覆盖。 | 三页按钮视觉一致性被破坏 |
 | 3 | **禁止写全局 `img, canvas { image-rendering: pixelated }`**；只给显式 `.pixelated` 类。 | 精绘素材 / 缩略图产生锯齿 |
 | 4 | **改 CSS 必须 `getComputedStyle` 在目标交互态（`:hover`/`:focus-visible`）下回读**，不只测静止态。 | 同特异性后置规则静默覆盖，发版后才发现 |

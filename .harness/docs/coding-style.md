@@ -134,7 +134,7 @@
 | 3 | 禁止全局 `img, canvas { image-rendering: pixelated }`，只给 `.pixelated` 类 | 精绘素材/缩略图锯齿 |
 | 4 | 改 CSS 必须 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读（防同特异性后置覆盖） | 发版后才发现样式回退 |
 | 5 | 本地构建必须 Node ≥24 + `CODEBUDDY_SAFE_DELETE_ENABLED=0`；CI 两 workflow 用 Node 24 且不写死 pnpm version | build 失败 / `ERR_PNPM_BAD_PM_VERSION` |
-| 6 | 部署全自动：push `main` 即 Actions 构建上线（切流期例外：手动 `gh workflow run deploy.yml`） | 双轨冲突 / 线上不更新 |
+| 6 | 部署全自动：push `main` 即 Actions 自动构建上线，**无需**手动 `gh workflow run deploy.yml` | 双轨冲突 / 线上不更新 |
 | 7 | 禁止提交 `package-lock.json` / 用 npm 安装 | 与 `packageManager: pnpm@9.15.0` 冲突 |
 | 8 | 换 Hero 主图必须同步 `index.tsx` 的 `width/height`（CLS 占位匹配宽高比） | 布局抖动 |
 | 9 | 禁止新增 `/favicon.ico`（用 `app/public/favicon.svg`） | 404 控制台报错 |

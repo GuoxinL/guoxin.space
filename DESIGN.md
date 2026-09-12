@@ -4,6 +4,8 @@
 > 设计取向：**Qwik 官网的现代 SaaS 骨架 + 街机像素品牌基因**
 > 本文档是**唯一视觉真源**：改页面先改这里，再同步到 `app/src/global.css` 与组件。
 
+> 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：视觉规范以本文档为唯一真源，但**流程类硬约束**（部署 / 测试门禁 / 编码红线 / 提交协作）以 `.harness/docs/CONSTRAINTS.md` 为单一真相源；若本文档某条与 CONSTRAINTS.md 冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。
+
 ---
 
 ## 1. Visual Theme & Atmosphere（视觉主题与氛围）
@@ -17,7 +19,7 @@
 **光影与质感**：
 - 立体感 = **偏移实心阴影**（`Npx Npx 0`，无模糊半径），不使用柔和扩散阴影——**仅用于按钮等需要「被按下」的强调控件**，不再铺满页面
 - 层次 = **留白 + 1px 发丝线**（`--slate-5`）；容器不画边框、不铺底色、不加阴影
-- 圆角**只保留在交互控件**：按钮 `10px`、终端框 `10px`；容器一律 `0`
+- 圆角**只保留在交互控件**：按钮基类 `12px`（首页 hero 作用域覆盖为 `10px`）、终端框 `10px`；容器一律 `0`
 - 高光 = 标题的 **shimmer 流光渐变**（紫 → 天蓝 → 紫，横向平移）
 - Hero **不用面板底色**（V2 去容器化），仅靠 `border-bottom: 1px solid var(--slate-5)` 界定区块；保留绝对定位的旋转装饰图标
 - 背景大图为**透明 PNG 水晶镐插画**（`app/public/img/pickaxe.png`，880×986 / 133KB，去光效版），Hero 右侧，`drop-shadow: 6px 6px 0`。源图为**像素方块风格**——4K 原图即清晰色块构成，缩放到显示尺寸后仍保留方块观感，这是**原图特征而非渲染锯齿**。**不要**给它加 `image-rendering: pixelated`。
@@ -225,16 +227,17 @@ V2：**不再用药丸**。改为「前置 6px 方块 + 字距加宽」的极简
 
 ```css
 .mc-term {
-  border: 2px solid var(--slate-25);
-  border-radius: 14px; overflow: hidden;
+  border: none;
+  border-radius: 10px; overflow: hidden;
   background: var(--slate-deep);
-  box-shadow: 4px 4px 0 var(--shadow-base);
+  box-shadow: none;
+  max-width: 100%;
 }
 .mc-term-bar {
   height: 27px;                          /* 官网 27.241px */
   background: var(--sky-5);
   border-bottom: 1.6px solid var(--slate-25);
-  display: flex; align-items: center; gap: 6px; padding: 0 10px;
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
 }
 .mc-term-btns i { width: 8px; height: 8px; border-radius: 999px;
   background: var(--danger); }           /* 红 / 黄 / 绿三点 */

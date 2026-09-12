@@ -25,7 +25,7 @@
 ### 1. 前置依赖检查清单
 
 ```bash
-# (1) Node 版本（必须 ≥20，CI 用 24；本机 nvm default=24）
+# (1) Node 版本（本地与 CI 一致，必须 ≥24；本机 nvm default=24）
 node -v
 
 # (2) 依赖是否已装
@@ -111,13 +111,13 @@ npx vitest run -t "format"
 npx vitest run --coverage
 ```
 
-> 本地命令必须与 CI 一致（CI 当前在 deploy.yml 的 build 之前未单独跑 test；建议在 build job 加 `npm run test`，见 code-review.md TODO）。
+> 本地命令必须与 CI 一致（CI 已在 `deploy.yml` build job 跑 `pnpm test` 作为门禁；本地改动 `lib/` 后必跑）。
 
 ### 2. 调试套路
 
 | 现象 | 优先排查 |
 |------|---------|
-| 全量失败 | 依赖未装 / Node 版本不符（需 ≥20，CI 24）|
+| 全量失败 | 依赖未装 / Node 版本不符（本地与 CI 一致，需 ≥24）|
 | 单文件失败 | 隔离复现 `vitest run <file>` |
 | Mock 未生效 | `vi.mock` 是否提升到文件顶、路径是否匹配 |
 | 覆盖率不达标 | `vitest run --coverage` 看未覆盖行 |
@@ -139,6 +139,6 @@ npx vitest run --coverage
 
 ### 5. CI 集成
 
-- 建议在 `deploy.yml` 的 build job 加 `npm run test` 作为门禁（当前未强制，见 code-review.md TODO）。
+- 已在 `deploy.yml` 的 build job 落地 `npm run test` 强制门禁（CI 双门禁之一；另一道为 `npm run test:e2e`，见 `integration_test.md` §5）。改 `app/src/lib/` 后本地必跑。
 - 失败必须阻塞合入（push main 即上线，单测是最后防线）。
 - 覆盖率门槛：当前无强制阈值，建议后续加（标 TODO）。

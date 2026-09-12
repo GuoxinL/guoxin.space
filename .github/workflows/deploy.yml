@@ -40,6 +40,15 @@ jobs:
       - name: 构建（客户端 + SSG 预渲染）
         run: pnpm build
 
+      - name: 单测（vitest 门禁）
+        run: pnpm test
+
+      - name: 安装 Playwright 浏览器
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: 页面自动化测试（Playwright 门禁）
+        run: pnpm test:e2e
+
       - name: 补齐 CNAME（自定义域名 guoxin.space）
         run: cp CNAME app/dist/CNAME
 

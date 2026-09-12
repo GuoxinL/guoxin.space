@@ -6,6 +6,18 @@
 
 ---
 
+## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+
+> 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。
+
+| 约束 | 规则 | 自查要点 |
+|------|------|---------|
+| C-01 | 文档须与代码一致（无后端 / DB / MQ 的 SSG 静态站定位） | 改动若触及项目性质 / 环境 / 流程约束，必须同步 `.harness/docs/CONSTRAINTS.md` 及对应镜像（`AGENTS.md` / `DESIGN.md`） |
+
+> ⚠️ **若本次改动新增 / 删除 / 修改了任一硬约束（C-xx）**，必须在 07 步骤同步更新 `.harness/docs/CONSTRAINTS.md`，否则 SOP 权威失效。
+
+---
+
 ## 1. 必检清单
 
 > 实际路径必须先从 `.harness/docs/` 目录中确认。不适用的项填"➖ 不涉及"。
@@ -15,23 +27,22 @@
 - [ ] `.harness/docs/relationship.md` — 上下游 / 集成方关系（新增依赖 / 调整拓扑时）
 
 **对外接口 / 契约**
-- [ ] 接口文档 `.harness/docs/apis/<module>/<Action>.md`（新增 / 修改接口必改）
-- [ ] 接口总索引 `.harness/docs/apis/index.md`（新增接口时追加）
+- [ ] ➖ 不适用（本站无后端 API；Worker 契约变更登记在 `worker.js` 头注释 / `docs/deploy/`）
 
 **数据 / 持久化**
-- [ ] DB schema / migration `.harness/docs/sqls/<...>`（DDL 变更时必改）
+- [ ] ➖ 不涉及 DB（本项目无本地数据库；Worker 侧 `running-private` 数据契约变更在其仓库处理）
 
 **测试规范**
 - [ ] `.harness/docs/unittest/unittest.md`（测试约定 / 命名 / Mock 策略变更时）
 - [ ] 若仓库存在 `.codebuddy/rules/unittest_*.md`，作为权威来源同步修订
 
-**环境 / 部署**
-- [ ] `.harness/docs/devops/env.md`（环境搭建 / 启动方式变化时）
-- [ ] `.harness/docs/devops/test-env-deploy.md`（测试环境部署 / 同步流程变化时）
+**部署（GitHub Pages / Worker）**
+- [ ] `.github/workflows/deploy.yml`（Pages 自动部署流程变化）
+- [ ] `docs/deploy/`（Worker 部署 / 权限方案变化）
 
 **全局**
 - [ ] 对外 README / 用户指南 — 对用户可见的变更
-- [ ] CHANGELOG — 版本变更日志
+- [ ] ➖ 不适用 CHANGELOG（本仓库无 CHANGELOG；版本信息以 git log 为准）
 
 ## 2. 改动明细
 
@@ -40,6 +51,8 @@
 |  |  | 新增 / 修改 |  | ⬜ |
 
 > 状态：⬜ 待更新 \| ✅ 已更新 \| ➖ 不涉及
+
+> ⚠️ 07 产生的 md 变更**不在本步骤提交**——随 08 Review 的收尾 amend 并入任务唯一 commit（见 `05-deploy.md` §5 / `08-review.md` §6）。
 
 ## 3. 一致性抽查
 

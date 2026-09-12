@@ -1,7 +1,7 @@
 # 环境搭建与启动
 
 > 让新人在 30 分钟内本地跑起来；产物与 CI / 部署完全一致。
-> 与 `test-env-deploy.md`（测试环境部署）、本目录其它运维文档配套。
+> 与本目录其它运维文档（development.md / deployment.md）配套。
 > 本仓库为 **Qwik SSG 静态站**：本地 `vite` 起 dev server，构建产出纯静态文件 `app/dist/`，由 GitHub Pages 托管，无运行时后端、无数据库。
 
 > Source: package.json / vite.config.ts / .github/workflows/deploy.yml / CNAME

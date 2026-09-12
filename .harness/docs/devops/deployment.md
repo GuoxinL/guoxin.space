@@ -4,9 +4,8 @@
 
 ## 范围
 
-本仓库为 **Qwik SSG 静态站**（个人主页 `guoxin.space`），无独立测试 / 预发后端环境。
+本仓库为 **Qwik SSG 静态站**（个人主页 `guoxin.space`），无独立测试 / 预发后端环境，**CI 即环境**，无测试环境部署文档。
 覆盖：本地构建产物一致性、生产（GitHub Pages）发布流程与回滚、线上复验。
-测试环境相关见 `test-env-deploy.md`（本仓库静态站，**CI 即环境**，无独立测试环境）。
 
 ## 1. 环境矩阵
 
@@ -48,7 +47,7 @@
 ## 4. 发布流程
 
 ```
-1. 本地改动 → 提交到 main（或 PR 合并到 main）
+1. 本地改动 → 直推提交到 main（无 MR/PR 评审流，见 CONSTRAINTS C-46）
 2. push main 触发 .github/workflows/deploy.yml
 3. build job：checkout → pnpm/action-setup（不锁版本）+ Node 24 → pnpm install --frozen-lockfile → pnpm build → cp CNAME app/dist/CNAME → upload-pages-artifact
 4. deploy job（needs build）：actions/deploy-pages@v4 上线到 GitHub Pages
@@ -68,8 +67,8 @@
 
 - 静态站无 Liveness/Readiness 探针（无常驻进程）。
 - 线上复验手段：
-  - **puppeteer-core 直连系统 Chrome**（PATH 下无 Chromium 下载）做真实浏览器回归：脚本用 `NODE_PATH` 指向 `$HOME/.workbuddy/binaries/node/workspace/node_modules`（含 `puppeteer-core`）。
-  - 核对关键路由（`/`、`/#/running` 等）渲染、零 JS 运行时错误、无异常 404。
+  - **Playwright 真实浏览器回归**：`npm run test:e2e`（Playwright 自带 chromium，自动起 `vite preview` 服务 `app/dist`）；原 puppeteer-core 直连系统 Chrome 方案已废弃，不再使用。
+  - 核对关键路由（`/`、`/running`、`/skills`、`/toolbox/json`）渲染、零 JS 运行时错误、无异常 404。
   - `404.html` 作为 SPA fallback，刷新子路由不应白屏。
 - 发布后人工抽查：`curl -I https://guoxin.space` 返回 200、响应头含 `Content-Type: text/html`。
 
@@ -113,4 +112,3 @@
 
 - 本地开发：[development.md](development.md)
 - 环境搭建：[env.md](env.md)
-- 测试环境部署（本项目 N/A）：[test-env-deploy.md](test-env-deploy.md)

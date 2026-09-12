@@ -5,7 +5,7 @@
 >
 > **与单元测试边界**：单测（`.harness/docs/unittest/unittest.md`）函数级、全 Mock；本文是跨模块 / 跨进程 / 真实链路级。
 
-> Source: `vite.config.ts`、`app/src/routes/*`、`app/dist/`（SSG 产物）、浏览器验证脚本（puppeteer-core）
+> Source: `vite.config.ts`、`app/src/routes/*`、`app/dist/`（SSG 产物）、`playwright.config.ts` / `e2e/`（Playwright 页面自动化）
 > Last-verified: 2026-09-12
 
 ---
@@ -20,10 +20,10 @@
 | 链路级 IT（多服务联动）| ⚠️ 部分 | 仅 Running 模块经 Cloudflare Worker 代理 `running-private`；可将其作为外部依赖做**只读联调** |
 | 数据库 IT | ❌ | 无数据库 |
 | 消息 / 异步 IT | ❌ | 无 MQ |
-| 前端 IT（E2E）| ✅ 可选 | Playwright / puppeteer 驱动真实页面，校验渲染与交互 |
-| **SSG 产物一致性** | ✅ 主 | 构建后比对 `app/dist/` 页面（标题 / 导航 / 关键 DOM / 文案），即本仓库实际采用的"线上复验" |
+| **页面自动化测试（Playwright E2E）** | ✅ **主（强制门禁）** | Playwright 驱动真实页面，校验渲染 / 交互 / 导航 / 交互态样式 |
+| **SSG 产物一致性** | ✅ 由页面自动化覆盖 | 构建后跑 `npm run test:e2e` 回读 `app/dist/` 关键 DOM（标题 / 导航 / 文案）；与 e2e 同源，无需单独工具 |
 
-> **本项目实际以「SSG 产物一致性校验」为主**（构建 + 本地静态服务 + puppeteer-core 直连系统 Chrome 回读 DOM）；前端 E2E 为可选增强（标 TODO）。
+> **本项目测试阶段 = UT（Step 4，vitest）+ 页面自动化测试（Step 6，Playwright E2E，强制门禁）**。改任何页面 / 交互 / CSS 后**必须**跑 `npm run test:e2e`（见 `package.json` / `playwright.config.ts` / `e2e/`）。SSG 产物一致性校验**由 Playwright 同源覆盖**，不再使用 puppeteer-core。
 
 ### 2. 测试环境信息
 
@@ -44,16 +44,15 @@ test -f app/dist/index.html && echo "dist OK" || echo "需 npm run build"
 # (2) 本地静态服务可达
 curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8734/ && echo " server OK"
 
-# (3) 浏览器验证依赖（puppeteer-core + 系统 Chrome）
-test -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" && echo "chrome OK"
-ls "$HOME/.workbuddy/binaries/node/workspace/node_modules/puppeteer-core" >/dev/null 2>&1 && echo "puppeteer OK"
+# (3) 浏览器验证依赖（Playwright + 自带 chromium）
+ls node_modules/@playwright/test >/dev/null 2>&1 && echo "playwright OK"
+ls ~/.cache/ms-playwright/chromium* >/dev/null 2>&1 && echo "chromium OK" || echo "需 npx playwright install chromium"
 ```
 
 ### 4. 环境变量
 
 | 变量 | 用途 |
 |------|------|
-| `NODE_PATH` | 指向 `$HOME/.workbuddy/binaries/node/workspace/node_modules`（加载 puppeteer-core） |
 | `CODEBUDDY_SAFE_DELETE_ENABLED` | 构建前置 `0`（见 AGENTS.md 红线 5） |
 
 ---
@@ -69,6 +68,8 @@ ls "$HOME/.workbuddy/binaries/node/workspace/node_modules/puppeteer-core" >/dev/
 | 3 | 每个用例自带 setup / teardown（启停本地静态服务） |
 | 4 | 禁止硬编码线上域名 / 凭证；用配置或参数注入 |
 | 5 | 必须记录失败时的 URL / DOM 快照，便于追溯 |
+| 6 | **页面自动化（Playwright）禁用 `sleep` 死等**；用 `page.waitFor*` / `expect().toBeVisible()` 自动等待；用例独立、不依赖执行顺序 |
+| 7 | **页面自动化必须断言关键 DOM / 交互态样式**（改 CSS 用 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读），不只断言状态码；禁止为让 CI 过而关用例 |
 
 ### 2. 用例类型（本项目适用）
 
@@ -76,9 +77,9 @@ ls "$HOME/.workbuddy/binaries/node/workspace/node_modules/puppeteer-core" >/dev/
 |------|------|------|
 | SSG 产物一致性 | 构建后校验每页关键 DOM / 文案 / 标题 | `/toolbox/json` 的 `<h2>Toolbox`、导航含 Toolbox、首页 Hero 卡片 |
 | 跨页导航 | 点击导航跳转、SPA 路由 | Header → /skills / /running / /toolbox/json |
-| 交互态校验 | CSS 交互态（`:hover`/`:focus-visible`）回读 | 改 CSS 后用 `getComputedStyle` 在 hover 态回读，防同特异性后置覆盖 |
+| 交互态校验 | CSS 交互态（`:hover`/`:focus-visible`）回读 | 改 CSS 后用 `getComputedStyle` 在交互态回读，防同特异性后置覆盖 |
 | Running 只读联调 | 验证 Worker 代理返回轨迹数据 | 拉取预览 JSON，断言结构（标 TODO，依赖 running-private 可用性） |
-| 前端 E2E（可选）| Playwright 驱动完整流程 | 登录 GitHub / JSON 工具格式化（标 TODO） |
+| **页面自动化测试（强制）** | Playwright 驱动完整流程 | 首页渲染 / 导航跳转 / JSON 工具格式化 / Running 热力图点击筛选（改 CSS 须在 `:hover` 态回读，防同特异性后置覆盖） |
 
 ### 3. 文件组织
 
@@ -114,13 +115,26 @@ export CODEBUDDY_SAFE_DELETE_ENABLED=0
 export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 npm run build
 
-# 本地静态服务（后台）
-python3 -m http.server 8734 --bind 127.0.0.1 --directory app/dist &
-
-# SSG 产物校验（puppeteer-core 直连系统 Chrome）
-NODE_PATH=$HOME/.workbuddy/binaries/node/workspace/node_modules \
-  $HOME/.workbuddy/binaries/node/versions/22.22.2-3/bin/node scripts/verify-*.cjs
+# SSG 产物一致性校验 = 页面自动化（Playwright 回读 dist 关键 DOM）
+# webServer 自动起 vite preview 服务 dist，无需手工起 http.server
+npm run test:e2e
 ```
+
+### 1.1 页面自动化测试（Playwright，强制）
+
+```bash
+# 构建产物（Playwright webServer 会复用 dist；如已手动起 dev 可跳过）
+npm run build
+
+# 跑页面自动化（自动起 vite preview 服务 dist；CI 下自带浏览器）
+npm run test:e2e
+
+# 仅跑某文件 / 某用例
+npx playwright test e2e/home.spec.ts
+npx playwright test -g "Hero"
+```
+
+> 配置见 `playwright.config.ts`：`webServer` 用 `vite preview` 服务 `app/dist`（端口 4321，本地复用既有服务）；`baseURL` 已设；失败自动留截图 + trace（`only-on-failure`）。
 
 ### 2. 调试套路
 
@@ -128,14 +142,14 @@ NODE_PATH=$HOME/.workbuddy/binaries/node/workspace/node_modules \
 |------|------|
 | 页面 404 | 检查 `404.html` 是否随 `index.html` 同步（SPA fallback） |
 | DOM 文本不对 | 重新构建（`dist` 可能被旧缓存）；清 CDN |
-| 交互态样式不符 | `getComputedStyle` 在 `:hover` 态回读，确认非同特异性后置覆盖 |
+| 交互态样式不符 | `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读，确认非同特异性后置覆盖 |
 | Running 空白 | Worker / running-private 可达性；fallback 提示 |
 
 ### 3. 不要 / 慎用
 
 | 项 | 原因 |
 |----|------|
-| `sleep` 死等页面加载 | 用 `waitUntil: 'networkidle0'` |
+| `sleep` 死等页面加载 | 用 `expect().toBeVisible()` / `page.waitFor*` 自动等待（禁 `sleep`）；Playwright 的 `waitUntil` 用 `'networkidle'`，非 Puppeteer 的 `'networkidle0'` |
 | 用例依赖前一个用例创建的资源 | 用例独立 |
 | 关用例以"让 CI 过" | 必须备注原因 + 跟踪 |
 
@@ -146,7 +160,10 @@ NODE_PATH=$HOME/.workbuddy/binaries/node/workspace/node_modules \
 | 截图 / DOM 快照 | `scripts/` 或 artifacts | 失败追溯 |
 | 终端摘要 | stdout | 通过 / 失败 |
 
-### 5. CI 集成
+### 5. CI 集成（已落地）
 
-- 本站 CI（deploy.yml）当前是 build+deploy，未单独跑 IT；SSG 产物校验建议在 deploy 后加一步"线上复验"（puppeteer 回读关键 DOM），见 code-review.md TODO。
-- IT 失败必须阻塞（push main 即上线，最后防线）。
+- `deploy.yml` 的 build job 在 `pnpm build` 之后、产物上传之前，已加两道强制门禁：
+  1. `pnpm test`（vitest 单测）
+  2. `pnpm exec playwright install --with-deps chromium` + `pnpm test:e2e`（Playwright 页面自动化）
+- 任一门禁失败 → 阻断 upload / deploy（push `main` 即上线，单测 + e2e 是最后防线）。
+- 本地同样用 `npm run build && npm run test:e2e` 复现；如已手动起 `npm run dev -- --port 4321`，可只跑 `npm run test:e2e`（复用既有服务）。

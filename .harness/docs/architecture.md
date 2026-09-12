@@ -39,7 +39,7 @@ flowchart LR
 ```
 
 - 实线 = SSG 主链路（构建→部署→直接访问）；虚线 = 运行时按需触发的外部数据链路（仅 Running 模块，且依赖用户在「通道设置」里填写的 Worker URL）。
-- 说明：部署在 `deploy.yml` 中**无手动闸门**——`push main` 即触发 build + `deploy-pages` 上线（`on: push: branches: [main]` + `workflow_dispatch`）。AGENTS.md 历史章节中「需手动 `gh workflow run deploy.yml`」的描述已过时，以 `deploy.yml` 代码为准。
+- 说明：部署在 `deploy.yml` 中**无手动闸门**——`push main` 即触发 build + `deploy-pages` 上线（`on: push: branches: [main]`，`workflow_dispatch` 仅作应急手动入口）。
 
 ---
 
@@ -53,7 +53,7 @@ flowchart LR
 | 业务逻辑库 | auth（OAuth 态判定）、json 工具（解析/格式化/对比/jsonpath/history）、running（轨迹解析/统计）、skills（技能夹解析/渲染）、worker 通道封装、storage、clipboard、format、html | `app/src/lib/*.ts`（含 `json/` 子目录） | `@ltd/j-toml`、`fast-xml-parser`、`js-yaml`、`json5`、`jsonpath-plus`、`marked` |
 | 构建配置 | Vite root=app、Qwik optimizer、static adapter（origin=guoxin.space）、manifest 注入（规避本机临时 manifest 未落盘导致 SSG 空壳） | `vite.config.ts` | `@builder.io/qwik/optimizer`、`@builder.io/qwik-city/adapters/static/vite` |
 | 页面入口 | SSR 渲染入口、dev 渲染入口、preview 入口 | `app/src/entry.ssr.tsx`、`app/src/entry.dev.tsx`、`app/src/entry.preview.tsx` | `@builder.io/qwik/server` |
-| Cloudflare Worker（外部运行时） | OAuth 鉴权 + 收藏写通道 + 私有轨迹仓库代理（白名单 `TRACKS_FILES`） | 仓库根 `worker.js`（含 `test-worker.mjs` / `worker.test.mjs`） | Cloudflare Workers 运行时；**注意**：不在 `deploy.yml` 内，部署链路见 TODO |
+| Cloudflare Worker（外部运行时） | OAuth 鉴权 + 收藏写通道 + 私有轨迹仓库代理（白名单 `TRACKS_FILES`） | 仓库根 `worker.js`（无独立单测） | Cloudflare Workers 运行时；**注意**：不在 `deploy.yml` 内，部署链路见 TODO |
 | 数据生产（独立仓库） | 从行者 OpenAPI 同步 → 补全 polyline → 生成预览/缩略图/完整轨迹产物 | 仓库 `GuoxinL/running-private`（**不在本仓库**） | 行者 OpenAPI、GitHub raw |
 
 ---

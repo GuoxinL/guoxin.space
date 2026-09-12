@@ -17,8 +17,8 @@
 本项目发布模型（证据 `deploy.yml`）：
 
 - `push` 到 `main` 即自动构建并发布到 GitHub Pages，**无手动闸门**，push 即上线。
-- 因此「Code Review」在本项目就是：**在 push main 之前自查**，或**开一个 GitHub PR 由他人做人工评审**后再合入 main。
-- 推荐做法：非 trivial 改动开 PR（哪怕自己 merge），把 PR 链接/描述当作 Review 载体；紧急直推 main 后务必补说明。
+- 因此「Code Review」在本项目就是：**在 push main 之前自查**；可选做法是开一个 GitHub PR 作为自审 / 留痕载体（哪怕自己 merge）——本项目无 PR 评审门禁，**合入 = push main**（见 CONSTRAINTS C-46）。
+- 非紧急时推荐：非 trivial 改动先本地全绿再 push；紧急直推 main 后务必补说明。
 
 ## 1. 提交方约束
 
@@ -103,7 +103,7 @@ ln -sf ../../scripts/commit_msg_check.sh .git/hooks/commit-msg
 - [ ] 无明显坏味道（重复逻辑、过长参数、上帝组件）
 - [ ] 性能与体积：避免不必要的大依赖引入、注意 bundle 体积与 SSG 预渲染成本
 - [ ] 可访问性 / SEO：关键页面有语义化标签、meta、alt 文本
-- [ ] Qwik 规范：信号/状态用 Qwik 原语（`useSignal$` / `useStore$` / `component$`），避免破坏细粒度响应式
+- [ ] Qwik 规范：信号/状态用 Qwik 原语（`useSignal` / `useStore` / `component$`），避免破坏细粒度响应式
 - [ ] 依赖版本与 `package.json` / `pnpm-lock.yaml` 一致
 
 ### AI 幻觉专项（本项目重点）
