@@ -247,8 +247,11 @@ describe('SVG / HTML renderers', () => {
     expect(s).toContain('<svg');
     expect(s).toContain('rk-trend');
   });
-  it('rkHeatYearHTML emits heat grid', () => {
-    expect(rkHeatYearHTML(rkParse(sample), '2026')).toContain('rk-heat');
+  it('rkHeatYearHTML emits heat grid with data-date per cell', () => {
+    const html = rkHeatYearHTML(rkParse(sample), '2026');
+    expect(html).toContain('rk-heat');
+    // 每格带 data-date，供点击委托筛选当天活动（疑点 #1 修复）
+    expect(html).toContain('data-date="2026-');
   });
   it('rkTrendHTML supports month/year', () => {
     expect(rkTrendHTML(rkParse(sample), 'm', '2026')).toContain('<svg');

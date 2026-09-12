@@ -49,6 +49,7 @@ export const RunningPage = component$(() => {
     trend: 'm' as 'm' | 'y',
     listYear: 'all',
     listN: 30,
+    listDay: '' as string, // 热力图点击筛选的当天（YYYY-MM-DD），'' 表示不筛选
     selId: '' as string,
     actOpen: null as RkActivity | null,
   });
@@ -172,12 +173,34 @@ export const RunningPage = component$(() => {
           <div class="rk-section-h">年度热力图</div>
           <div class="rk-tabs">
             {state.years.map((y) => (
-              <button key={y} class={`rk-tab ${state.year === y ? 'active' : ''}`} onClick$={() => (state.year = y)}>
+              <button key={y} class={`rk-tab ${state.year === y ? 'active' : ''}`} onClick$={() => { state.year = y; state.listDay = ''; }}>
                 {y}
               </button>
             ))}
           </div>
-          <div class="rk-heat-wrap-host" dangerouslySetInnerHTML={rkHeatYearHTML(state.acts, state.year)} />
+          <div
+            class="rk-heat-wrap-host"
+            dangerouslySetInnerHTML={rkHeatYearHTML(state.acts, state.year)}
+            onClick$={(e) => {
+              const cell = (e.target as HTMLElement).closest('.rk-cell') as HTMLElement | null;
+              if (!cell || !cell.classList.contains('act')) return; // 仅活动日可点
+              const d = cell.getAttribute('data-date') || '';
+              if (!d) return;
+              const host = cell.closest('.rk-heat-wrap-host') as HTMLElement | null;
+              host?.querySelectorAll('.rk-cell-sel').forEach((el) => el.classList.remove('rk-cell-sel'));
+              if (state.listDay === d) {
+                state.listDay = ''; // 再次点击同一天 → 取消筛选
+              } else {
+                state.listDay = d;
+                state.listYear = d.slice(0, 4);
+                state.listN = 30;
+                cell.classList.add('rk-cell-sel');
+                if (typeof document !== 'undefined') {
+                  setTimeout(() => document.getElementById('rk-actlist')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+                }
+              }
+            }}
+          />
         </div>
       )}
 
@@ -291,23 +314,31 @@ const ActivityList = component$<{
     years: string[];
     listYear: string;
     listN: number;
+    listDay: string;
   };
   openAct$: (a: RkActivity) => void;
 }>(({ state, openAct$ }) => {
   let acts = state.acts.slice().sort(rkSortDate);
   if (state.listYear !== 'all') acts = acts.filter((a) => (a.date || '').slice(0, 4) === state.listYear);
+  if (state.listDay) acts = acts.filter((a) => (a.date || '').slice(0, 10) === state.listDay);
   const show = acts.slice(0, state.listN);
   return (
-    <div class="rk-section">
+    <div class="rk-section" id="rk-actlist">
       <div class="rk-section-h">活动记录</div>
       <div class="rk-list-tools">
-        <select
-          class="indent"
-          onChange$={(e, el) => {
-            state.listYear = (el as HTMLSelectElement).value;
-            state.listN = 30;
-          }}
-        >
+        {state.listDay && (
+          <span class="rk-daychip" onClick$={() => (state.listDay = '')} title="清除当天筛选">
+            已筛选 {state.listDay} <b>×</b>
+          </span>
+        )}
+          <select
+            class="indent"
+            onChange$={(e, el) => {
+              state.listYear = (el as HTMLSelectElement).value;
+              state.listN = 30;
+              state.listDay = '';
+            }}
+          >
           <option value="all" selected={state.listYear === 'all'}>
             全部年份
           </option>

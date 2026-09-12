@@ -695,7 +695,7 @@ export function rkHeatYearHTML(acts: RkActivity[], yr: string): string {
     week.forEach((day) => {
       const c = rkHeatColor(day.dist, g.max, RK_RUN_PAL);
       const tip = day.n ? day.date + ': ' + (day.dist / 1000).toFixed(1) + ' km' : day.date;
-      h += `<div class="rk-cell${day.n ? ' act' : ''}" style="${c ? 'background:' + c : ''}" title="${esc(tip)}"></div>`;
+      h += `<div class="rk-cell${day.n ? ' act' : ''}" data-date="${esc(day.date)}" style="${c ? 'background:' + c : ''}" title="${esc(tip)}"></div>`;
     });
     h += '</div>';
   });

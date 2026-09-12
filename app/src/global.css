@@ -1497,6 +1497,27 @@ select.lang-sel {
 .rk-cell.act:hover {
   outline: 1px solid var(--text2);
 }
+.rk-cell-sel {
+  outline: 2px solid var(--primary);
+  outline-offset: -1px;
+}
+.rk-daychip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--violet-0, rgba(160, 83, 254, 0.1));
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+.rk-daychip b {
+  font-size: 13px;
+  line-height: 1;
+}
 .rk-wd {
   display: flex;
   flex-direction: column;

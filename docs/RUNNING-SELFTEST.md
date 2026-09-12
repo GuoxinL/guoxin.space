@@ -27,11 +27,18 @@
 
 ## 发现的疑点
 
-### 1. 热力图格子点击「文案承诺但未实现」（轻微缺陷）
-- 图例写「点击格子可看当天记录」，但 `RunningPage.tsx` 用 `dangerouslySetInnerHTML={rkHeatYearHTML(...)}`
-  渲染**静态 HTML**，页面未给 `.rk-cell` 绑定任何点击事件处理器。
-- 实测：点击 `.rk-cell.act`（title=`2024-03-02: 76.2 km`）前后均无弹窗/列表变化 → 确认为 no-op。
-- 建议：要么补 `rk-cell` 点击 → 过滤活动列表到该天 / 弹出当天记录；要么把图例文案改为「悬停查看当天距离」以消除误导。
+### 1. 热力图格子点击「已修复：补 handler 过滤当天活动」（2026-09-12）
+- 图例写「点击格子可看当天记录」。`RunningPage.tsx` 原用 `dangerouslySetInnerHTML={rkHeatYearHTML(...)}`
+  渲染**静态 HTML**，未给 `.rk-cell` 绑定事件 → 点击无反应（no-op）。
+- 修复实现：
+  - `running.ts` 的 `rkHeatYearHTML` 为每个 `.rk-cell` 加 `data-date="YYYY-MM-DD"`（已 `esc`）。
+  - `RunningPage.tsx` 在 `.rk-heat-wrap-host` 上用 Qwik 委托 `onClick$`：点 `.rk-cell.act` → 读 `data-date`
+    → 设 `state.listDay`、同步 `state.listYear`、重置 `listN=30`、给该格加 `.rk-cell-sel` 高亮、平滑滚动到活动列表；
+    再次点同一天则取消筛选。
+  - `ActivityList` 新增 `listDay` 过滤（`a.date.slice(0,10) === state.listDay`），并加「已筛选 YYYY-MM-DD ×」可清除胶囊（`.rk-daychip`）。
+  - 切年 tab / 切年份 select 会清空 `listDay`，避免孤儿筛选。
+  - CSS：`.rk-cell-sel`（primary 描边）、`.rk-daychip`（筛选胶囊）。
+  - 单测：`running.test.ts` 断言 `rkHeatYearHTML` 输出含 `data-date="2026-`。
 
 ### 2. admin 完整轨迹不可测（环境受限，非缺陷）
 - guest 视图下 `fullBadge=false`，`rkLoadRides(token)` 走 `getAuthToken()` 空 token → 静默返回 null，维持预览截断轨迹。
@@ -47,4 +54,4 @@
 ## 结论
 
 **8/8 核心功能组 + 回放弹窗 + 主题联动全部通过**，数据数值跨区块一致（总距离 3147 km、运动次数 161 次在统计卡与个人最佳中完全吻合）。
-唯一实质问题是「热力图格子点击」文案承诺未落地（疑点 #1），建议二选一修复或改文案。admin 完整轨迹与地图极端弱网表现属受限/可优化项，不影响 guest 主流程。
+原「热力图格子点击」文案承诺未落地（疑点 #1）**已于 2026-09-12 修复**：补 `.rk-cell` 点击委托 → 过滤活动列表到当天并高亮，图例文案现与行为一致。admin 完整轨迹与地图极端弱网表现属受限/可优化项，不影响 guest 主流程。
