@@ -8,6 +8,8 @@
 
 当前站点为 **Qwik + Qwik City SSG** 静态站（4 页：`/`、`/skills`、`/toolbox/json`、`/running`），部署 GitHub Pages，push `main` 即自动构建+上线。多数踩坑已沉淀进 `AGENTS.md` 四、禁止红线（第 2–9 条），标 `✅ 已规约`。
 
+> 注：文中提到的 `MEMORY.md` 为维护者 agent 的**仓库外**记忆文件（不在本仓库）；其已沉淀内容的仓库内真身以对应规约文件（`AGENTS.md` 红线 / 本文件各条目）为准。引用的 `2026-09-12.md` 等工作日志同为仓库外文件。
+
 ## 写作规范
 
 - 每条独立成节，标题用一句话描述现象
@@ -73,8 +75,8 @@
 - **上下文**：JSON 工具页由 `/json` 迁至 `/toolbox/json`（`24002e5`），新增 `app/public/json/index.html`（元刷新 0s 跳 `/toolbox/json`）兜住直接访问与旧 `#/json` hash 外链。
 - **根因（待核）**：GitHub Pages 对无尾斜杠的 `/json` 会做目录 301 重定向到 `/json/`，再由 `index.html` 元刷新跳转。已知坑清单称"元刷新桩页不被实际服务"，但**与现有证据矛盾**——见下。
 - **临时绕过**：保留 `public/json/index.html` 元刷新桩页；sitemap 已更新为 `/toolbox/json/`。
-- **根治方案**：TODO(sop.init) 复核 `/json` 在 Pages 边缘的实际响应码与桩页是否被服务。现有证据（`2026-09-12.md:32` 线上复验"`/json` 元刷新跳转"、`AGENTS.md:108`"旧 /json 由 public/json/index.html 元刷新跳转"）表明桩页**当前生效**，原"不被实际服务"说法暂不可复现，需重新验证后再定论。
-- **沉淀去向**：待核验后决定是否规约
+- **根治方案**：✅ 已核销（2026-09-13 实测线上）：`/json` → 301 → `/json/` → 200，桩页元刷新 `content="0; url=/toolbox/json"` 正常服务。原「元刷新桩页不被实际服务」的说法不成立，无需规约。
+- **沉淀去向**：已核销（实测记录见本条）
 - **参考**：commit `24002e5`；`2026-09-12.md:30-32`；`AGENTS.md:108`
 
 ### 2026-09-12：部署改为 push 全自动，移除双轨手动闸门
@@ -145,7 +147,7 @@
 - **上下文**：本机 `npx vitest run` 极慢，`prepare` 阶段约 617s，测试本体仅 ~130ms；CI 已覆盖，本地常卡住。
 - **根因**：Qwik 原生 binding `qwik.darwin-x64.node` 缺失，vitest 回退到 wasm 执行器，准备开销巨大。
 - **临时绕过**：改 CSS / 文档 / 模板 class（不覆盖 UI 逻辑层）时**不跑** vitest；仅改 `app/src/lib/` 逻辑时必须跑。
-- **根治方案**：TODO(sop.init) 本地补全 Qwik 原生 binding 或改用 CI 跑全量测试；当前以"按需运行"规避。测试范围：7 files / 110 tests，全在 `app/src/lib/`。
+- **根治方案**：TODO(sop.init) 本地补全 Qwik 原生 binding 或改用 CI 跑全量测试；当前以"按需运行"规避。测试范围：9 files / 136 tests（`app/src/lib/` + `app/src/components/`，CI 实测 2026-09-12）。
 - **沉淀去向**：已写入 `MEMORY.md`「测试」段；`AGENTS.md` 代码检测表
 - **参考**：`MEMORY.md:39-42`；`AGENTS.md:258`
 

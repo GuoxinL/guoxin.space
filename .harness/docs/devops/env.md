@@ -17,7 +17,7 @@
 | CI | ubuntu-latest，Node 24 | pnpm 9.15（`pnpm/action-setup` **不锁版本**） | 同上 | `pnpm build` → 产物 `app/dist` 上传 Pages artifact |
 | 生产 | 静态文件托管 | — | — | GitHub Pages，域名 `guoxin.space`（CNAME 由 CI 注入） |
 
-> 说明：CI 与本地**必须**一致用 Node 24；`package.json` 的 `engines.node` 为 `>=20.0.0`，但 SSG 预渲染依赖 Node 24 行为，实操以 24 为准（见「常见问题」）。
+> 说明：CI 与本地**必须**一致用 Node 24；`package.json` 的 `engines.node` 已标 `>=24.0.0`（2026-09-13 起，低版本本地安装即被拦截；此前为 `>=20`，SSG 预渲染依赖 Node 24 行为）。
 
 ---
 

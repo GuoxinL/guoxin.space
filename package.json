@@ -5,7 +5,7 @@
   "description": "Personal homepage with AI-friendly design (Qwik + pnpm)",
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "vite --mode ssr",

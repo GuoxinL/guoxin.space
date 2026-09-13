@@ -1,5 +1,7 @@
 # 权限控制设计方案：admin / 游客
 
+> ⚠️ **现状注记（2026-09-13）**：本文写于 2026-08-25（Qwik 重构前的旧单文件站时期）。**Worker 侧设计（OAuth 三路由 / Bearer 鉴权 / tracks/raw 白名单代理 / Secret 清单）仍然现行有效**；文中引用的前端实现（`auth.js` / `skills.js` / `running.js` / `index.html` / `css`）与验证手段（`node verify.js` / `node test-worker.mjs` / submodule）**已随 2026-09-09 Qwik 重构删除**，现行前端见 `app/src/`（`lib/auth.ts`、`lib/worker.ts`、`lib/skills.ts`、`lib/running.ts` 及 `components/*`），数据生产仓库为 `running-private`（普通 clone，非 submodule）。「待做」清单中的 `rides.full.json` 产线与 OAuth App 配置均已落地。
+
 > 状态：**已实现（2026-08-25）**——前端（auth.js / skills.js / running.js / index.html / css）+ worker.js（OAuth 三路由 + tracks/raw 白名单代理 + 写通道 Bearer 鉴权）已落地，`node verify.js` 270/270、`node test-worker.mjs` 80/80 全绿。完整轨迹范围：**仅骑行（Ride）**。
 > **待做**：running 仓库数据管线产出 `rides.full.json` 并推私有仓库（见 7.3，需 clone submodule）；注册 GitHub OAuth App 并配置 Worker 环境变量（见八、九节）；部署后真机验收（见十一节）。
 > 鉴权基调：**彻底移除 `x-collect-key` 共享密钥，不保留任何兼容**。写通道鉴权唯一方式 = GitHub OAuth 登录 token（`Authorization: Bearer`）。

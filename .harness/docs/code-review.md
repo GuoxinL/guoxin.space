@@ -45,7 +45,7 @@ export CODEBUDDY_SAFE_DELETE_ENABLED=0   # 否则 vite 清空 app/dist/ 被 safe
 - [ ] `npm run lint` 通过（`eslint app/src`，`.ts/.tsx`）
 - [ ] `npm run fmt` 已格式化（`prettier --write app/src`）
 - [ ] `npm run type-check` 通过（`tsc --noEmit`）
-- [ ] `npm run test` 通过（`vitest run`，`app/src/lib` 约 110 个用例）
+- [ ] `npm run test` 通过（`vitest run`，9 文件 / 136 用例，lib + 组件测试）
 - [ ] 覆盖率：当前**无强制阈值**（TODO：后续建议接入 `vitest` coverage 并设最低线，如 PR 下降低于阈值即阻断）。新逻辑至少补对应用例，不靠「整体仍绿」掩盖回归。
 - [ ] 无 `.env` / `*.key` / `credentials.json` / `app/dist/` / `node_modules/` 等被提交
 - [ ] commit message 符合 Conventional Commits 格式（见第 3 节下方说明）

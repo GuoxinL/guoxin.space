@@ -4,8 +4,8 @@
 
 ```
 ┌──────────────┐   fetch（Bearer token，登录后）  ┌──────────────────┐   持 GH_TOKEN    ┌─────────────────────┐
-│  index.html  │ ─────────────────────────────▶ │  Cloudflare      │ ──────────────▶ │  GitHub             │
-│  浏览器本地   │ ◀───────────────────────────── │  Worker          │ ◀────────────── │  skill-collection   │
+│  Qwik SPA    │ ─────────────────────────────▶ │  Cloudflare      │ ──────────────▶ │  GitHub             │
+│  app/src     │ ◀───────────────────────────── │  Worker          │ ◀────────────── │  skill-collection   │
 └──────────────┘   CORS 已放行                   └──────────────────┘    公开接口读取   │  running-private    │
                                                                                         └─────────────────────┘
 ```
@@ -178,9 +178,4 @@ curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rid
 
 ## 七、本地单测（可选）
 
-```bash
-node test-worker.mjs   # Worker mock 单测，80 条断言（自动同步 worker.js → worker.test.mjs）
-node verify.js         # 页面回归，270 条断言（vm 模拟 DOM）
-```
-
-修改 `worker.js` 后直接重跑 `node test-worker.mjs` 即可，无需手动同步测试副本。
+> ⚠️ **现状（2026-09-13）**：`node test-worker.mjs` 与 `node verify.js` 随 Qwik 重构删除，本节原命令已失效——Worker 当前**无独立单测**（根目录 `worker.test.mjs` 是旧脚本生成的 `worker.js` 字节级副本，非测试文件）；页面回归由 **Playwright e2e** 承接（`npm run build && npm run test:e2e`，CI 强制门禁）。Worker 改动后可按「四、验证清单」curl 实测线上行为。

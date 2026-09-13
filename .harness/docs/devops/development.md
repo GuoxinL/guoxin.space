@@ -70,7 +70,7 @@ npm run dev           # 等效 vite --mode ssr，监听 http://localhost:5173
 ## 测试说明
 
 - 框架：Vitest（`vite.config.ts` 内 `test` 配置，`environment: 'node'`）。
-- 范围：`app/src/lib/` 下 7 个测试文件（auth / json-diff / jsonpath / json-lang / json-ops / running / skills），约 110 条用例。
+- 范围：9 个测试文件（`lib/`：auth、json/diff、json/jsonpath、json/lang、json/ops、running、skills；`components/`：JsonTree、RunningPage），136 条用例（CI 实测 2026-09-12）。
 - 本地跑 `npm run test` 的 `prepare` 阶段（wasm 回退）较慢，约 600s+；**CI 已覆盖单测**，本地一般为验证特定逻辑时跑。
 
 ## IDE 推荐配置

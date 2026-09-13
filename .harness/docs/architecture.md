@@ -53,7 +53,7 @@ flowchart LR
 | 业务逻辑库 | auth（OAuth 态判定）、json 工具（解析/格式化/对比/jsonpath/history）、running（轨迹解析/统计）、skills（技能夹解析/渲染）、worker 通道封装、storage、clipboard、format、html | `app/src/lib/*.ts`（含 `json/` 子目录） | `@ltd/j-toml`、`fast-xml-parser`、`js-yaml`、`json5`、`jsonpath-plus`、`marked` |
 | 构建配置 | Vite root=app、Qwik optimizer、static adapter（origin=guoxin.space）、manifest 注入（规避本机临时 manifest 未落盘导致 SSG 空壳） | `vite.config.ts` | `@builder.io/qwik/optimizer`、`@builder.io/qwik-city/adapters/static/vite` |
 | 页面入口 | SSR 渲染入口、dev 渲染入口、preview 入口 | `app/src/entry.ssr.tsx`、`app/src/entry.dev.tsx`、`app/src/entry.preview.tsx` | `@builder.io/qwik/server` |
-| Cloudflare Worker（外部运行时） | OAuth 鉴权 + 收藏写通道 + 私有轨迹仓库代理（白名单 `TRACKS_FILES`） | 仓库根 `worker.js`（无独立单测） | Cloudflare Workers 运行时；**注意**：不在 `deploy.yml` 内，部署链路见 TODO |
+| Cloudflare Worker（外部运行时） | OAuth 鉴权 + 收藏写通道 + 私有轨迹仓库代理（白名单 `TRACKS_FILES`） | 仓库根 `worker.js`（无独立单测） | Cloudflare Workers 运行时；**注意**：不在 `deploy.yml` 内，手动部署流程见 `docs/deploy/DEPLOY-WORKER.md` |
 | 数据生产（独立仓库） | 从行者 OpenAPI 同步 → 补全 polyline → 生成预览/缩略图/完整轨迹产物 | 仓库 `GuoxinL/running-private`（**不在本仓库**） | 行者 OpenAPI、GitHub raw |
 
 ---
@@ -103,7 +103,7 @@ sequenceDiagram
 - **无服务端进程**：站点纯静态，无长驻进程 / 线程 / 数据库。所有"计算"发生在构建期（Node 进程预渲染）与浏览器端（JS 主线程）。
 - **Qwik Resumability，而非 Hydration**：这是本项目的核心并发/性能模型。传统框架（React/Vue）在客户端需要下载框架运行时并对整棵组件树做 hydration（重放事件绑定、重建虚拟 DOM 状态），成本随组件数线性增长。Qwik 改为 **resumability**——预渲染 HTML 已含服务端序列化状态（`q:` 属性 + `q-manifest.json` 的 symbol→chunk 映射），客户端**不重跑框架初始化**，只在用户真正与某个交互点（如按钮点击）交现时，才懒加载并执行该交互对应的极小 chunk。因此首屏 JS 体积与交互延迟与组件总数解耦。
 - **事件绑定用「惰性恢复」**：`useVisibleTask$` / `onClick$` 等以 `$` 结尾的 Qwik 函数为"可恢复"边界；未触达的交互永不下载其代码。
-- **单线程约束**：浏览器端为单 JS 线程；重计算（JSON 格式化/对比、轨迹解析）应尽量保持纯函数并放在 `app/src/lib/*` 便于单测，避免阻塞主线程（如大 JSON 解析的体验问题<!-- TODO(sop.init): 是否已有 Web Worker / 分块解析优化？未在代码中发现，待确认 -->）。
+- **单线程约束**：浏览器端为单 JS 线程；重计算（JSON 格式化/对比、轨迹解析）应尽量保持纯函数并放在 `app/src/lib/*` 便于单测，避免阻塞主线程（未使用 Web Worker / 分块——2026-09-13 grep 核实；当前体量可接受，出现卡顿再优化）。
 - **预渲染期 manifest 坑（已修复）**：本机环境下 Qwik 的临时 manifest 文件未落盘，会导致 SSR 侧 `manifestInput` 为空、整页渲染空壳（`q:container="paused"`）。`vite.config.ts` 已显式从 `app/dist/q-manifest.json` 读取并注入，构建期必须先跑 client build 再跑 SSR build。
 
 ---
@@ -155,8 +155,8 @@ app/dist/<route>.html   ← 含真实预渲染内容 + q: 属性 + 脚本引用
 | 6 | 像素图标用 `PixelIcon.tsx`（16×16 纯矩形 path）取代图标库 | 品牌"街机像素基因"，零第三方图标依赖，明暗靠 opacity 层次。 |
 | 7 | Running 数据走 Worker 代理 + 白名单，不直连 raw URL | 私有仓库隔离 + 鉴权（游客/游客截断数据 vs admin 完整轨迹），前端不从公开 URL 拉数据。 |
 | 8 | 包管理统一 **pnpm 9.15**（禁用 npm/yarn，禁提交 lock 外的 `package-lock.json`） | 与 `packageManager: pnpm@9.15.0` 一致，避免 CI `ERR_PNPM_BAD_PM_VERSION`。 |
-| 9 | CI 必须 **Node ≥24**（本地 engines 标注 ≥20） | `undici@8` 依赖 `util.markAsUncloneable`，Node 20/22 缺该 API 会令 `pnpm build` 失败。 |
-| 10 | Service Worker 注册（`ServiceWorkerRegister`） | 客户端导航/缓存增强；具体缓存策略<!-- TODO(sop.init): 确认 service-worker 的缓存/更新策略与版本号 -->。 |
+| 9 | CI 必须 **Node ≥24**（`engines` 已标 `>=24`） | `undici@8` 依赖 `util.markAsUncloneable`，Node 20/22 缺该 API 会令 `pnpm build` 失败。 |
+| 10 | `ServiceWorkerRegister` 已挂载但**无** service-worker 源文件 | `root.tsx:17` 挂载注册组件，但仓库无 `service-worker` 实现 → 注册目标 `/service-worker.js` 404、注册无效（2026-09-13 线上实测）；待补 `src/routes/service-worker.ts` 或移除挂载。 |
 
 ---
 
@@ -185,18 +185,18 @@ flowchart TD
 | 依赖 | 角色 | 部署 / 位置 | 备注 |
 |------|------|------------|------|
 | **GitHub Pages** | 静态托管 + 自定义域名 | `.github/workflows/deploy.yml` 经 `deploy-pages` | Source=GitHub Actions |
-| **Cloudflare Worker** | Running 数据代理 + OAuth 鉴权 | 仓库根 `worker.js`（Cloudflare 平台部署，**不在本仓库 CI**） | 部署流水线 <!-- TODO(sop.init): 确认 Worker 的 wrangler 部署配置/环境/Secret 注入位置（TRACKS_REPO、XINGZHE_* 等） --> |
+| **Cloudflare Worker** | Running 数据代理 + OAuth 鉴权 | 仓库根 `worker.js`（Cloudflare 平台部署，**不在本仓库 CI**） | 手动部署（dashboard / wrangler `--keep-vars`），见 `docs/deploy/DEPLOY-WORKER.md` |
 | **行者 OpenAPI** | 骑行/跑步原始数据上游 | 由 `running-private` 仓库每小时同步 | 本仓库不直接调用，凭据在 running-private 的 Secret 中 |
 | **running-private（私有仓库）** | 轨迹数据生产与产物存储 | `GuoxinL/running-private` | 白名单文件：`preview.json` / `preview.meta.json` / `rides.full.json` / `previews/` / `thumb/` |
 | **pnpm / Node 24** | 构建工具链 | CI + 本地 | 见决策 8、9 |
 
 ---
 
-## 待核实项（TODO）
+## 待核实项核实结果（原 TODO(sop.init) 已于 2026-09-13 全部核销）
 
-- <!-- TODO(sop.init): `/skills/[dir]` 动态路由的 SSG 预渲染策略——因 dir 列表来自运行时 Worker，构建期未知，需确认该子页是否预渲染、直接 URL 访问行为（是否依赖 404.html 客户端路由回退），以及 `routes` 导出或 crawl 配置。 -->
-- <!-- TODO(sop.init): Cloudflare Worker 的独立部署流水线与 wrangler 配置位置（worker.js 在仓库根，但不在 deploy.yml，需确认如何/在哪发布到 Cloudflare）。 -->
-- <!-- TODO(sop.init): running-private 仓库内部 workflow（xz-sync.js / xz-fill.js / prebuild-preview.js 等）的详细链路与 Secret 名称，本仓库未含其源码，详见该仓库 docs。 -->
-- <!-- TODO(sop.init): vitest 7 文件 / 110 用例的精确分布与覆盖率（lib 下 7 个 *.test.ts 已核实，110 用例数引自 AGENTS.md，待实测确认）。 -->
-- <!-- TODO(sop.init): Service Worker 的缓存与更新策略（是否 SPA 导航 fallback、资源缓存 TTL）。 -->
-- <!-- TODO(sop.init): 大 JSON 解析/轨迹解析是否存在 Web Worker 或分块优化（客户端主线程阻塞风险）。 -->
+- **Worker 部署流水线**：手动部署——dashboard 粘贴 `worker.js`，或 `npx wrangler deploy worker.js --name skillboard-collect --keep-vars …`（**无** wrangler.toml、**不在**本仓库 CI）。步骤 / Secret 清单 / `--keep-vars` 大坑见 `docs/deploy/DEPLOY-WORKER.md` §3.5。
+- **`/skills/[dir]` SSG 策略**：动态路由**未预渲染**（dir 列表构建期未知，产物仅 `skills/index.html`）。直连 `/skills/<dir>` 返回 404，且 `404.html` 仅 759B 静态页、无应用壳——**深层直链当前不可恢复**，需从列表页 SPA 导航进入；如需直链可达，另开任务（构建期拉目录清单生成详情页，或 404.html 引导回站）。
+- **Service Worker**：`root.tsx` 挂载 `ServiceWorkerRegister`，但无 service-worker 源文件 → `/service-worker.js` 线上 404、注册无效；后续补 `src/routes/service-worker.ts` 或移除挂载（见决策 10）。
+- **单测规模**：9 文件 / 136 用例（CI 实测 2026-09-12；`app/src/lib/` 7 个 + `app/src/components/` 2 个）。
+- **Web Worker / 分块**：未使用（grep 核实），重计算均在主线程；当前体量可接受。
+- **running-private 内部链路**：已由 `AGENTS.md`「数据流」详载（`xingzhe_sync.yml` 每小时整点 UTC 同步 → `xz-fill.js` 补 polyline → `prebuild-preview.js` 产出三单文件 + `previews/`、`thumb/`；Secrets `XINGZHE_CREDENTIALS_JSON` / 可选 `XINGZHE_PAT`），源码见该私有仓库 docs。

@@ -46,7 +46,7 @@
 
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
-| C-10 | **UT（Vitest）强制**：改 `app/src/lib/` 逻辑必跑 `npm run test`（`app/src/lib/` 7 文件 / 110 用例） | 逻辑回归无防线 | UT (Step4) | coding-style §11 / unittest.md |
+| C-10 | **UT（Vitest）强制**：改 `app/src/lib/` / 组件逻辑必跑 `npm run test`（9 文件 / 136 用例，CI 实测） | 逻辑回归无防线 | UT (Step4) | coding-style §11 / unittest.md |
 | C-11 | **页面自动化（Playwright E2E）强制门禁**：改任何页面 / 交互 / CSS 后必跑 `npm run test:e2e`（chromium，自动起 `vite preview` 服务 `app/dist`，端口 4321） | 交互/CSS 回归漏网 | IT (Step6) | integration_test.md / AGENTS.md |
 | C-12 | **CI 双门禁已落地**：`deploy.yml` build job 在 `pnpm build` 后跑 `pnpm test` + `playwright install --with-deps chromium` + `pnpm test:e2e`；任一门禁失败阻塞 deploy | push 即上线，门禁是最后防线 | Deploy / CI | integration_test.md §5 / unittest.md §5 |
 | C-13 | 页面自动化**禁用 `sleep` 死等**；用 `page.waitFor*` / `expect().toBeVisible()` 自动等待；用例独立、不依赖执行顺序 | 脆弱 / 假绿 | IT (Step6) | integration_test.md 红线6 |
@@ -60,7 +60,7 @@
 | C-16 | **部署全自动**：`push main` 即 GitHub Actions 自动 build + deploy 到 GitHub Pages；**无需**手动 `gh workflow run deploy.yml`（`deploy.yml` 已移除 `if: workflow_dispatch` 闸门） | 双轨冲突 / 线上不更新 | Deploy (Step5) | AGENTS.md 红线6 / architecture.md §部署 |
 | C-17 | Pages Source 必须 = **GitHub Actions**（`build_type=workflow`），否则 `deploy-pages` 报错 | 部署失败 | Deploy | architecture.md / deployment.md |
 | C-18 | **回滚**（二选一，均无需 DB 兼容）：① `git revert <bad> && push main` 重新自动发布（推荐，可追溯）；② Pages Source 切回历史 Artifact / branch deploy 秒级恢复 | 坏版滞留 | Deploy / 应急 | 05-deploy.md / architecture.md / deployment.md |
-| C-19 | 判断真上线看 `gh run list --workflow=deploy.yml`（event=push 且 success）；**不要**用 `pages/builds/latest`（workflow 模式停在旧 branch-deploy 记录） | 误判已发布 | Deploy 验证 | MEMORY.md 部署 |
+| C-19 | 判断真上线看 `gh run list --workflow=deploy.yml`（event=push 且 success）；**不要**用 `pages/builds/latest`（workflow 模式停在旧 branch-deploy 记录） | 误判已发布 | Deploy 验证 | failures.md 部署条目 / AGENTS.md 红线 6 |
 
 ### 1.5 编码红线（AGENTS.md §禁止红线 / coding-style §12 镜像）
 

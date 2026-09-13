@@ -14,13 +14,13 @@ personal-homepage/
 ├── package.json        # Qwik 项目；packageManager: pnpm@9.15.0（禁用 npm / yarn，禁止提交 package-lock.json）
 ├── vite.config.ts / tsconfig*.json
 ├── app/                # Qwik 应用源码（唯一改动区）
-│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 7 文件 110 用例）
+│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 9 文件 / 136 用例，CI 实测）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
 │   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
 ├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（独立部署，非本仓库 CI；无独立单测）
 ├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
-├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、skills 同步等）
+├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、技能卡省略号实机校验 tools/verify-skname-ellipsis.mjs、提交校验 scripts/ 等）
 ├── .harness/           # SOP 真源（AI 开发流程）
 │   ├── plans/          # 各任务目录（00-overview ~ 08-review）；_template 为模板
 │   └── docs/           # 现行规范：architecture / devops / coding-style / 单测·IT 等
@@ -122,7 +122,7 @@ gh run list --workflow=deploy.yml --limit 5
 - 部署：.github/workflows/deploy.yml；Pages Source 已切到 GitHub Actions（build_type=workflow），CNAME 由 CI `cp CNAME app/dist/CNAME` 注入，404.html 由 SSG 生成。
 - **部署全自动（现行）**：`deploy.yml` 监听 `push` 到 `main` 即自动 build + deploy，**无需**手动 `gh workflow run`。判断「是否已上线」看 `gh run list --workflow=deploy.yml` 的 deploy job 结论，或实测线上 DOM/图片；不要依赖 `pages/builds/latest`（workflow 模式下该接口停留在旧 branch-deploy 记录，不更新）。
 - CI 两个工作流（deploy.yml、check-404-sync.yml）都必须 **Node 24** 且**不要给 `pnpm/action-setup` 写死 `version`**（会与 package.json 的 `packageManager: pnpm@9.15.0` 冲突，报 `ERR_PNPM_BAD_PM_VERSION`）。
-- worker.js 与 test-worker.mjs / worker.test.mjs 不受重构影响（Cloudflare Worker 源码，线上 OAuth auth 与 Running 数据代理仍依赖，保留）。
+- worker.js 不受重构影响（Cloudflare Worker 源码，线上 OAuth auth、Skills 写通道与 Running 数据代理仍依赖）。**Worker 当前无单测**——根目录若见 `worker.test.mjs`，为旧脚本生成的 `worker.js` 字节级副本（gitignore），勿执行、勿提交。
 - 注意：根 package.json 不加 type=module（Qwik/vite 走 ESM，但 postcss/tailwind 等配置用 CJS 写法）。
 
 ## 设计系统 QWIK-INSPIRED v2（2026-09-10 起，取代 v1 像素版）
@@ -240,9 +240,9 @@ gh run list --workflow=deploy.yml --limit 5
 | 命令 | 作用 | 备注 |
 |------|------|------|
 | `npm run lint` | ESLint 检查 `app/src` | 配置见 `eslint-plugin-qwik` + `@typescript-eslint` |
-| `npm run fmt` | Prettier 格式化 `app/src` | 提交前建议跑；`pre-commit` hook 会 `--check` |
+| `npm run fmt` | Prettier 格式化 `app/src` | 提交前必跑；当前未接 pre-commit 钩子（仅 commit-msg 校验提交格式） |
 | `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
-| `npm run test` | `vitest run` 单测（`app/src/lib/`，7 文件 / 110 用例） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
+| `npm run test` | `vitest run` 单测（9 文件 / 136 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
 | `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动起 `vite preview` 服务 `app/dist`；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
 | `npm run build` | Qwik SSG 构建（client + SSR 预渲染 4 页） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
 
@@ -250,7 +250,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 - 框架：Qwik ~1.20 / Qwik City ~1.20（SSG static adapter）
 - 语言：TypeScript 5.5，严格模式
-- 运行时：Node **≥24**（本地与 CI 一致——否则 `undici@8` 缺 `util.markAsUncloneable` 令 build 失败；`package.json` engines 标 `>=20` 仅为下限声明，实操以 24 为准）
+- 运行时：Node **≥24**（本地与 CI 一致——否则 `undici@8` 缺 `util.markAsUncloneable` 令 build 失败；`engines` 已标 `>=24` 强制）
 - 包管理：**pnpm 9.15.0**（禁用 npm / yarn，禁止提交 `package-lock.json`；本地无全局 pnpm 时用 `npm run build` 代替，不生成 lock）
 - 样式：Tailwind 3.4 + PostCSS + 自托管字体；**设计真源 `DESIGN.md`**（改视觉先改它，再同步 `app/src/global.css`）
 
