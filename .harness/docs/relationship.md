@@ -123,8 +123,8 @@ flowchart TB
 | 下游 / 外部条件 | 受影响功能 | 失败表现 | 是否可降级 | 降级 / 兜底方案 |
 |----------------|-----------|---------|-----------|----------------|
 | Cloudflare Worker 故障（代理/鉴权不可用） | Running `/running` 轨迹模块；Skills 写通道与登录 | `RunningPage` 捕获异常 → `state.err=true` → 提示「无法连接数据源（Cloudflare Worker 代理）。请检查网络后刷新页面重试」；游客轨迹空白、admin 无完整轨迹；Skills 通道设置/收藏不可用 | 部分降级（仅提示，无数据兜底） | **真实 fallback**：前端错误提示 + 用户刷新重试（`RunningPage.tsx:93-96,161-163`）。数据缓存兜底：**TODO**（可缓存最后成功快照到 localStorage/IndexedDB，断网时展示陈旧数据） |
-| running-private 同步失败（xingzhe_sync.yml 失败/未运行） | Running 轨迹新鲜度 | 轨迹数据陈旧（停留在上次成功同步）；站点无报错，照常可访问 | 可（数据陈旧但可用） | 无自动告警/回滚。TODO（加同步失败通知 + 页面展示数据「最后更新时间」/新鲜度提示） |
-| 行者 OpenAPI 限流 / 凭证失效（refresh_token 轮换未回写） | running-private 同步 → 轨迹新鲜度 | 同步中断；`XINGZHE_CREDENTIALS_JSON` 失效需手动更新（无 `XINGZHE_PAT` 时） | 可（沿用旧数据） | 手动更新 Secret；建议配置 `XINGZHE_PAT` 自动回写（见 `xingzhe_sync.yml` 注释）。TODO（凭证失效自动告警） |
+| running-private 同步失败（xingzhe_sync.yml 失败/未运行） | Running 轨迹新鲜度 | 轨迹数据陈旧（停留在上次成功同步）；站点无报错，照常可访问 | 可（数据陈旧但可用） | ✅ 失败告警已落地（2026-09-13，`xingzhe_sync.yml` notify job → Server酱微信推送）；页面展示「最后更新时间」/新鲜度提示仍 TODO |
+| 行者 OpenAPI 限流 / 凭证失效（refresh_token 轮换未回写） | running-private 同步 → 轨迹新鲜度 | 同步中断；`XINGZHE_CREDENTIALS_JSON` 失效需手动更新（无 `XINGZHE_PAT` 时） | 可（沿用旧数据） | 手动更新 Secret；建议配置 `XINGZHE_PAT` 自动回写（见 `xingzhe_sync.yml` 注释）。✅ 失败告警已随 sync notify job 覆盖（2026-09-13）；按错误类型区分文案待做 |
 | GitHub Pages / CDN 故障 | 全站（4 个页面） | 所有页面不可达 | 否（静态站无自有后端兜底） | 依赖 GitHub 基础设施 SLA；回滚：Pages Source 切回 `branch deploy` 秒级恢复旧站（`deploy.yml` 注释）。本站级兜底：**TODO**（可选 Cloudflare Pages 镜像 / 多 CDN） |
-| deploy.yml 失败（build / pnpm 报错） | 线上版本更新 | push main 后线上仍是旧版本，无新内容/修复 | 可（旧版继续服务，不丢数据） | 旧版本保持在线；修复后重跑 workflow；回滚用 Pages 切回旧部署。自动重试：**TODO**（可选构建失败通知） |
+| deploy.yml 失败（build / pnpm 报错） | 线上版本更新 | push main 后线上仍是旧版本，无新内容/修复 | 可（旧版继续服务，不丢数据） | 旧版本保持在线；修复后重跑 workflow；回滚用 Pages 切回旧部署。✅ 失败告警已落地（2026-09-13，deploy.yml notify job → Server酱）；自动重试不适用（个人项目，人工修复即可） |
 | 自托管字体 / 资源缺失（app/public） | 视觉 / 排版 | 字体回退系统默认字体；图片 404 | 可 | 浏览器原生字体回退；属本地构建产物问题，非运行时外部依赖 |

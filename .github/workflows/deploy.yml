@@ -65,3 +65,21 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+  # 部署链路任一环失败 → Server酱推送到微信（Secret: SERVERCHAN_SENDKEY）
+  notify:
+    needs: [build, deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Server酱失败通知
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          MSG=$(printf '%s\n%s\n%s' \
+            "分支: ${GITHUB_REF_NAME}" \
+            "提交: ${COMMIT_MSG}" \
+            "[查看运行](https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})")
+          curl -sS "https://sctapi.ftqq.com/${{ secrets.SERVERCHAN_SENDKEY }}.send" \
+            --data-urlencode "title=guoxin.space 部署失败" \
+            --data-urlencode "desp=${MSG}"
