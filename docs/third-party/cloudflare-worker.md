@@ -56,13 +56,54 @@ CORS：`Access-Control-Allow-Origin: *`，允许头 `Content-Type, Authorization
 
 ### 0. 自动部署（推荐，2026-09-13 起默认）
 
-本仓库 `.github/workflows/deploy-worker.yml` 会在 **push 改动 `worker.js` 到 main 时自动部署**（`wrangler deploy --keep-vars`），失败推 Server酱微信。前置一次性配置：
+本仓库 `.github/workflows/deploy-worker.yml` 会在 **push 改动 `worker.js` 到 main 时自动部署**（`wrangler deploy --keep-vars`），失败推 Server酱微信。前置一次性配置 = 创建一个 Cloudflare API Token 并存入 GitHub Secret，步骤如下。
 
-1. Cloudflare → My Profile → **API Tokens** → Create Token（权限：**Account → Workers Scripts → Edit**，建议限定本账号）。
-2. GitHub 仓库 `Settings → Secrets and variables → Actions` → 新建 **`CLOUDFLARE_API_TOKEN`**（单账号环境无需 ACCOUNT_ID）。
-3. 之后改 `worker.js` → push main → run 绿即已上线（可 `wrangler tail` 复核）。
+#### 0.1 创建 Cloudflare API Token（详细）
 
-手动部署（dashboard 粘贴 / 本地 wrangler）保留为兜底，见下方步骤。
+1. 登录 [dash.cloudflare.com](https://dash.cloudflare.com)，点击**右上角头像 → My Profile**。
+2. 左侧菜单选 **API Tokens** → **Create Token**。
+3. 模板页选择 **Edit Cloudflare Workers** → **Use template**（该模板自带权限：`Account · Workers Scripts · Edit` + `User · User Details/Memberships · Read`，正好满足 `wrangler deploy` 与 `wrangler secret put`）。
+4. 收權限（推荐）：在 **Account Resources** 一栏选 **Include → Specific account → 你的账号**（把作用域限定到单账号）；**Zone Resources** 保持默认即可——部署 workers.dev 地址不需要 Zone 权限（若日后给 Worker 绑自定义域路由，再补 `Zone · Workers Routes · Edit`）。
+5. （可选）**Client IP Address Filtering** 填服务器/家庭出口 IP 进一步收紧；本场景由 GitHub Actions 触发、出口 IP 不固定，**留空**。
+6. **Continue to summary** → 核对权限摘要 → **Create Token**。
+7. 页面会显示一次性的 Token 值（40 位字母数字）——**立即复制保存**，此后不再显示。
+8. （可选）自验 token 有效性：
+   ```bash
+   curl -s -H "Authorization: Bearer <token>" \
+     https://api.cloudflare.com/client/v4/user/tokens/verify | grep '"status":"active"'
+   ```
+
+> 多账号注意：若同一 Cloudflare 登录下存在多个账号，还需在 dashboard **Workers & Pages 概览右栏**复制 **Account ID**，多加一个 GitHub Secret `CLOUDFLARE_ACCOUNT_ID`，否则 wrangler 无法判定部署到哪个账号。
+
+#### 0.2 存入 GitHub Secret
+
+```bash
+# 方式 A：gh CLI（输入不回显）
+gh secret set CLOUDFLARE_API_TOKEN --repo GuoxinL/guoxin.space
+
+# 方式 B：网页——Settings → Secrets and variables → Actions → New repository secret
+#   Name:  CLOUDFLARE_API_TOKEN    Value: <token>
+```
+
+复核：`gh secret list --repo GuoxinL/guoxin.space` 应列出 `CLOUDFLARE_API_TOKEN`。
+
+#### 0.3 启用与验证
+
+```bash
+gh workflow run deploy-worker.yml        # 手动触发一次部署
+gh run list --workflow=deploy-worker.yml # run 绿 = Token 配置成功、Worker 已上线
+```
+
+之后改 `worker.js` → push main → 自动部署（失败推 Server酱微信）。
+
+#### 0.4 轮换 / 撤销
+
+- **疑似泄露**：同一 API Tokens 页对该 Token 点 **Roll**（旧值立即失效）→ 更新 GitHub Secret；或 **Delete** 后重建。
+- **不用了**：Delete Token + 删除 GitHub Secret。
+
+#### 0.5 手动部署兜底
+
+dashboard 粘贴 / 本地 wrangler 保留为兜底，见下方步骤。
 
 ### 1. 注册 GitHub OAuth App（一次）
 
