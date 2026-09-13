@@ -53,7 +53,7 @@ flowchart LR
 | 业务逻辑库 | auth（OAuth 态判定）、json 工具（解析/格式化/对比/jsonpath/history）、running（轨迹解析/统计）、skills（技能夹解析/渲染）、worker 通道封装、storage、clipboard、format、html | `app/src/lib/*.ts`（含 `json/` 子目录） | `@ltd/j-toml`、`fast-xml-parser`、`js-yaml`、`json5`、`jsonpath-plus`、`marked` |
 | 构建配置 | Vite root=app、Qwik optimizer、static adapter（origin=guoxin.space）、manifest 注入（规避本机临时 manifest 未落盘导致 SSG 空壳） | `vite.config.ts` | `@builder.io/qwik/optimizer`、`@builder.io/qwik-city/adapters/static/vite` |
 | 页面入口 | SSR 渲染入口、dev 渲染入口、preview 入口 | `app/src/entry.ssr.tsx`、`app/src/entry.dev.tsx`、`app/src/entry.preview.tsx` | `@builder.io/qwik/server` |
-| Cloudflare Worker（外部运行时） | OAuth 鉴权 + 收藏写通道 + 私有轨迹仓库代理（白名单 `TRACKS_FILES`） | 仓库根 `worker.js`（无独立单测） | Cloudflare Workers 运行时；**注意**：不在 `deploy.yml` 内，手动部署流程见 `docs/deploy/DEPLOY-WORKER.md` |
+| Cloudflare Worker（外部运行时） | OAuth 鉴权 + 收藏写通道 + 私有轨迹仓库代理（白名单 `TRACKS_FILES`） | 仓库根 `worker.js`（无独立单测） | Cloudflare Workers 运行时；**注意**：不在 `deploy.yml` 内，手动部署流程见 `docs/third-party/cloudflare-worker.md` |
 | 数据生产（独立仓库） | 从行者 OpenAPI 同步 → 补全 polyline → 生成预览/缩略图/完整轨迹产物 | 仓库 `GuoxinL/running-private`（**不在本仓库**） | 行者 OpenAPI、GitHub raw |
 
 ---
@@ -185,7 +185,7 @@ flowchart TD
 | 依赖 | 角色 | 部署 / 位置 | 备注 |
 |------|------|------------|------|
 | **GitHub Pages** | 静态托管 + 自定义域名 | `.github/workflows/deploy.yml` 经 `deploy-pages` | Source=GitHub Actions |
-| **Cloudflare Worker** | Running 数据代理 + OAuth 鉴权 | 仓库根 `worker.js`（Cloudflare 平台部署，**不在本仓库 CI**） | 手动部署（dashboard / wrangler `--keep-vars`），见 `docs/deploy/DEPLOY-WORKER.md` |
+| **Cloudflare Worker** | Running 数据代理 + OAuth 鉴权 | 仓库根 `worker.js`（Cloudflare 平台部署，**不在本仓库 CI**） | 手动部署（dashboard / wrangler `--keep-vars`），见 `docs/third-party/cloudflare-worker.md` |
 | **行者 OpenAPI** | 骑行/跑步原始数据上游 | 由 `running-private` 仓库每小时同步 | 本仓库不直接调用，凭据在 running-private 的 Secret 中 |
 | **running-private（私有仓库）** | 轨迹数据生产与产物存储 | `GuoxinL/running-private` | 白名单文件：`preview.json` / `preview.meta.json` / `rides.full.json` / `previews/` / `thumb/` |
 | **pnpm / Node 24** | 构建工具链 | CI + 本地 | 见决策 8、9 |
@@ -194,7 +194,7 @@ flowchart TD
 
 ## 待核实项核实结果（原 TODO(sop.init) 已于 2026-09-13 全部核销）
 
-- **Worker 部署流水线**：手动部署——dashboard 粘贴 `worker.js`，或 `npx wrangler deploy worker.js --name skillboard-collect --keep-vars …`（**无** wrangler.toml、**不在**本仓库 CI）。步骤 / Secret 清单 / `--keep-vars` 大坑见 `docs/deploy/DEPLOY-WORKER.md` §3.5。
+- **Worker 部署流水线**：手动部署——dashboard 粘贴 `worker.js`，或 `npx wrangler deploy worker.js --name skillboard-collect --keep-vars …`（**无** wrangler.toml、**不在**本仓库 CI）。步骤 / Secret 清单 / `--keep-vars` 大坑见 `docs/third-party/cloudflare-worker.md` §3.5。
 - **`/skills/[dir]` SSG 策略**：动态路由**未预渲染**（dir 列表构建期未知，产物仅 `skills/index.html`）。直连 `/skills/<dir>` 返回 404，且 `404.html` 仅 759B 静态页、无应用壳——**深层直链当前不可恢复**，需从列表页 SPA 导航进入；如需直链可达，另开任务（构建期拉目录清单生成详情页，或 404.html 引导回站）。
 - **Service Worker**：`root.tsx` 挂载 `ServiceWorkerRegister`，但无 service-worker 源文件 → `/service-worker.js` 线上 404、注册无效；后续补 `src/routes/service-worker.ts` 或移除挂载（见决策 10）。
 - **单测规模**：9 文件 / 136 用例（CI 实测 2026-09-12；`app/src/lib/` 7 个 + `app/src/components/` 2 个）。

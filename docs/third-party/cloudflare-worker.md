@@ -1,3 +1,8 @@
+# Cloudflare Worker 接入操作步骤（skillboard-collect）
+
+> 📁 本文档原位于 `docs/deploy/DEPLOY-WORKER.md`，2026-09-13 迁入 `docs/third-party/`（第三方接入文档集）。
+> 权限方案设计见 [`docs/deploy/AUTH-PERMISSION-DESIGN.md`](../deploy/AUTH-PERMISSION-DESIGN.md)。
+
 # skillboard-collect — Cloudflare Worker 部署指引
 
 个人主页的「鉴权 + Skills 写通道 + 轨迹代理」。核心设计：**页面零凭证**——收藏 / 删除 / 同步等写操作与完整轨迹全部转发到 Cloudflare Worker，由 Worker 持有 GitHub 细粒度 PAT 完成。

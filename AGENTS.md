@@ -25,13 +25,14 @@ personal-homepage/
 │   ├── plans/          # 各任务目录（00-overview ~ 08-review）；_template 为模板
 │   └── docs/           # 现行规范：architecture / devops / coding-style / 单测·IT 等
 └── docs/               # 文档（与 .harness/docs 分工见下；外部 / 历史 / 报告）
-    ├── deploy/         # 现行有效：Worker 部署、权限方案
+    ├── deploy/         # 现行有效：Worker 权限方案设计
+    ├── third-party/    # 第三方接入操作步骤（Pages / Worker / Server酱 / 行者，每组件一份）
     ├── design/         # 现行有效设计稿（hero-art 等；伴生 PNG 同目录）
     ├── reports/        # 自测 / 报告（TOOLBOX-SELFTEST 等）
     └── archive/        # 历史 / 已落地过程稿；design / deploy / running 子目录 + 顶层旧计划
 ```
 
-> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、单测·IT）；`docs/` 只放**外部 / 历史 / 报告**类文档——现行有效的 Worker 部署与权限方案在 `docs/deploy/`，设计稿在 `docs/design/`，历史过程稿全部归档到 `docs/archive/`（带「⚠️ 归档文档」声明）。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
+> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、单测·IT）；`docs/` 只放**外部 / 历史 / 报告**类文档——第三方组件的接入操作步骤在 `docs/third-party/`（每组件一份），Worker 权限方案设计在 `docs/deploy/`，设计稿在 `docs/design/`，历史过程稿全部归档到 `docs/archive/`（带「⚠️ 归档文档」声明）。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
 
 > ⚠️ **历史段落提示**：下方「旧单文件站机制」一节描述 2026-09-09 Qwik 重构**前**的机制（`index.html` / `css/style.css` / `js/*.js` / `verify.js`，已在 P8 删除），仅作历史参考，**不得**按其操作。现行代码规范以 `.harness/docs/coding-style.md` 为准；改代码直接看 `app/src/`。
 

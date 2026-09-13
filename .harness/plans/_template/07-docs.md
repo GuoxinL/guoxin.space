@@ -38,7 +38,8 @@
 
 **部署（GitHub Pages / Worker）**
 - [ ] `.github/workflows/deploy.yml`（Pages 自动部署流程变化）
-- [ ] `docs/deploy/`（Worker 部署 / 权限方案变化）
+- [ ] `docs/deploy/`（Worker 权限方案变化）
+- [ ] `docs/third-party/`（第三方组件接入变化：Pages / Worker / Server酱 / 行者）
 
 **全局**
 - [ ] 对外 README / 用户指南 — 对用户可见的变更
