@@ -12,6 +12,7 @@
 | **Cloudflare Worker** | OAuth 鉴权 + Skills 写通道 + Running 轨迹代理 | Cloudflare dashboard Secrets（`GH_TOKEN` 等）；GitHub Secret：`CLOUDFLARE_API_TOKEN`（自动部署用） | [cloudflare-worker.md](./cloudflare-worker.md) |
 | ↳ GitHub OAuth App | Worker 登录流程的 OAuth 提供方 | Worker Secrets：`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | 同上 §三.1 |
 | ↳ GitHub 细粒度 PAT | Worker 读写 GitHub 仓库的凭据 | Worker Secret：`GH_TOKEN`（授权 skill-collection 读写 + running-private 只读） | 同上 §三.2 |
+| **CARTO Basemaps** | Running 地图/回放底图瓦片（三档样式） | 前端 URL 参数 `?key=`（公开性质凭据，靠额度+域名限制保护） | [carto-basemaps.md](./carto-basemaps.md) |
 | **Server酱** | CI 失败 → 微信推送（两个仓库的 notify job） | GitHub Actions Secret：`SERVERCHAN_SENDKEY`（guoxin.space + running-private 各一份） | [serverchan.md](./serverchan.md) |
 | **行者 OpenAPI** | 骑行/跑步数据上游（running-private 每小时同步） | running-private Secret：`XINGZHE_CREDENTIALS_JSON`（+可选 `XINGZHE_PAT`） | [xingzhe-openapi.md](./xingzhe-openapi.md) |
 
