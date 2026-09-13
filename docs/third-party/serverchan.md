@@ -57,6 +57,8 @@ curl -sS "https://sctapi.ftqq.com/<SendKey>.send" \
 |---|---|---|
 | `gh secret set/list` 报 `HTTP 401: Bad credentials` | 终端环境变量 `GH_TOKEN`（失效旧 PAT）**覆盖**了 keyring 的有效登录——本机 WorkBuddy 会向其终端注入 | `unset GH_TOKEN` 后重试；或单条命令前缀 `env -u GH_TOKEN`。`gh auth login` 无效（环境变量优先级最高） |
 | CI 通知步骤 401/无推送 | Secret 未配置或名字不一致 | `gh secret list` 复核名字精确为 `SERVERCHAN_SENDKEY` |
+| Worker 审计（收藏/删除）不推送，页面上传成功 | `SERVERCHAN_SENDKEY` 只配了 GitHub Actions，**没配 Cloudflare Worker 侧**——两边是独立的保险柜 | Cloudflare dashboard → skillboard-collect → Settings → Variables and Secrets 补配同名 Secret；或 `npx wrangler secret put SERVERCHAN_SENDKEY --name skillboard-collect` |
+| 所有路径都不推送（连手动 curl 都失败） | sctapi 侧问题：免费额度 5 条/天 用尽、SendKey 重置后未同步、未关注「方糖」服务号 | 先用 §三 的 curl 自验；额度用尽等次日或赞助提额 |
 | 微信收不到但 API 返回 SUCCESS | 未关注「方糖」服务号 | 关注后重试 |
 | 失败但一天只收到前 5 条 | 免费额度 5 条/天 | 属预期截流；需要更多则赞助提额 |
 | Key 疑似泄露 | SendKey 只能被用来给你发推送，风险低 | sct.ftqq.com 重置 SendKey → 重跑 §二 更新两个仓库 Secret |
