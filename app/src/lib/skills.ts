@@ -183,6 +183,11 @@ function isMdName(name: string): boolean {
   return /\.(md|markdown|mdown|mkd)$/i.test(String(name || ''));
 }
 
+/** 链接/图片协议白名单：仅放行安全协议，其余一律降级为 '#'（防 javascript: 点击型 XSS） */
+function mdSafeUrl(u: string, allowDataImage = false): string {
+  return /^(https?:\/\/|mailto:|#|\/)/i.test(u) || (allowDataImage && /^data:image\//i.test(u)) ? u : '#';
+}
+
 export function skMdRender(md: string): string {
   const src = String(md || '').replace(/\r\n?/g, '\n');
   const stripped = src.replace(/^\ufeff?---\n[\s\S]*?\n---\n?/, ''); // 剥离 YAML frontmatter
@@ -200,8 +205,8 @@ export function skMdRender(md: string): string {
     s = s.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
     s = s.replace(/(^|[^\w_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
     s = s.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
-    s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1">');
-    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, url) => '<img src="' + mdSafeUrl(url, true) + '" alt="' + alt + '">');
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, txt, url) => '<a href="' + mdSafeUrl(url) + '" target="_blank" rel="noopener noreferrer">' + txt + '</a>');
     return s;
   };
   const splitRow = (s: string): string[] => {

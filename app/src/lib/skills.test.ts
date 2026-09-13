@@ -75,6 +75,30 @@ describe('skMdRender', () => {
     expect(html).toContain('type="checkbox" disabled');
   });
 
+  it('link protocol whitelist: javascript:/data:text/html degrade to #, safe protocols kept', () => {
+    const html = skMdRender('[a](javascript:alert(1)) [b](data:text/html,x) [c](https://a.b/c) [d](/rel) [e](#anchor)');
+    expect(html).toContain('href="#"');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('data:text/html');
+    expect(html).toContain('href="https://a.b/c"');
+    expect(html).toContain('href="/rel"');
+    expect(html).toContain('href="#anchor"');
+  });
+
+  it('img src whitelist: data:image/ kept, javascript: degraded', () => {
+    const html = skMdRender('![p](data:image/png;base64,AAAA) ![q](javascript:x)');
+    expect(html).toContain('src="data:image/png;base64,AAAA"');
+    expect(html).toContain('src="#"');
+    expect(html).not.toContain('javascript:');
+  });
+
+  it('mixed doc regression: whitelist does not affect existing rendering', () => {
+    const md = '# 标题\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n```\ncode\n```\n\n[l](https://x.y)';
+    const html = skMdRender(md);
+    expect(html).toContain('<table>');
+    expect(html).toContain('href="https://x.y"');
+  });
+
   it('escapes raw HTML', () => {
     const html = skMdRender('<script>alert(1)</script>');
     expect(html).not.toContain('<script>');

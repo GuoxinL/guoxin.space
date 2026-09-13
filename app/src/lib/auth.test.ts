@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  parseAuthRedirect,
   authDecodeLogin,
   authWorkerUrl,
   getAuthState,
@@ -30,6 +31,21 @@ function setToken(token: string, login: string) {
   localStorage.setItem('wb_home_auth_token', token);
   localStorage.setItem('wb_home_gh_user', JSON.stringify({ login }));
 }
+
+describe('parseAuthRedirect', () => {
+  it('hash: #auth=<token> → token (source=hash)', () => {
+    expect(parseAuthRedirect('#auth=abc.def', '')).toEqual({ auth: 'abc.def', source: 'hash' });
+  });
+  it('hash: #auth=denied → denied', () => {
+    expect(parseAuthRedirect('#auth=denied', '')).toEqual({ auth: 'denied', source: 'hash' });
+  });
+  it('兼容旧 query：?auth=<token> → token (source=search)', () => {
+    expect(parseAuthRedirect('', '?auth=legacy')).toEqual({ auth: 'legacy', source: 'search' });
+  });
+  it('两者皆空 → null', () => {
+    expect(parseAuthRedirect('', '')).toBeNull();
+  });
+});
 
 describe('authDecodeLogin', () => {
   it('解码 JWT header 中的 login', () => {

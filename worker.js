@@ -13,6 +13,8 @@
 //   GITHUB_CLIENT_SECRET 必填  GitHub OAuth App 的 Client Secret
 //   ADMIN_LOGIN         必填  管理员 GitHub 用户名（admin 判定 = login 与之相等）
 //   AUTH_SECRET         必填  HMAC 签名密钥（openssl rand -base64 32）
+//   AUTH_SECRET_PREV    选填  轮换宽限：旧签名密钥，验签回退用（换新后 ≥24h 可删）
+//   SERVERCHAN_SENDKEY  选填  写操作审计：collect/remove/sync 成功后 Server酱推微信
 //   TRACKS_REPO         必填  轨迹私有仓库，形如 GuoxinL/running-private
 //   REDIRECT_URL        选填  登录回跳地址，默认 https://guoxin.space
 // 鉴权：写通道（collect/remove/sync）与完整轨迹（tracks/raw?f=rides.full.json）
@@ -36,7 +38,7 @@ const MAX_MIRROR_FILES = 60;
 const MAX_FILE_BYTES = 1024 * 1024;
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const cors = {
       "Access-Control-Allow-Origin": "*",
@@ -65,9 +67,23 @@ export default {
       if (isWrite) {
         const admin = await requireAdmin(request, env, cors);
         if (!admin.ok) return json(cors, 401, { error: "未授权：请先登录 GitHub（仅站长本人可用）" });
-        if (url.pathname === "/api/collect" && request.method === "POST") return await collect(env, repo, branch, await request.json(), cors);
-        if (url.pathname === "/api/remove" && request.method === "POST") return await remove(env, repo, branch, await request.json(), cors);
-        if (url.pathname === "/api/sync" && request.method === "POST") return await sync(env, repo, branch, await request.json(), cors);
+        if (url.pathname === "/api/collect" && request.method === "POST") {
+          const body = await request.json();
+          const res = await collect(env, repo, branch, body, cors);
+          if (res.status === 200) notifyAdmin(env, ctx, "collect", String((body && (body.dir || body.url)) || ""));
+          return res;
+        }
+        if (url.pathname === "/api/remove" && request.method === "POST") {
+          const body = await request.json();
+          const res = await remove(env, repo, branch, body, cors);
+          if (res.status === 200) notifyAdmin(env, ctx, "remove", String((body && body.dir) || ""));
+          return res;
+        }
+        if (url.pathname === "/api/sync" && request.method === "POST") {
+          const res = await sync(env, repo, branch, await request.json(), cors);
+          if (res.status === 200) notifyAdmin(env, ctx, "sync", "手动触发同步");
+          return res;
+        }
       }
       return json(cors, 404, { error: "Not Found: " + url.pathname });
     } catch (e) {
@@ -508,24 +524,40 @@ export async function signToken(login, secret) {
   return body + "." + (await hmacB64(secret, body));
 }
 
-export async function verifyToken(token, secret) {
+// 验签按 [AUTH_SECRET, AUTH_SECRET_PREV] 顺序回退：轮换宽限期内旧 token 仍可用（≤24h）
+export async function verifyToken(token, env) {
   if (!token) return null;
   const parts = String(token).split(".");
   if (parts.length !== 2) return null;
-  const want = await hmacB64(secret, parts[0]);
-  if (want !== parts[1]) return null;
-  try {
-    const payload = JSON.parse(b64urlDecode(parts[0]));
-    if (!payload || !payload.login || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return payload;
-  } catch (e) { return null; }
+  const secrets = [env && env.AUTH_SECRET, env && env.AUTH_SECRET_PREV].filter(Boolean);
+  for (const secret of secrets) {
+    const want = await hmacB64(secret, parts[0]);
+    if (want !== parts[1]) continue;
+    try {
+      const payload = JSON.parse(b64urlDecode(parts[0]));
+      if (!payload || !payload.login || payload.exp < Math.floor(Date.now() / 1000)) return null;
+      return payload;
+    } catch (e) { return null; }
+  }
+  return null;
+}
+
+// 写操作审计：成功后 Server酱推微信（Key 未配置 / 无 ctx 时静默跳过；失败不影响主流程）
+function notifyAdmin(env, ctx, action, detail) {
+  if (!ctx || !env.SERVERCHAN_SENDKEY) return;
+  const body = new URLSearchParams({ title: "skillboard-collect: " + action, desp: detail || "" }).toString();
+  ctx.waitUntil(fetch("https://sctapi.ftqq.com/" + env.SERVERCHAN_SENDKEY + ".send", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  }).catch(() => {}));
 }
 
 // 写通道 / 完整轨迹的统一管理员校验：Authorization: Bearer <token> 且 login === ADMIN_LOGIN
 async function requireAdmin(request, env, cors) {
   const h = request.headers.get("Authorization") || "";
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
-  const payload = await verifyToken(token, env.AUTH_SECRET);
+  const payload = await verifyToken(token, env);
   if (!payload || payload.login !== env.ADMIN_LOGIN) return { ok: false };
   return { ok: true, payload };
 }
@@ -563,10 +595,10 @@ async function authCallback(request, env, cors) {
       headers: { "Authorization": "Bearer " + tok.access_token, "User-Agent": "skillboard-collect", "Accept": "application/vnd.github+json" },
     }).then(r => r.json());
     if (!user || user.login !== env.ADMIN_LOGIN) {
-      return new Response(null, { status: 302, headers: { Location: home + "/?auth=denied", "Access-Control-Allow-Origin": "*" } });
+      return new Response(null, { status: 302, headers: { Location: home + "/#auth=denied", "Access-Control-Allow-Origin": "*" } });
     }
     const token = await signToken(user.login, env.AUTH_SECRET);
-    return new Response(null, { status: 302, headers: { Location: home + "/?auth=" + encodeURIComponent(token), "Access-Control-Allow-Origin": "*" } });
+    return new Response(null, { status: 302, headers: { Location: home + "/#auth=" + encodeURIComponent(token), "Access-Control-Allow-Origin": "*" } });
   } catch (e) {
     return json(cors, 500, { error: String((e && e.message) || e) });
   }
@@ -575,7 +607,7 @@ async function authCallback(request, env, cors) {
 async function authMe(request, env, cors) {
   const h = request.headers.get("Authorization") || "";
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
-  const payload = await verifyToken(token, env.AUTH_SECRET);
+  const payload = await verifyToken(token, env);
   if (!payload) return json(cors, 401, { error: "未授权或已过期" });
   return json(cors, 200, { ok: true, login: payload.login, exp: payload.exp });
 }
