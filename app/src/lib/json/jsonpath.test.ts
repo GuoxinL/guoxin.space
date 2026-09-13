@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  jpComposePath,
   jpFindRanges,
+  jpStripPrefixNoise,
   jpKeyNeedles,
   jpLeafKey,
   jpMergeRanges,
@@ -138,5 +140,48 @@ describe('rangesToLines', () => {
     expect(lines[0].line).toBe(0);
     expect(lines[0].segs).toEqual([[1, 3]]);
     expect(lines[1].segs).toEqual([[0, 3]]);
+  });
+});
+
+describe('jpStripPrefixNoise（前缀式输入框：剥误输入的 $ 与首个 .）', () => {
+  it('旧式完整路径 $.a.b → a.b', () => {
+    expect(jpStripPrefixNoise('$.a.b')).toBe('a.b');
+  });
+  it('保留递归下降：$..t → .t', () => {
+    expect(jpStripPrefixNoise('$..t')).toBe('.t');
+  });
+  it('剥首个点：.n → n；保留双点 ..t → .t', () => {
+    expect(jpStripPrefixNoise('.n')).toBe('n');
+    expect(jpStripPrefixNoise('..t')).toBe('.t');
+  });
+  it('数组形态 [0] 原样保留', () => {
+    expect(jpStripPrefixNoise('[0].t')).toBe('[0].t');
+  });
+  it('边界：空串与裸 $ → 空串', () => {
+    expect(jpStripPrefixNoise('')).toBe('');
+    expect(jpStripPrefixNoise('$')).toBe('');
+  });
+});
+
+describe('jpComposePath（前缀式输入框：由值合成完整 JSONPath）', () => {
+  it('普通成员路径接 $.', () => {
+    expect(jpComposePath('a.b')).toBe('$.a.b');
+    expect(jpComposePath('store.book[0]')).toBe('$.store.book[0]');
+  });
+  it('数组根形态 [ 开头接 $', () => {
+    expect(jpComposePath('[0].t')).toBe('$[0].t');
+  });
+  it('点形态归一：.t → $.t；..t → $..t', () => {
+    expect(jpComposePath('.t')).toBe('$.t');
+    expect(jpComposePath('..t')).toBe('$..t');
+  });
+  it('空值 / 仅一个点 → 空串（视为未输入）', () => {
+    expect(jpComposePath('')).toBe('');
+    expect(jpComposePath('.')).toBe('');
+  });
+  it('回归：组合表达式可被 queryJsonPath 执行', () => {
+    const r = queryJsonPath(SAMPLE, 'json', jpComposePath('type'));
+    if (!r.ok) throw new Error(r.msg);
+    expect(r.count).toBe(1);
   });
 });

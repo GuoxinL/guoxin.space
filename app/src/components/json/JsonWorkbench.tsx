@@ -22,6 +22,8 @@ import {
   minifyText,
   parseByLang,
   pushHistory,
+  jpComposePath,
+  jpStripPrefixNoise,
   queryJsonPath,
   repairJson,
   unescapeText,
@@ -205,9 +207,14 @@ export const JsonWorkbench = component$(() => {
   });
 
   const runJp = $((side: Side) => {
-    const expr = side === 'L' ? jpL.value : jpR.value;
+    const rest = side === 'L' ? jpL.value : jpR.value;
+    const expr = jpComposePath(rest);
     const raw = side === 'L' ? textL.value : textR.value;
     const lang = side === 'L' ? langL.value : langR.value;
+    if (!expr) {
+      toast.value = { msg: `${sideName(side)}请输入 $ 之后的 JSONPath 路径`, kind: 'err' };
+      return;
+    }
     const r = queryJsonPath(raw, lang, expr);
     if (!r.ok) {
       toast.value = { msg: `${sideName(side)}${r.msg}`, kind: 'err' };
@@ -405,19 +412,24 @@ export const JsonWorkbench = component$(() => {
             </button>
 
             <span class="jp-inline">
-              <input
-                class="jp-input"
-                placeholder="JSONPath 查询（原文高亮）"
+              <span class="jp-box">
+                <span class="jp-prefix" aria-hidden="true">$.</span>
+                <input
+                  class="jp-input"
+                  placeholder="JSONPath 查询（原文高亮）"
                 spellcheck={false}
                 value={jp}
                 onInput$={(_e, el) => {
-                  if (side === 'L') jpL.value = el.value;
-                  else jpR.value = el.value;
+                  const v = jpStripPrefixNoise(el.value);
+                  if (el.value !== v) el.value = v;
+                  if (side === 'L') jpL.value = v;
+                  else jpR.value = v;
                 }}
                 onKeyDown$={(e) => {
                   if (e.key === 'Enter') runJp(side);
                 }}
               />
+              </span>
               <button class="btn ghost jp-run" onClick$={() => runJp(side)}>
                 查
               </button>

@@ -82,6 +82,20 @@ export function jpMergeRanges(ranges: Range[]): Range[] {
  * 执行 JSONPath 查询并计算命中值在原文中的高亮区间。
  * 只做定位不改格式：渲染层据此在原文上叠黄色底纹。
  */
+/** 前缀式输入框：剥掉误输入的 $ 与紧随的首个 .（`$.` 由 UI 常显，输入值不含前缀） */
+export function jpStripPrefixNoise(s: string): string {
+  return String(s ?? '')
+    .replace(/^\$+/, '')
+    .replace(/^\./, '');
+}
+
+/** 前缀式输入框：由输入值合成完整 JSONPath —— `[` 开头接 `$`（$[0]…），其余接 `$.`（$.name…）；空视为未输入 */
+export function jpComposePath(input: string): string {
+  const v = jpStripPrefixNoise(input);
+  if (!v.trim()) return '';
+  return v.startsWith('[') ? '$' + v : '$.' + v;
+}
+
 export function queryJsonPath(raw: string, lang: Lang, expr: string): JpResult {
   const path = expr.trim();
   if (!path) return { ok: false, msg: '请输入 JSONPath 表达式' };

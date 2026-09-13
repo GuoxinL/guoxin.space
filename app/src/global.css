@@ -441,20 +441,34 @@ select.lang-sel {
   margin-left: auto;
   padding-left: 6px;
 }
-.jp-inline .jp-input {
-  width: 130px;
-  min-height: 28px;
+.jp-inline .jp-box {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid var(--border2);
   border-radius: 6px;
   background: var(--surface);
+}
+.jp-inline .jp-box:focus-within {
+  border-color: var(--primary);
+}
+.jp-inline .jp-prefix {
+  padding: 0 0 0 7px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  user-select: none;
+  pointer-events: none;
+}
+.jp-inline .jp-box .jp-input {
+  width: 116px;
+  min-height: 26px;
+  border: none;
+  background: transparent;
   color: var(--text);
-  padding: 0 7px;
+  padding: 0 7px 0 2px;
   font-size: 12px;
   outline: none;
   font-family: var(--mono);
-}
-.jp-inline .jp-input:focus {
-  border-color: var(--primary);
 }
 .jp-inline .btn.ghost {
   min-height: 28px;
