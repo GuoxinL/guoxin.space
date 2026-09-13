@@ -85,6 +85,12 @@ export interface ParsedFrontmatter {
   sourceOwner: string;
 }
 
+/** 由 pathname 提取详情目录：`/skills/<dir>` → dir；列表/其他路径 → ''（pushState 透传 + popstate 恢复用） */
+export function skDirFromPath(pathname: string): string {
+  const m = /^\/skills\/([^/]+)$/.exec(pathname || '');
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
 export function skParseFrontmatter(text: string): ParsedFrontmatter {
   const out: ParsedFrontmatter = {
     name: '',

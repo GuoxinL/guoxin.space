@@ -1,0 +1,167 @@
+# 02. Plan
+
+> **目的**：把 Clarify 的结论转化为可落地的技术方案。
+> **输入**：`01-clarify.md` 的目标与范围
+> **输出**：改动清单、调用链、数据结构、**UT 用例（TDD 先行）**、IT 用例
+> **项目性质**：本仓库是 Qwik SSG 静态站（GitHub Pages 托管），**无后端 / 无 DB / 无 MQ**，任何需要服务端的逻辑走独立部署的 Cloudflare Worker（`worker.js`）。因此 §3 的「DB schema」、§5.2 的「DB 表结构」在本项目恒为「跳过」——下方已标注。
+> **TDD 模式**：本阶段必须**先于 Implement** 设计完 UT 用例（§6）；UT/IT 边界与红绿循环约束详见 `04-ut.md` §0.5，本文件只列 UT 用例骨架，重复内容不复制。
+
+---
+
+## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+
+> 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。**调用链终点必须是「静态产物」或「Cloudflare Worker」，不得引入后端。**
+
+| 约束 | 规则 | 自查要点 |
+|------|------|---------|
+| C-01 | 无后端 / DB / MQ / 独立测试环境 | 方案中不出现 DB、服务端接口、队列、常驻进程设计 |
+| C-02 | 代码只进 `app/src/` | 改动清单不含根 `index.html` / 旧静态文件 |
+| C-04 | Running 数据全部经 Worker 代理，白名单在 `worker.js` 的 `TRACKS_FILES` | 新数据源须进白名单，不直连公开 raw URL |
+| C-29 / C-42 | Running 数据生产链路改 `running-private` 仓库 | 数据生产类改动明确落在 `running-private`，非本仓库 |
+| C-43 | 静态站零后端运行时依赖 | 依赖清单无后端框架 |
+
+---
+
+## 1. 方案概述
+
+> 三线并行：
+① **Skills 详情透传**：SkillsPage 增 selectedDir signal + popstate/初始 pathname 读取；SkillGrid 卡片改 onClick$（openDetail(dir) + pushState）；SkillsPage 按 selectedDir 条件渲染 SkillDetail（传入 dir + onBack$=history.back()）；SkillDetail 从「读 loc.params.dir」改为「props.dir」。
+② **地图 voyager→OSM**：RK_STYLES 明亮档 URL 切 tile.openstreetmap.org（z19 免 key）；注释更新。
+③ **回放诊断修复**：先受控浏览器实测 rk-act-modal 打开形态（弹窗是否出现、canvas 是否绘制、瓦片底图有无），对照旧 js/running.js 468-765 行（rkActReplay：离屏瓦片 canvas + Web Mercator 投影轨迹 + 8s 循环 + HUD）逐项补齐 lib/running.ts 移植缺口。诊断结论与修法记入 03-implement。
+
+## 2. 改动文件清单
+
+| 文件 | 改动类型 | 说明 |
+|------|---------|------|
+| app/src/components/skills/SkillsPage.tsx | 修改 | selectedDir 透传 + 条件渲染 SkillDetail + popstate/初始路径读取 |
+| app/src/components/skills/SkillGrid.tsx | 修改 | 卡片 Link → onClick$ 开详情（preventDefault） |
+| app/src/components/skills/SkillDetail.tsx | 修改 | dir 改 props 传入；返回键走 onBack$ |
+| app/src/lib/running.ts | 修改 | RK_STYLES 明亮档 OSM；回放缺口按诊断修 |
+| app/src/components/running/RunningPage.tsx | 修改 | 回放相关（按诊断结论） |
+
+> **原则**：每行对应一个文件，不要把多个文件合并。新增文件要写明所在目录。
+
+## 3. 影响范围
+
+| 维度 | 影响 |
+|------|------|
+| 接口 / 路由 |  |
+| 模块 / 组件 |  |
+| 配置（vite / global.css / DESIGN.md 变量） |  |
+| 协议兼容（Toolbox·JSON 数据格式、Worker URL 契约） |  |
+| 上下游服务（Cloudflare Worker / running-private 私库） |  |
+| 静态产物（app/dist 体积 / 404 fallback） |  |
+
+> ⚠️ **DB schema**：本项目无数据库，本行固定标记「无（跳过）」。若改动涉及 Worker 侧数据契约，改 `running-private` 仓库并只在「上下游服务」行说明，不在本节造 DB 概念。
+
+## 4. 调用链
+
+```
+<入口（路由 / 组件 / 事件）>
+  → <层 1：lib 纯函数 / 服务>
+    → <层 2：数据获取 / 渲染>
+      → <静态产物 / 外部资源（Worker / Pages）>
+```
+
+> 标出**新增**或**修改**的节点，与原链路的差异用注释说明。
+> 静态站的典型终点不是「写库」，而是「产出 `app/dist` 静态文件」或「调用 Worker 外部资源」；若有服务端副作用（如 Running 数据写入），终点在 `running-private` 仓库，本仓库只消费。
+
+## 5. 数据结构变更
+
+### 5.1 内部 DataType / Schema（TS 类型 / 组件 props）
+
+| 类型 | 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|------|
+|  |  |  |  |  |
+
+> 仅当新增/修改 `app/src/lib/**` 的 TS 类型或组件 props 时填写；纯样式改动可跳过。
+
+### 5.2 持久化 / 外部数据结构（无后端 DB 时跳过）
+
+| 结构 | 变更 | 兼容性 | 回滚方式 |
+|------|------|--------|---------|
+|  |  |  |  |
+
+> ⚠️ **本项目固定跳过**：静态站无本地 DB。仅当改动涉及 Worker 数据契约（`worker.js` 白名单 / `running-private` 产物 schema）时在此说明，且回滚方式指向 `git revert` 对应仓库提交，而非 `ALTER TABLE`。
+> 持久化结构变更若需文档化，同步到 `.harness/docs/` 对应规范（如 coding-style / architecture），**不引入 `sqls/` 目录**。
+
+### 5.3 协议 / 接口契约（Worker URL / Toolbox JSON 格式）
+
+| 接口 | 新增字段 | 必填 | 兼容性 |
+|------|---------|------|-------|
+|  |  |  |  |
+
+> **兼容性检查**：新增字段是否可选？旧客户端（已发布的静态页）是否仍能正常工作？Toolbox·JSON 的工具输出格式改动须保证向后兼容。
+
+## 6. UT 用例设计（TDD 必填，先于 Implement）
+
+> **硬要求**：本节必须先于 Step 3 落地；Implement 阶段按 Red → Green → Refactor 推进，**禁止**"先写代码再补 UT"。
+> 设计目标：每个核心函数 / 关键分支至少一个 UT；UT 全 Mock 验证函数级，IT 走真实链路验证调用链，**两者不重复测同一层**（详见 `04-ut.md` §0.5）。
+
+| # | 被测对象 | 测试文件 | 类型 | 输入 | 期望输出 | Mock 边界 |
+|---|---------|---------|------|------|---------|-----------|
+| 1 | 路径参数提取（pathname → dir） | running.test.ts / 新 helper | 正向+逆向 | `/skills/fav-x`、`/skills/`、`/` | `fav-x` / 空 / 空 | 无（纯函数） |
+| 2 | RK_STYLES 明亮档 | running.test.ts | 正向 | 样式表 | voyager → OSM URL | 无 |
+| 3 | rkActReplay | 浏览器 IT | 端到端 | 真实回放 | 弹窗大屏 + 瓦片 + 轨迹动画 | 浏览器实测 |
+
+> **硬要求**：至少覆盖 **正向 + 逆向 + 边界** 三类；写操作必加**幂等类**；调用外部依赖（Worker / running-private）的函数必加**异常类**。
+> 「Mock 边界」必须显式声明本用例 Mock 了哪些依赖，避免 UT 退化成隐式 IT。
+> Implement 阶段若发现 UT 设计缺口，**必须回到本节补充**并重新进入 Red → Green，禁止"先把代码写完再补 UT"。
+
+## 7. IT 用例设计（Playwright 页面自动化）
+
+| # | 场景 | 类型 | 前置条件 | 执行步骤 | 预期结果 |
+|---|------|------|---------|---------|---------|
+| 1 | 卡片点击开详情（含文件树/SKILL.md） | 正向 | 线上 Skills 页 | 点卡片 | URL=/skills/<dir> 且详情渲染 |
+| 2 | 返回键回列表 | 正向 | 详情打开 | 点返回 | 回列表 |
+| 3 | 浏览器后退 | 正向 | 详情打开 | 后退 | 回列表且 URL 同步 |
+| 4 | 明亮档地图 OSM 瓦片 | 正向 | Running 页 | 开回放 | 瓦片来自 OSM 无 api key 错误 |
+| 5 | 回放大屏（canvas 动画 + HUD） | 正向 | 点活动卡片 | 弹窗打开 | 大屏弹窗渲染轨迹动画 |
+| 6 | 深链 /skills/<dir>（已知基线缺口） | 逆向 | — | 直连 | 仍 404（404 壳增强另立任务，不劣化） |
+
+> **硬要求**：至少覆盖 正向 + 逆向 + 边界 三类；涉及外部调用（Worker）须加 异常类；写操作须加 幂等类。
+> IT 走真实静态服务（python3 http.server）服务 `app/dist`（或 `BASE_URL=https://guoxin.space` 跑线上复验），由 Playwright 断言关键 DOM / 交互，失败自动截图 + trace。详见 `06-it.md`。
+
+## 8. 风险与兜底
+
+| 风险 | 触发条件 | 影响 | 缓解 | 回滚方案 |
+|------|---------|------|------|---------|
+|  |  |  |  |  |
+
+> 静态站回滚首选 `git revert` + 重推 `main` 触发 Pages 重新构建；Worker 侧回滚在 `worker.js` 仓库处理。
+
+## 9. 工时估算
+
+| 阶段 | 工时 | 备注 |
+|------|------|------|
+| Implement |  | 含 TDD 写测试时间 |
+| UT |  | 含红绿循环 + 覆盖率达标 |
+| Deploy + IT |  |  |
+| Docs + Review |  |  |
+| **预估代码改动行数** | **~150** | **不含测试 / 文档；≤ 10 时把 `00-overview.md` Meta `小需求模式` 设为 ✅** |
+
+---
+
+## 决策框架
+
+1. **先画图**：调用链、数据流、状态机，能画成图的不要用文字。
+2. **找相似**：先看项目内有没有类似接口 / 模块，复用已有模式优于新造。
+3. **最小改动**：能改一个文件解决，就不要改两个。
+4. **边界优先**：先列出所有边界 / 异常场景，再想正向路径。
+
+## 反例
+
+❌ **改动清单过粗** → 逐文件列出（`app/src/components/json/Formatter.tsx` 新增格式化分支、`app/src/lib/json/ops.ts` 新增 `mergeObjects` 函数），不要"改造 JSON 工具模块"。
+❌ **IT 用例只有正向** → 至少 正向 / 逆向 / 边界 三类；写操作加幂等，外部依赖加异常。
+❌ **静态站造 DB 概念** → 本项目无 DB，不要写「加字段 / `ALTER TABLE` / 迁移脚本」；持久化变更回滚一律走 `git revert`，不在 Plan 里设计 SQL 迁移。
+
+## 完成标志
+
+- [ ] 改动文件清单完整，每文件有说明
+- [ ] 调用链清晰（推荐配图），终点指向静态产物 / 外部资源
+- [ ] 数据结构变更含回滚方式（无 DB 时标注跳过）
+- [ ] **UT 用例已设计**（§6），覆盖正向 / 逆向 / 边界，写操作含幂等，外部依赖含异常；Mock 边界已显式声明
+- [ ] IT 用例覆盖 正向 / 逆向 / 边界，必要时加异常与幂等
+- [ ] 风险表有缓解与回滚
+- [ ] `00-overview.md` Progress / 当前步骤 / 时间记录已同步
+- [ ] 已与用户完成结束确认

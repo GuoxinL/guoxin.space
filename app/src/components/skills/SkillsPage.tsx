@@ -1,6 +1,7 @@
 import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik';
 import type { SkCfg, SkillMeta, SkStatus } from '../../types/skills';
-import { loadSkCfg, fetchSkills, skRepoFull } from '../../lib/skills';
+import { loadSkCfg, fetchSkills, skRepoFull, skDirFromPath } from '../../lib/skills';
+import { SkillDetail } from './SkillDetail';
 import { SkillGrid } from './SkillGrid';
 import { ChannelSettings } from './ChannelSettings';
 import { CollectModal } from './CollectModal';
@@ -14,6 +15,22 @@ export const SkillsPage = component$(() => {
   const cfg = useSignal<SkCfg | null>(null);
   const showCfg = useSignal(false);
   const showCollect = useSignal(false);
+  // 详情透传：不走 Qwik City 路由（GitHub Pages 对 /skills/<dir> 的 q-data 返回 404 会中止 SPA 导航），
+  // 改为组件状态 + history.pushState 透传 URL；popstate/初始 pathname 负责后退与恢复。
+  const selectedDir = useSignal(''); // SSG 阶段无 location，初始 ''；客户端在 useVisibleTask$ 从 pathname 恢复
+
+  const openDetail = $((dir: string) => {
+    selectedDir.value = dir;
+    history.pushState({ skDetail: dir }, '', '/skills/' + encodeURIComponent(dir));
+  });
+  const closeDetail = $(() => {
+    if (history.state && history.state.skDetail) {
+      history.back(); // popstate 统一处理回列表
+    } else {
+      history.pushState(null, '', '/skills');
+      selectedDir.value = '';
+    }
+  });
 
   const reload = $(async () => {
     const c = loadSkCfg();
@@ -48,50 +65,61 @@ export const SkillsPage = component$(() => {
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
     reload();
+    // 详情透传：初始从 pathname 恢复（配合 404 壳可实现刷新/深链），popstate 同步后退/前进
+    selectedDir.value = skDirFromPath(location.pathname);
+    const onPop = () => (selectedDir.value = skDirFromPath(location.pathname));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   });
 
   return (
     <section class="sk-page">
-      <div class="sk-head">
-        <div>
-          <h1 class="sk-title">Skills</h1>
-          <div class="sk-status">
-            <span class={'dot ' + status.value.kind}></span>
-            <span>{status.value.msg}</span>
+      {selectedDir.value ? (
+        <SkillDetail key={selectedDir.value} dir={selectedDir.value} onBack$={closeDetail} />
+      ) : (
+        <>
+          <div class="sk-head">
+            <div>
+              <h1 class="sk-title">Skills</h1>
+              <div class="sk-status">
+                <span class={'dot ' + status.value.kind}></span>
+                <span>{status.value.msg}</span>
+              </div>
+            </div>
+            <div class="sk-actions">
+              <button class="btn" onClick$={() => (showCollect.value = true)}>
+                收藏 Skill
+              </button>
+              <button class="btn" onClick$={() => (showCfg.value = true)}>
+                通道设置
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="sk-actions">
-          <button class="btn" onClick$={() => (showCollect.value = true)}>
-            收藏 Skill
-          </button>
-          <button class="btn" onClick$={() => (showCfg.value = true)}>
-            通道设置
-          </button>
-        </div>
-      </div>
 
-      <SkillGrid rows={rows.value} toast={toast} />
+          <SkillGrid rows={rows.value} toast={toast} openDetail$={openDetail} />
 
-      {showCfg.value && (
-        <ChannelSettings
-          cfg={cfg.value}
-          toast={toast}
-          onClose$={() => (showCfg.value = false)}
-          onSaved$={() => {
-            showCfg.value = false;
-            reload();
-          }}
-        />
-      )}
-      {showCollect.value && (
-        <CollectModal
-          toast={toast}
-          onClose$={() => (showCollect.value = false)}
-          onDone$={() => {
-            showCollect.value = false;
-            reload();
-          }}
-        />
+          {showCfg.value && (
+            <ChannelSettings
+              cfg={cfg.value}
+              toast={toast}
+              onClose$={() => (showCfg.value = false)}
+              onSaved$={() => {
+                showCfg.value = false;
+                reload();
+              }}
+            />
+          )}
+          {showCollect.value && (
+            <CollectModal
+              toast={toast}
+              onClose$={() => (showCollect.value = false)}
+              onDone$={() => {
+                showCollect.value = false;
+                reload();
+              }}
+            />
+          )}
+        </>
       )}
       <Toast msg={toast} />
     </section>

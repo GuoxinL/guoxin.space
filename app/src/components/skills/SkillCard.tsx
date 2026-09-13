@@ -1,5 +1,4 @@
-import { component$, $, type Signal } from '@builder.io/qwik';
-import { Link } from '@builder.io/qwik-city';
+import { component$, $, type QRL, type Signal } from '@builder.io/qwik';
 import type { SkillMeta } from '../../types/skills';
 import { skInstallCmd } from '../../lib/skills';
 import { copyText } from '../../lib/clipboard';
@@ -13,7 +12,11 @@ const DL_ICON = (
 );
 
 /** 技能卡片：点击进入详情；右上角下载按钮复制「应用到 Agent」安装命令。 */
-export const SkillCard = component$<{ row: SkillMeta; toast: Signal<string> }>(({ row, toast }) => {
+export const SkillCard = component$<{
+  row: SkillMeta;
+  toast: Signal<string>;
+  openDetail$: QRL<(dir: string) => void>;
+}>(({ row, toast, openDetail$ }) => {
   const badge =
     row.mode === 'mirror' ? (
       <span class="sk-badge mirror">镜像</span>
@@ -39,7 +42,15 @@ export const SkillCard = component$<{ row: SkillMeta; toast: Signal<string> }>((
       >
         {DL_ICON}
       </button>
-      <Link href={'/skills/' + encodeURIComponent(row.dir)} class="sk-card">
+      {/* 详情透传：preventDefault 后由组件状态渲染详情（原生 href 保留给中键/新标签） */}
+      <a
+        href={'/skills/' + encodeURIComponent(row.dir)}
+        class="sk-card"
+        onClick$={(e) => {
+          e.preventDefault();
+          openDetail$(row.dir);
+        }}
+      >
         <div class="sk-icon">
           <img src={row.icon || ''} alt="" onError$={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
         </div>
@@ -51,7 +62,7 @@ export const SkillCard = component$<{ row: SkillMeta; toast: Signal<string> }>((
           <div class="sk-desc">{row.description || '（无简介）'}</div>
           <div class="sk-src">{src}</div>
         </div>
-      </Link>
+      </a>
     </div>
   );
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  skDirFromPath,
   skParseFrontmatter,
   skMdRender,
   skRepoFull,
@@ -10,6 +11,20 @@ import {
 import type { SkCfg } from '../types/skills';
 
 const cfg = (repo: string): SkCfg => ({ repo, branch: 'main', worker: '' });
+
+describe('skDirFromPath（pushState 透传）', () => {
+  it('详情路径提取 dir', () => {
+    expect(skDirFromPath('/skills/fav-brainstorming')).toBe('fav-brainstorming');
+  });
+  it('编码中文目录解码', () => {
+    expect(skDirFromPath('/skills/' + encodeURIComponent('中文名'))).toBe('中文名');
+  });
+  it('列表路径 / 其他 → 空串', () => {
+    expect(skDirFromPath('/skills/')).toBe('');
+    expect(skDirFromPath('/')).toBe('');
+    expect(skDirFromPath('/toolbox/json')).toBe('');
+  });
+});
 
 describe('skParseFrontmatter', () => {
   it('parses name/description/mode/source/sourceOwner', () => {

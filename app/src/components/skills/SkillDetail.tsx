@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik';
+import { component$, useSignal, useVisibleTask$, $, type QRL } from '@builder.io/qwik';
 import type { GitTreeEntry, SkillMeta, SkStatus } from '../../types/skills';
 import {
   loadSkCfg,
@@ -12,17 +12,13 @@ import {
 } from '../../lib/skills';
 import { getAuthToken, isAdmin } from '../../lib/auth';
 import { copyText } from '../../lib/clipboard';
-import { Link } from '@builder.io/qwik-city';
-import { useLocation, useNavigate } from '@builder.io/qwik-city';
 import { FileTree } from './FileTree';
 import { Markdown } from './Markdown';
 import { Toast } from './Toast';
 
-/** Skills 详情页：SKILL.md 渲染 + 文件树 + 收藏/删除/同步（admin，走 Worker）。 */
-export const SkillDetail = component$(() => {
-  const loc = useLocation();
-  const nav = useNavigate();
-  const dir = (loc.params.dir || '').toString();
+/** Skills 详情页：SKILL.md 渲染 + 文件树 + 收藏/删除/同步（admin，走 Worker）。
+ *  dir 由 SkillsPage 的详情透传传入（不走 Qwik City 路由，见 SkillsPage 说明）。 */
+export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>(({ dir, onBack$ }) => {
 
   const meta = useSignal<SkillMeta | null>(null);
   const tree = useSignal<GitTreeEntry[]>([]);
@@ -107,7 +103,7 @@ export const SkillDetail = component$(() => {
       const { ok, data } = await removeSkill(worker, tok, dir);
       if (ok && data.ok) {
         toast.value = '已删除 ' + (data.removed ?? dir) + ' 个文件';
-        nav('/skills');
+        onBack$();
       } else {
         toast.value = '删除失败：' + (data.error || 'HTTP ' + (data.status || ''));
       }
@@ -163,9 +159,9 @@ export const SkillDetail = component$(() => {
   return (
     <section class="sk-page">
       <div class="sk-back">
-        <Link href="/skills" class="btn ghost">
+        <button type="button" class="btn ghost" onClick$={onBack$}>
           ← 返回列表
-        </Link>
+        </button>
       </div>
 
       <div class="sk-detail">

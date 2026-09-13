@@ -15,10 +15,12 @@ const RK_CACHE = 'wb_rk_acts_v3';
 const RK_CACHE_RIDES = 'wb_rk_rides_full';
 // 瓦片源：CARTO basemaps 自 2026-09 起要求 api key（无 key 返回「api key required」错误图），
 // 切换为 Esri 免 key 栅格瓦片（注意 Esri 路径为 {z}/{y}/{x} 顺序）。Esri 灰系最深层级 ~16，
-// 更深缩放瓦片 404 时回退样式底色。CARTO 方案可凭免费 key 随时切回（申请与配置步骤见 docs/third-party/carto-basemaps.md）。
+// 更深缩放瓦片 404 时回退样式底色。明亮档 OSM 官方瓦片 z19（使用政策要求地图保留
+// © OpenStreetMap contributors 署名，见 rk-tm-attr）；CARTO 可凭免费 key 切回
+// （申请与配置步骤见 docs/third-party/carto-basemaps.md）。
 const RK_STYLES = [
   { k: 'light', n: '浅色', bg: '#e9e5dd', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}' },
-  { k: 'voyager', n: '明亮', bg: '#e9e5dd', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}' },
+  { k: 'voyager', n: '明亮', bg: '#e9e5dd', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { k: 'dark', n: '暗色', bg: '#1a2234', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' },
 ];
 const RK_STYLE_KEY = 'wb_run_map_style';
@@ -1194,7 +1196,7 @@ function rkMapInit(
   };
   container.addEventListener('mousedown', (e) => {
     const tgt = e.target as HTMLElement;
-    if (tgt && tgt.className === 'rk-tm-btn') return;
+    if (tgt && tgt.closest && tgt.closest('.rk-tm-btn')) return;
     if (zanim || zsettleTimer) settleZoom();
     drag = { sx: e.clientX, sy: e.clientY, mx: e.clientX, my: e.clientY, cx: S.cx, cy: S.cy, raf: 0 };
     container.style.cursor = 'grabbing';
@@ -1206,7 +1208,7 @@ function rkMapInit(
     'touchstart',
     (e) => {
       const tgt = e.target as HTMLElement;
-      if (e.touches.length === 1 && !(tgt && tgt.className === 'rk-tm-btn')) {
+      if (e.touches.length === 1 && !(tgt && tgt.closest && tgt.closest('.rk-tm-btn'))) {
         if (zanim || zsettleTimer) settleZoom();
         const t = e.touches[0];
         drag = { sx: t.clientX, sy: t.clientY, mx: t.clientX, my: t.clientY, cx: S.cx, cy: S.cy, raf: 0 };
@@ -1260,8 +1262,9 @@ function rkMapInit(
     zoomBy(1, e.clientX - r.left, e.clientY - r.top);
   });
   container.addEventListener('click', (e) => {
-    const btn = e.target as HTMLElement;
-    if (!btn || btn.className !== 'rk-tm-btn') return;
+    /* closest：点击落在按钮内层 SVG 上时 className 全等匹配会漏判（svg 的 className 非字符串） */
+    const btn = (e.target as HTMLElement).closest('.rk-tm-btn') as HTMLElement | null;
+    if (!btn || !container.contains(btn)) return;
     const c = container.querySelectorAll('.rk-tm-btn');
     const idx = Array.prototype.indexOf.call(c, btn);
     if (idx === 0) {
