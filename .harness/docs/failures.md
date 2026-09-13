@@ -179,6 +179,16 @@
 - **参考**：`MEMORY.md:44-47`；`AGENTS.md:146`
 
 <!-- 新增条目追加在最上方，倒序排列 -->
+### 2026-09-13：main 上沉积 88 个 lint + 3 个 tsc 错误（CI 未接 lint/type-check 门禁）
+
+- **上下文**：admin 权限加固任务本地跑 C-48 四项门禁时发现；`git stash` 基线核对确认 100% 为既有债务，本任务净增 0。
+- **根因**：deploy.yml 门禁只有 build/vitest/e2e，**没有 lint 与 type-check**；测试文件与多个生产组件的 `no-explicit-any`、隐式 unknown 自迁移期沉积。
+- **临时绕过**：本任务以「净增 0 + 债务登记」放行；明细：lint 88（8 个组件/库文件，`no-explicit-any` 为主）、tsc 3（RunningPage.test.tsx stats/pb unknown + 隐式 any 返回）。
+- **根治方案**：独立任务清偿债务后，在 deploy.yml build job 增加 `pnpm lint` + `pnpm type-check`（顺序：先清债再接门禁，否则 CI 立即全红）。
+- **沉淀去向**：待办 → 独立任务「lint/type-check 债务清偿 + CI 门禁补齐」
+- **参考**：commit 2cc0a7e（新 SOP 首个 main 直做任务）执行 C-48 时发现
+
+
 
 ## 已归档（已沉淀为规约）
 

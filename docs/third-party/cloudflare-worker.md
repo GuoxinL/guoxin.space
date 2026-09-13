@@ -32,6 +32,8 @@
 | `GITHUB_CLIENT_SECRET` | ✅ | GitHub OAuth App 的 Client Secret |
 | `ADMIN_LOGIN` | ✅ | 站长 GitHub 用户名（admin 判定 = 登录 `login` 与之相等） |
 | `AUTH_SECRET` | ✅ | HMAC 签名密钥（`openssl rand -base64 32` 生成） |
+| `AUTH_SECRET_PREV` | ❌ | 轮换宽限：换新 SECRET 时把旧值放这里，旧 token ≤24h 内仍可验（runbook 见「八、权限模型」） |
+| `SERVERCHAN_SENDKEY` | ❌ | 写操作审计：collect/remove/sync 成功后 Server酱推微信（与 GitHub Actions 同名 Secret 同值） |
 | `TRACKS_REPO` | ✅ | 轨迹私有仓库，形如 `GuoxinL/running-private` |
 | `REDIRECT_URL` | ❌ | 登录回跳地址，默认 `https://guoxin.space` |
 
@@ -169,7 +171,8 @@ curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rid
 | 页面登录 token 泄露会怎样？ | 只有有效期、只对本站 Worker 有效，过期即失效；可手动清除 localStorage 登出 |
 | 别人能乱调 Worker 吗？ | 写通道与完整轨迹必须 Bearer token 且 `login === ADMIN_LOGIN`，未登录一律 401 |
 | 完整轨迹安全吗？ | 轨迹仓库为**私有仓库**，公开 raw 无直连路径，仅 Worker 白名单代理 `rides.full.json`（需登录） |
-| 想撤销能力？ | 删除 Worker / 吊销 PAT / 换 `AUTH_SECRET` 即刻生效，页面只剩只读列表 |
+| 想撤销能力？ | 删除 Worker / 吊销 PAT / 换 `AUTH_SECRET` 即刻生效（配 `AUTH_SECRET_PREV` 则旧 token 有 ≤24h 宽限，见「八、权限模型」），页面只剩只读列表 |
+| admin 写操作有审计吗？ | ✅ collect/remove/sync 成功后 Server酱推微信（需配 `SERVERCHAN_SENDKEY`），非本人操作的写入当场可见 |
 
 ## 六、页面功能对照
 
@@ -180,6 +183,29 @@ curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rid
 | Running 完整骑行轨迹 | Worker `/api/tracks/raw?f=rides.full.json` | 需登录，显示「完整轨迹」徽标 |
 | 收藏（引用 / 深度镜像） | Worker `/api/collect` | 需登录 GitHub（admin-only 按钮） |
 | 删除 / 同步 | Worker `/api/remove` / `/api/sync` | 需登录 GitHub |
+
+## 八、权限模型（游客 / admin）
+
+> 2026-09-13 细化落地。原则：敏感度由数据生产端脱敏承担（preview 系列即掐头去尾产物），Worker 只做准入。
+
+### 能力矩阵
+
+| 端点 / 资源 | 游客 | admin | 准入机制 |
+|---|:---:|:---:|---|
+| `/api/health`、`/api/auth/*` | ✅ | ✅ | 公开 |
+| `/api/tracks/raw` → `preview.*` / `previews/*` / `thumb/*` | ✅ | ✅ | 白名单精确匹配 + run_id 纯数字 |
+| `/api/tracks/raw` → `rides.full.json` | ❌ | ✅ | Bearer + `login===ADMIN_LOGIN` |
+| `POST /api/collect` / `/api/remove` / `/api/sync` | ❌ | ✅ | Bearer；remove 仅 `fav-*`/`my-*` 前缀 |
+
+### 认证流程与细化
+
+- 登录：GitHub OAuth（scope=`read:user`）→ callback 校验 `login===ADMIN_LOGIN` → 签 `base64url(payload).HMAC_SHA256(payload, secret)`，payload=`{login, iat, exp=iat+7d}` → **302 回站 `/#auth=<token>`（fragment，不进服务端日志；前端消费后 replaceState 清地址栏）**。
+- 验签：按 `[AUTH_SECRET, AUTH_SECRET_PREV]` 顺序回退——**轮换 runbook**：
+  1. `wrangler secret put AUTH_SECRET_PREV` ← 旧值
+  2. `wrangler secret put AUTH_SECRET` ← 新值（新登录立即用新值，旧 token ≤24h 内仍可用）
+  3. ≥24h 后 `wrangler secret delete AUTH_SECRET_PREV`
+- 审计：写端点 2xx 后 `ctx.waitUntil` 推 Server酱（未配 Key 静默跳过）。
+- 信任根：GitHub 账号本身——**站长账号必须开启 2FA**。
 
 ## 七、本地单测（可选）
 

@@ -22,16 +22,21 @@
 
 > 逐文件记录**关键**实现细节。不要复制代码；只写**为什么这么写**、**踩过什么坑**、**特殊处理**。
 
-### 1.1 `<文件路径>`
+### 1.1 `worker.js`
 
-- 关键逻辑：
-- 特殊处理：
-- 兼容性考虑：
-- 引用 / 参考：
+- 关键逻辑：verifyToken(token, env) 遍历 [AUTH_SECRET, AUTH_SECRET_PREV] 验签回退（签发恒用新值）；notifyAdmin 走 ctx.waitUntil + catch 静默；callback 302 改 `/#auth=`；fetch 签名补 ctx。
+- 特殊处理：验签循环中「签名命中但 payload 过期」直接 return null（不再尝试下一个 key）；审计 detail 只放目录名/URL，不含 body 全文。
+- 兼容性考虑：AUTH_SECRET_PREV / SERVERCHAN_SENDKEY 均可选，未配置时行为与旧版逐字节一致；前端 parseAuthRedirect 双读保证部署顺序无关。
 
-### 1.2 `<文件路径>`
+### 1.2 `app/src/lib/auth.ts`
 
-<!-- 重复 -->
+- 关键逻辑：parseAuthRedirect(hash, search) 纯函数（hash 正则 `^#auth=([^&]*)$` 优先，query 正则 `[?&]auth=([^&]*)` 兼容）；authInit 改用之，replaceState 按来源清理对应 URL 段（hash 来源清 hash、query 来源清 search）。
+- 兼容性考虑：旧 Worker（发 ?auth=）与新前端共存正常——双读兜底；SSR 守卫保持不变。
+
+### 1.3 `app/src/lib/skills.ts`
+
+- 关键逻辑：mdSafeUrl(u, allowDataImage) 白名单（https?/mailto/#/相对路径；img 额外放行 data:image/）；inline() 两条正则从字符串插值改为函数式替换，使 url 可进白名单函数。
+- 特殊处理：url 在替换前已经过 esc()（引号已被转义，无法逃出属性），白名单只负责协议层。
 
 ## 2. 与 Plan 的差异
 
@@ -39,7 +44,8 @@
 
 | # | 偏离项 | 原因 | 已同步更新 02-plan.md |
 |---|--------|------|------------------|
-|  |  |  | ⬜ 是 |
+| 1 | 门禁暴露既有债务（lint 88 / tsc 3） | CI 未接 lint/type-check，非本任务引入（stash 基线相等） | ✅ 是（failures.md 登记 → 独立任务） |
+| 2 | 无 Worker 单测基建 | test-worker.mjs 历史副本已删 | ✅ 是（PREV/审计以 06 手动清单验证） |
 
 ## 3. 代码自检清单
 
@@ -79,10 +85,10 @@ npm run test        # vitest（改 lib 必跑）
 
 | 检查项 | 结果 | 备注 |
 |--------|------|------|
-| Lint | ⬜ 通过 / 失败 |  |
-| Format | ⬜ 通过 / 失败 |  |
-| 类型检查 | ⬜ 通过 / 失败 |  |
-| 单测 | ⬜ 通过 / 失败 |  |
+| Lint | ❌ 既有债务 88（本任务净增 0，stash 基线相等） | 债务登记 failures.md → 独立任务 |
+| Format | ✅ 通过 |  |
+| 类型检查 | ❌ 既有债务 3（RunningPage.test.tsx） | 同上 |
+| 单测 | ✅ 143/143 | 含新增 7 例 |
 
 ---
 

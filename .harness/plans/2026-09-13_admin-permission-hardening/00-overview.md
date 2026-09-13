@@ -34,7 +34,7 @@
 | 任务目录 | `YYYY-MM-DD_<title>`（即本目录名） |
 | Issue | — |
 | 摘要 | admin 权限细化：链接协议白名单 / AUTH_SECRET 轮换宽限 / 写操作审计 / fragment 传 token |
-| 状态 | 🔵 进行中 |
+| 状态 | ✅ 已完成 |
 | 创建日期 | 2026-09-13 |
 | 负责人 | guoxin |
 | 预期完成 | 2026-09-13 |
@@ -60,14 +60,14 @@ Progress 更新规则（AI 必读）：
 -->
 <!-- TEMPLATE-ONLY-DO-NOT-COPY: ↑↑↑ -->
 
-- [ ] 01. Clarify    → [01-clarify.md](./01-clarify.md)
-- [ ] 02. Plan       → [02-plan.md](./02-plan.md)
-- [ ] 03. Implement  → [03-implement.md](./03-implement.md)
-- [ ] 04. UT         → [04-ut.md](./04-ut.md)
-- [ ] 05. Deploy     → [05-deploy.md](./05-deploy.md)
-- [ ] 06. IT         → [06-it.md](./06-it.md)
-- [ ] 07. Docs       → [07-docs.md](./07-docs.md)
-- [ ] 08. Review     → [08-review.md](./08-review.md)
+- [x] 01. Clarify    → [01-clarify.md](./01-clarify.md)（4 项代码改动 + 2FA + 文档；state 回比评估不改）
+- [x] 02. Plan       → [02-plan.md](./02-plan.md)（UT 9 例；预估 ~120 行）
+- [x] 03. Implement  → [03-implement.md](./03-implement.md)（TDD Red 6 failed → 实现）
+- [x] 04. UT         → [04-ut.md](./04-ut.md)（143/143 全绿）
+- [x] 05. Deploy     → [05-deploy.md](./05-deploy.md)（代码 commit ab68009，CI 绿 1m04s，边界点 A）
+- [x] 06. IT         → [06-it.md](./06-it.md)（e2e 5/5；Worker 部署与 fragment 登录验证为用户手动清单）
+- [x] 07. Docs       → [07-docs.md](./07-docs.md)（cloudflare-worker 权限模型节 / AUTH 注记 / coding-style / failures 债务登记）
+- [x] 08. Review     → [08-review.md](./08-review.md)（自检全绿；lint 债务书面忽略+登记；收尾 commit → 边界点 B）
 
 ---
 
@@ -106,14 +106,14 @@ Progress 更新规则（AI 必读）：
 
 | # | 步骤 | 开始时间 | 结束时间 | 耗时 | 备注 |
 |---|------|---------|---------|------|------|
-| 01 | Clarify    |  |  |  |  |
-| 02 | Plan       |  |  |  |  |
-| 03 | Implement  |  |  |  |  |
-| 04 | UT         |  |  |  |  |
-| 05 | Deploy     |  |  |  |  |
-| 06 | IT         |  |  |  |  |
-| 07 | Docs       |  |  |  |  |
-| 08 | Review     |  |  |  |  |
+| 01 | Clarify    | 2026-09-13 16:25:55 | 2026-09-13 16:28:48 | 2m53s |  |
+| 02 | Plan       | 2026-09-13 16:28:48 | 2026-09-13 16:30:57 | 2m09s |  |
+| 03 | Implement  | 2026-09-13 16:30:57 | 2026-09-13 16:33:45 | 2m48s | TDD：先测试后实现，Red 6 failed |
+| 04 | UT         | 2026-09-13 16:33:45 | 2026-09-13 16:35:01 | 1m16s | 另含既有债务基线核对 ~3m |
+| 05 | Deploy     | 2026-09-13 16:39:50 | 2026-09-13 16:41:01 | 1m11s | 起止取 git commit / CI 完成时刻 |
+| 06 | IT         | 2026-09-13 16:41:44 | 2026-09-13 16:43:01 | 1m17s | Worker 手动部署为用户动作（清单见 06-it.md） |
+| 07 | Docs       | 2026-09-13 16:40:53 | 2026-09-13 16:41:33 | 40s | 与 05 的 CI 并行执行 |
+| 08 | Review     | 2026-09-13 16:43:01 | 2026-09-13 16:44:30 | 1m29s | 收尾 commit 见 08-review.md §6 |
 
 ---
 
@@ -122,7 +122,9 @@ Progress 更新规则（AI 必读）：
 > **跨阶段共享的关键上下文**。仅记录影响后续步骤的决策，避免恢复时还要翻阅历史阶段文件。
 > 填写建议：接口命名最终选型、DataType 字段设计、兼容性约束、与其它模块的约定、跳过的步骤及原因等。
 
--
+- 用户在会话中以「SOP 全做」一次性授权全流程（标准模式各步骤的开始/结束确认以该指令与最终汇报为准）。
+- 关键决策：P3（fragment 传 token）经重读 auth.ts:173 修正评估后降级为「加固」，用户确认仍执行；OAuth state 回比校验评估后不改（单 admin 使 login CSRF 无收益，记录备查）。
+- 本地 vitest prepare 本次 ~1s（failures.md 既有记录 617s 未复现，疑与依赖重装有关，观察）。
 
 ---
 

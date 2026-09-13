@@ -110,6 +110,7 @@
 
 - **【禁止】** 硬编码 AK/SK、密码、Token、内部 IP；敏感配置经 CI Secret 注入。
 - **【必须】** 外部输入白名单校验（类型、长度、范围、格式）；HTML 输出对第三方数据编码。
+- **【必须】** markdown/富文本渲染产出的 `href`/`src` 必须协议白名单（`https?:`/`mailto:`/`#`/相对路径；`javascript:`、`data:text/html` 等一律降级），防点击型 XSS。
 - **【禁止】** `Math.random()` 用于安全场景；需用 CSPRNG（`crypto.getRandomValues`）。
 - **【必须】** 加密/签名用标准库（Web Crypto），禁止自研算法。
 
