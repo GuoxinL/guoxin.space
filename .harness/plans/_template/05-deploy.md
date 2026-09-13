@@ -1,18 +1,18 @@
 # 05. Deploy（提交 + 部署）
 
-> **目的**：完成本任务**唯一的一次 commit**，推送 `main` 触发 GitHub Pages 自动构建部署，使改动上线。
+> **目的**：完成本任务的**代码 commit**，推送 `main` 触发 GitHub Pages 自动构建部署，使改动上线（SOP 在 main 上直接进行，不拉任务分支）。
 > **输入**：Step 4 UT 通过 + 本地 `npm run build && npm run test:e2e` 通过的代码
-> **输出**：线上 `https://guoxin.space` 已更新 + 本任务唯一 commit 已入库（**边界点 A**）
+> **输出**：线上 `https://guoxin.space` 已更新 + 代码 commit 已入库（**边界点 A**）
 >
 > ⚠️ 本项目**无独立测试环境**：CI（GitHub Pages）即生产环境；部署全自动——`push main` 即 `deploy.yml` 自动 build + deploy，**无需**手动 `gh workflow run deploy.yml`，也**无**「团队环境管理 Skill / 热更 / 进程重启 / 日志 tail」等后端流程。回滚见 §6。
-> ⚠️ **提交（原独立 Commit 步骤）已并入本步骤**：一个任务一个 commit 的铁律在本步骤执行；IT 失败修复的 amend 循环见 §5，收尾 amend 见 `08-review.md` §6。
+> ⚠️ **提交（原独立 Commit 步骤）已并入本步骤**：本任务「代码 commit」在此创建；IT 失败修复的 amend 循环见 §5，md 产物的收尾 commit 见 `08-review.md` §6。
 
 ## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
 
 > 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。
 - 构建：C-05（Node≥24）、C-06（safe-delete guard）、C-07（CI 不写死 pnpm version）、C-09（client→ssr 顺序）
 - 部署：C-16（push main 全自动，禁手动 gh workflow run）、C-17（Pages Source=Actions）、C-18（回滚方式）、C-19（用 gh run list 判上线）
-- 提交协作：C-44（Conventional Commits）、C-45（一个任务一个 commit / amend / `--force-with-lease`）、C-46（直推 main，无 PR 评审流）、C-47（边界点 A/B 冻结规则）、C-48（提交前四项全绿）
+- 提交协作：C-44（Conventional Commits）、C-45（代码 commit / IT 修复 amend / `--force-with-lease`）、C-46（直推 main，无 PR 评审流）、C-47（边界点 A/B 冻结规则）、C-48（提交前四项全绿）
 - 门禁：C-12（CI 双门禁已落地）
 
 ---
@@ -28,7 +28,7 @@
 
 | 项 | 值 |
 |----|----|
-| 提交 | 本任务**首次且唯一**一次 `git commit` 在本步骤完成（完成即 **边界点 A**：commit message 定稿） |
+| 提交 | 本任务的**代码 commit** 在本步骤完成（完成即 **边界点 A**：message 定稿；之后的 md 产物随 Step 8 收尾 commit 入库） |
 | commit message | Conventional Commits `<type>(<scope>): <subject>`（允许的 type 见 `code-review.md` §2；**不要求** TAPD / 外部单号脚注） |
 | 部署入口 | `git push origin main`（个人项目直推，无 MR / PR 评审流） |
 | 构建 / 上线 | `.github/workflows/deploy.yml` 自动 build（client + SSG 预渲染 4 页）+ deploy Pages |
@@ -47,7 +47,7 @@
 
 1. 写 commit message → 落「7. 本次实际 Commit」节
 2. 更新 `00-overview.md`（时间记录 05 行开始时间；Progress 稍后随产物更新）
-3. 一次性 `git add`：代码 + `plans/<task>/*.md`（含 00-overview.md 与本文件）+ `.harness/docs/**` 增量（**禁止**只 add 代码）
+3. 一次性 `git add`：代码 + `plans/<task>/*.md`（含 00-overview.md 与本文件）+ `.harness/docs/**` 增量（**禁止**只 add 代码）——此刻的 plans 产物是**快照**，之后的 md 变更随 Step 8 收尾 commit 入库
 4. `git commit`（**首次仅一次**）→ **边界点 A**：commit message 定稿，此后不再修改
 5. `git push origin main` → 触发 `deploy.yml` 自动 build + 部署
 
@@ -75,7 +75,7 @@ BASE_URL=https://guoxin.space npx playwright test
 
 > 06 IT 用例失败且定位为**代码问题**时，循环执行直到 06 全部用例通过，再进入 07 Docs：
 > ① 修复代码（必要时回 03-implement 补记偏离）→ ② amend 重推 → ③ 重新走 §4 确认部署成功 → ④ 复测 06 失败用例（必要时重跑 UT）。
-> 循环期间：**不改 commit message**（`--amend --no-edit`）；md 产物（06/07/08 + `00-overview.md` 终态）的更新**不在此循环提交**，统一随 08 Review 的收尾 amend 入库。
+> 循环期间：**不改 commit message**（`--amend --no-edit`）；md 产物（06/07/08 + `00-overview.md` 终态）的更新**不在此循环提交**，统一随 08 Review 的收尾 commit 入库。
 
 ```bash
 git add <修复的代码>
@@ -104,7 +104,7 @@ git push --force-with-lease   # ✅ 必用；禁止裸 --force
 
 ## 完成标志
 
-- [ ] 本任务唯一 commit 已创建（边界点 A）并 push `main`
+- [ ] 代码 commit 已创建（边界点 A）并 push `main`
 - [ ] deploy run 结论为 success
 - [ ] 部署结果检查项通过（含线上复验）
 - [ ] 回滚方案已知（revert / Pages 切 branch）

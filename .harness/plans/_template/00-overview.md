@@ -33,7 +33,7 @@
 > 会话恢复时，先读本文件定位当前步骤，再按需加载对应阶段文件。
 >
 > ⚠️ 本项目**不维护**全局 `.harness/plan.md`——跨任务查看请列 `.harness/plans/` 目录。
-> ⚠️ Meta 中的 `分支` 字段是上下文恢复时定位任务的唯一依据，**必须**与 `git branch --show-current` 的输出完全一致。
+> ⚠️ Meta 中的 `任务目录` 字段是上下文恢复时定位任务的唯一依据，**必须**与本目录名（`YYYY-MM-DD_<title>`）完全一致。
 
 ---
 
@@ -41,7 +41,7 @@
 
 | 项 | 值 |
 |----|----|
-| 分支 | `feature/xxx` |
+| 任务目录 | `YYYY-MM-DD_<title>`（即本目录名） |
 | Issue | `#123`（可选，GitHub Issue）|
 | 摘要 | 一句话描述 |
 | 状态 | 🟡 待开始 / 🔵 进行中 / ✅ 已完成 / ❌ 已取消 |
@@ -64,9 +64,9 @@ Progress 更新规则（AI 必读）：
 2. 禁止插入新行或重复编号，每个编号 01-09 有且仅有一行
 3. 结果摘要示例：`(15/15 passed)`、`(覆盖率 92%)`、`(已部署 dev-env)`
 4. 同步更新下方「当前步骤」章节
-5. ⚠️ 08. Review 的勾选 + Meta「状态」改 ✅ 必须在**收尾 amend**（见 `08-review.md` §6）之前完成；
-   **边界点 B（收尾冻结）之后禁止再修改本文件**——任务唯一 commit 的后续修复一律 `git commit --amend`
-   （一个任务一个 commit 铁律，**严禁**新增第二个 commit；收尾冻结后新需求另开任务）
+5. ⚠️ 08. Review 的勾选 + Meta「状态」改 ✅ 必须在**收尾 commit**（见 `08-review.md` §6）之前完成；
+   **边界点 B（收尾 commit push 完成）之后禁止再修改本文件**——再改动另开任务
+   （边界点 B 之前的代码修复走 `git commit --amend`，一个任务最多「代码 + 收尾」两个 commit）
 -->
 <!-- TEMPLATE-ONLY-DO-NOT-COPY: ↑↑↑ -->
 
@@ -156,7 +156,7 @@ Progress 更新规则（AI 必读）：
 | [02-plan.md](./02-plan.md) | 方案设计：改动文件、调用链、数据模型、IT 用例 |
 | [03-implement.md](./03-implement.md) | 实现：关键细节、与 Plan 差异、检查结果 |
 | [04-ut.md](./04-ut.md) | 单元测试：用例、覆盖率、未覆盖行 |
-| [05-deploy.md](./05-deploy.md) | 提交 + 部署：唯一 commit、push 触发部署、结果、回滚 |
+| [05-deploy.md](./05-deploy.md) | 提交 + 部署：代码 commit、push 触发部署、结果、回滚 |
 | [06-it.md](./06-it.md) | 集成测试：Playwright 页面自动化、结果、失败定位 |
 | [07-docs.md](./07-docs.md) | 文档更新清单 |
-| [08-review.md](./08-review.md) | Code Review：问题与修复、收尾 amend 与边界点 B |
+| [08-review.md](./08-review.md) | Code Review：问题与修复、收尾 commit 与边界点 B |

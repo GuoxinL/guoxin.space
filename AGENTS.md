@@ -151,7 +151,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 ### 上下文恢复（每次会话/clear/compact 必做）
 
-> 1. 读 `AGENTS.md` → 2. `git branch --show-current` → 3. 遍历 `.harness/plans/*/00-overview.md` 匹配分支 → 4. 读当前任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
+> 1. 读 `AGENTS.md` → 2. `git branch --show-current` 确认在 `main` → 3. 遍历 `.harness/plans/*/00-overview.md`，定位**状态 ≠ ✅** 的任务目录 → 4. 读该任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
 > 匹配不到 → 按「SOP 启动前置」处理。
 
 ### 任务隔离（强制）
@@ -159,21 +159,21 @@ gh run list --workflow=deploy.yml --limit 5
 > **严禁** AI 主动读取/参考**其他**任务目录 `.harness/plans/<其他任务>/` 下的任何 md。任务之间物理隔离、互为独立真相源，跨任务参考会污染设计判断。
 > **唯一例外**：用户**显式**说「参考任务 X」→ 仅读指定目录，内容只留对话上下文，**禁止**自动写回当前任务产物。
 
-### SOP 启动前置：分支与任务判断
+### SOP 启动前置：任务定位与创建
 
-> 1. `git branch --show-current` 获取分支名
-> 2. 在 `.harness/plans/` 匹配分支：
->    - **有对应任务** → 按 `00-overview.md` 继续
->    - **无 + 在 main** → 全新需求：`git checkout -b feature/<name> origin/main` → `cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` → **精简注释**（见下方 ③）→ 填 Meta → 进入入口判定
->    - **无 + 在 feature/ 分支** → 「协同开发检测」
+> **SOP 一律在 `main` 上直接进行**（不拉任务分支）；单人仓库 + 双门禁 + 微信告警 + `git revert` 秒级回滚，分支隔离为冗余仪式。
+> 1. `git branch --show-current` 确认在 `main`
+> 2. 在 `.harness/plans/` 定位任务：
+>    - **有「状态 ≠ ✅」的任务目录** → 按 `00-overview.md` 继续
+>    - **无** → 全新需求：`cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` → **精简注释**（见下方 ③）→ 填 Meta → 进入入口判定
 > 3. **复制 _template/ 后必须精简注释**（全新需求 / 协同开发通用，**AI 必执行**）：打开新建的 `plans/<task>/00-overview.md`，把所有 `<!-- TEMPLATE-ONLY-DO-NOT-COPY: -->` 标记的 HTML 注释块**整段删除**（含标记行），替换为单行指针指向 `_template/00-overview.md`；**头部 "⚠️ TEMPLATE ONLY" 段也整段删除**。SOP 规则只在 `_template/` 维护，**禁止**在每个任务文件里重复 ~30 行规则（噪音 + 版本漂移）。详见 `_template/00-overview.md` 顶部说明。
 >
-> **禁止**在 `main` 上做 SOP；一个分支只允许对应一个任务目录。
+> **一个任务目录只允许对应一个任务**；多人协作期如需分支隔离，恢复 feature 分支模式再执行 SOP。
 
 ### 协同开发检测（design.md 驱动）
 
-> 触发：当前分支非 main 且无对应任务。
-> - `.harness/design.md` 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 design.md 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同）→ 自检后删除 design.md → 从 Step 3 开始
+> 触发：用户**显式提供** `.harness/design.md`（既有设计稿驱动场景，与分支无关）。
+> - design.md 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 design.md 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同）→ 自检后删除 design.md → 从 Step 3 开始
 > - design.md 不存在 → 标准流程
 
 ### 8 步骤定义
@@ -184,14 +184,14 @@ gh run list --workflow=deploy.yml --limit 5
 | 2 | **Plan** | `02-plan.md` | 改动文件、调用链、**§6 UT 用例（TDD 必填）**、IT 用例、风险 |
 | 3 | **Implement** | `03-implement.md` | 按 Plan §6 红绿循环：先写 UT 跑红 → 最小实现转绿 → 重构 |
 | 4 | **UT** | `04-ut.md` | 用例与 Plan §6 逐条对齐、覆盖率、未覆盖行 |
-| 5 | **Deploy** | `05-deploy.md` | 本任务唯一 commit（首次仅一次，= **边界点 A**）+ push `main` 触发 GitHub Pages 自动部署；amend 修复流程定义于此 |
+| 5 | **Deploy** | `05-deploy.md` | 本任务**代码 commit**（首次仅一次，= **边界点 A**）+ push `main` 触发 GitHub Pages 自动部署；IT 修复的 amend 流程定义于此 |
 | 6 | **IT** | `06-it.md` | 每条用例贴关键 Playwright 断言 / 失败截图；失败 → 修复 → 回 05 amend 重部署，**循环直到全绿**；协同模式不跳过 |
-| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/`（md 变更随收尾 amend 入库） |
-| 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（收尾 amend → **边界点 B** 冻结） |
+| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/`（md 变更累积在工作区，随收尾 commit 入库） |
+| 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（**收尾 commit** 入库 → **边界点 B** 冻结） |
 
-> 状态机：`Deploy(提交+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾确认 = 边界点 B)`。
+> 状态机：`Deploy(代码 commit+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾 commit = 边界点 B)`。
 
-### 任务规模分支
+### 任务规模分流
 
 > **触发条件**：02 Plan 阶段估算 `预估代码改动行数 ≤ 10` 时，在 `00-overview.md` Meta 把 `小需求模式` 设为 ✅。进入 03 起按下方规则执行。
 
@@ -204,7 +204,7 @@ gh run list --workflow=deploy.yml --limit 5
 | 5 | Deploy   | 确认 | **确认**（环境敏感，必须显式确认） |
 | 6 | IT       | 确认 | **确认**（涉及真实链路 / 线上 DOM 核验，不允许跳过确认） |
 | 7 | Docs     | 确认 | **自动** |
-| 8 | Review   | 确认 | **自动**（含收尾 amend，仍按 `05-deploy.md` §2 部署前检查执行） |
+| 8 | Review   | 确认 | **自动**（含收尾 commit，仍按 `05-deploy.md` §2 部署前检查执行） |
 
 > "自动" ≠ 跳过产物：03-04 / 07-08 的 md 产物、`00-overview.md` 时间记录、Progress 勾选**仍然必须**按正常流程写完。"自动"仅指把该步骤的开始/结束两次确认合并为一次——AI 一次说完"我准备做 X-Y-Z"后开始跑，跑完一次性汇报"03-04 已完成（结论摘要）"，**中间不再打断用户**。
 >
@@ -224,15 +224,16 @@ gh run list --workflow=deploy.yml --limit 5
 > - **禁止**未经确认自动跳步；**禁止**合并开始/结束为单次提问
 > - **小需求模式例外**：03-04、07-08 的开始/结束确认可合并为单次提问（"我准备做 03-04，做完一次性汇报"），但产物文件 + 时间记录 + Progress 勾选**不豁免**
 
-### 提交规范（并入 Step 5 Deploy）
+### 提交规范（并入 Step 5 Deploy 与 Step 8 Review）
 
-> **提交（原独立 Commit 步骤）已并入 Deploy**——完整清单与流程见 `05-deploy.md`；本节只保留铁律。
+> **SOP 一律在 `main` 上直接进行**（不拉任务分支）；提交分两类，完整清单与流程见 `05-deploy.md` / `08-review.md`。
 
 - commit message 采用 **Conventional Commits**：`<type>(<scope>): <subject>`（允许的 type 见 `code-review.md` §2；不要求 `--story` / `--bug` 等外部单号脚注）。本项目不使用 TAPD / 其他外部需求跟踪系统。
-- **一个任务一个 commit（铁律）**：唯一一次 `git commit` 在 Step 5 Deploy 完成；此后任何修正（IT 修复 / follow-up / 收尾产物入库）一律走 `git commit --amend` 累积到原 commit，**严禁**新增第二个 commit。amend 后 push 必须用 `git push --force-with-lease`（**禁止**裸 `--force`）。
-- **边界点 A**（首次 commit 完成）：commit message 定稿冻结，此后只 `--amend --no-edit`。
-- **边界点 A 与 B 之间**：代码修复（IT 失败循环，见 05 §5）只 amend 代码；Docs / Review 产生的 md 变更随 08 的**收尾 amend**（见 08-review.md §6）一次性并入。
-- **边界点 B**（08 Review 用户确认收尾 + 最后一次 push 完成）：任务全冻结，再改动另开任务 / 新分支。
+- **代码 commit（Step 5 Deploy）**：实现代码 + 当时的 plans 产物快照，push 触发部署；完成即 **边界点 A**（message 定稿冻结，此后只 `--amend --no-edit`）。
+- **IT 代码修复（Step 6 循环）**：仍 `--amend` 进代码 commit + `git push --force-with-lease`（禁裸 `--force`）——这是全程**唯一**的 force-push 场景。
+- **收尾 commit（Step 8 Review）**：05 之后产生的全部 md 产物（06/07/08 + `00-overview.md` 终态）一次性**普通提交**，message 格式 `docs(plans): <任务名> 收尾产物 [skip ci]`（纯 md 变更，`[skip ci]` 跳过无意义的 CI 重跑）；无 force。
+- **一个任务最多这两个 commit**，禁止把无关变更混入。
+- **边界点 B**（收尾 commit push 完成 + 用户确认收尾）：任务全冻结，再改动另开任务。
 
 ---
 

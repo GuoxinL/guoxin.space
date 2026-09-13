@@ -106,9 +106,9 @@
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
 | C-44 | commit message 采用 **Conventional Commits**（`<type>(<scope>): <subject>`）；`scripts/commit_msg_check.sh` 仅校验格式，**不要求** TAPD / 外部单号脚注 | 钩子失败 | Deploy (Step5) | code-review.md / AGENTS.md |
-| C-45 | **一个任务一个 commit（铁律）**：唯一一次 `git commit` 在 Step 5 Deploy 完成；任何修正走 `git commit --amend` 累积到原 commit，**严禁**新增第二个 commit；amend 后 push 用 `--force-with-lease`（禁裸 `--force`） | 历史混乱 | Deploy (Step5) | 05-deploy.md / AGENTS.md |
+| C-45 | **一个任务最多两个 commit**：① 代码 commit（Step 5，IT 修复 amend 累积，push 用 `--force-with-lease` 禁裸 `--force`）② 收尾 commit（Step 8，`docs(plans): … [skip ci]` 纯 md、普通 push）；严禁无关变更混入 | 历史混乱 | Deploy (Step5) / Review (Step8) | 05-deploy.md / 08-review.md / AGENTS.md |
 | C-46 | 个人仓库**直推 `main`** 触发自动部署；无 MR/PR 评审流；「合入」= push main 且 CI 通过 / 用户宣布收尾 | 流程错位 | Deploy (Step5) | 05-deploy.md / code-review.md |
-| C-47 | **边界点 A**（首次 commit 完成）后 commit message 定稿冻结；**边界点 B**（08 Review 用户确认收尾 + 最后一次 push 完成）后任务全冻结；A/B 之间的代码修复与 md 产物更新一律 `--amend --no-edit` + `--force-with-lease` | 元信息漂移 | Deploy (Step5) / Review (Step8) | 05-deploy.md / 08-review.md |
+| C-47 | **边界点 A**（Step 5 代码 commit 完成）后 commit message 定稿冻结；**边界点 B**（Step 8 收尾 commit push 完成）后任务全冻结；A/B 之间代码修复走 `--amend --no-edit` + `--force-with-lease`，md 产物在工作区累积、随收尾 commit 一次性入库 | 元信息漂移 | Deploy (Step5) / Review (Step8) | 05-deploy.md / 08-review.md |
 | C-48 | 提交前**四项全绿**：build / lint / type-check / test（CI 中 build 由 deploy.yml 跑；push 前本地先过） | 坏版上线 | Deploy (Step5) / Review | code-review.md §5 |
 
 ### 1.9 安全基线
@@ -134,7 +134,7 @@
 | 05 Deploy | C-05, C-06, C-07, C-09, C-16, C-17, C-18, C-19, C-44, C-45, C-46, C-47, C-48 |
 | 06 IT | C-11, C-12, C-13, C-14 |
 | 07 Docs | C-01（文档与代码一致） |
-| 08 Review | C-20~C-51（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 amend → 边界点 B） |
+| 08 Review | C-20~C-51（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
 
 ---
 

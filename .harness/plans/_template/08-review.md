@@ -15,7 +15,7 @@
 | 2.1 安全（无密钥泄露 / 输入校验 / 转义 / 标准加密 / 无凭据进 bundle） | C-49, C-50, C-51 |
 | 2.2 正确性（红线：`.btn` 不改 / 无全局 pixelated / hover 态回读 / Hero 宽高 / 无 favicon.ico / 数据流链路 / `any` / Qwik 原语 / 错误与资源） | C-21, C-22, C-23, C-27, C-28, C-29, C-30, C-31, C-32, C-33 |
 | 2.3 可观测/质量（双门禁 CI 绿 / 线上复验 / 控制台无报错） | C-10, C-11, C-12, C-14 |
-| 2.4 可测/可维护 + 提交协作核对（一个 commit / amend / 四项全绿已于 05 Deploy 执行） | C-44, C-45, C-46, C-47, C-48 |
+| 2.4 可测/可维护 + 提交协作核对（代码+收尾两 commit / 四项全绿已于 05 Deploy 执行） | C-44, C-45, C-46, C-47, C-48 |
 
 > 红线全集见 CONSTRAINTS.md §1.5（C-20~C-33）；设计系统硬约束见 §1.6（C-34~C-41）。任一项不绿 = 驳回，回到对应步骤修复。
 
@@ -112,17 +112,17 @@
 
 ---
 
-## 6. 收尾 amend（用户确认后执行，触发边界点 B）
+## 6. 收尾 commit（用户确认后执行，触发边界点 B）
 
-> 用户确认收尾后，若 05 Deploy 之后产生了 md 变更（06/07/08 产物 + `00-overview.md` 终态），一次性并入任务唯一 commit（**始终只有一个 commit**）：
+> 用户确认收尾后，把 05 Deploy 之后产生的全部 md 变更（06/07/08 产物 + `00-overview.md` 终态）一次性**普通提交**（无 force、无 amend）：
 
 ```bash
 git add plans/<task> .harness/docs   # 05 之后的 md 产物 + 00-overview.md 终态
-git commit --amend --no-edit         # 沿用原 commit message（message 已在边界点 A 定稿）
-git push --force-with-lease          # ✅ 必用；站点产物不变，仅 CI 重跑
+git commit -m "docs(plans): <任务名> 收尾产物 [skip ci]"   # 纯 md 变更，[skip ci] 跳过 CI
+git push origin main                 # 普通 push；站点产物不变
 ```
 
-> 若 05 之后无 md 变更则跳过。完成后进入**边界点 B——收尾冻结**：本任务所有产物（代码 + md）不再改动，新需求另开任务 / 新分支。
+> 若 05 之后无 md 变更则跳过。完成后进入**边界点 B——收尾冻结**：本任务所有产物（代码 + md）不再改动，新需求另开任务。
 
 ---
 
@@ -132,6 +132,6 @@ git push --force-with-lease          # ✅ 必用；站点产物不变，仅 CI 
 - [ ] 发现的问题全部有处置（修复或记录）
 - [ ] 讨论决议已归档
 - [ ] 用户确认收尾
-- [ ] 收尾 amend 已执行（或确认 05 后无 md 变更）→ **边界点 B 已触发**
+- [ ] 收尾 commit 已执行（或确认 05 后无 md 变更）→ **边界点 B 已触发**
 - [ ] 已在 `00-overview.md` Progress 勾选 08.
 - [ ] 已与用户完成结束确认
