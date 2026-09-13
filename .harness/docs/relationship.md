@@ -1,6 +1,7 @@
 # 上下游 / 集成关系
 
 > 本项目与外部世界的关系：谁在用它、它依赖了谁、依赖坏掉会怎样。
+> 各组件的**接入操作步骤**（凭据配置 / 轮换 / 排障）见 [`docs/third-party/`](../../docs/third-party/)；本文件只画拓扑与故障传播。
 > 引入新外部依赖、调整调用拓扑、修改集成方式时同步更新。
 
 > Source: app/src/lib/worker.ts、app/src/lib/auth.ts、app/src/lib/skills.ts、app/src/components/running/RunningPage.tsx、worker.js、.github/workflows/deploy.yml、running-private/.github/workflows/xingzhe_sync.yml

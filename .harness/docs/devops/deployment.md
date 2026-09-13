@@ -6,6 +6,7 @@
 
 本仓库为 **Qwik SSG 静态站**（个人主页 `guoxin.space`），无独立测试 / 预发后端环境，**CI 即环境**，无测试环境部署文档。
 覆盖：本地构建产物一致性、生产（GitHub Pages）发布流程与回滚、线上复验。
+> 🔗 GitHub Pages 的**操作步骤**（前置设置 / DNS / 验证清单 / 排障表）已集中到 [`docs/third-party/github-pages.md`](../../docs/third-party/github-pages.md)；本文件保留规范级约定。
 
 ## 1. 环境矩阵
 
@@ -50,24 +51,25 @@
 1. 本地改动 → 直推提交到 main（无 MR/PR 评审流，见 CONSTRAINTS C-46）
 2. push main 触发 .github/workflows/deploy.yml
 3. build job：checkout → pnpm/action-setup（不锁版本）+ Node 24 → pnpm install --frozen-lockfile → pnpm build → cp CNAME app/dist/CNAME → upload-pages-artifact
-4. deploy job（needs build）：actions/deploy-pages@v4 上线到 GitHub Pages
+4. deploy job（needs build）：actions/deploy-pages@v5 上线到 GitHub Pages
 5. 生效：https://guoxin.space （自定义域名由产物根 CNAME 绑定）
 ```
 
 - **无手动闸门**：正常发布 = 推送 `main`，**不要**用 `gh workflow run` 手动触发作为发布手段（CI 在 push 时自动跑）。`workflow_dispatch` 仅作应急手动入口。
 - 前置：仓库 `Settings → Pages → Source = GitHub Actions`（否则 `deploy-pages` 报错）。
+- 前置设置 / DNS 解析 / 逐项验证清单见 [`docs/third-party/github-pages.md`](../../docs/third-party/github-pages.md)。
 
 ### 回滚
 
-- **方式一（推荐，秒级）**：GitHub Pages 侧将 Source 切回某次历史 Artifact / 或重新部署上一稳定 commit 的 Artifact。
-- **方式二（git 回退）**：`git revert <bad-commit>` 或 `git push` 回退到稳定 commit，触发新一次自动发布。
-- 静态站无数据库迁移，回滚即重新发布旧产物，**无数据兼容性问题**。
+- **方式一（推荐）**：`git revert <bad-commit>` + push `main`，自动重新发布上一可用产物（可追溯）。
+- **方式二（应急，秒级）**：Pages Source 切回历史 Artifact / branch deploy（用后记得切回 Actions，否则自动发布失效）。
+- 静态站无数据库迁移，回滚即重新发布旧产物，**无数据兼容性问题**（与 CONSTRAINTS C-18 一致）。
 
 ## 5. 健康检查
 
 - 静态站无 Liveness/Readiness 探针（无常驻进程）。
 - 线上复验手段：
-  - **Playwright 真实浏览器回归**：`npm run test:e2e`（Playwright 自带 chromium，自动起 `vite preview` 服务 `app/dist`）；原 puppeteer-core 直连系统 Chrome 方案已废弃，不再使用。
+  - **Playwright 真实浏览器回归**：`npm run test:e2e`（Playwright 自带 chromium，自动以 python3 http.server 静态服务 `app/dist`）；原 puppeteer-core 直连系统 Chrome 方案已废弃，不再使用。
   - 核对关键路由（`/`、`/running`、`/skills`、`/toolbox/json`）渲染、零 JS 运行时错误、无异常 404。
   - `404.html` 作为 SPA fallback，刷新子路由不应白屏。
 - 发布后人工抽查：`curl -I https://guoxin.space` 返回 200、响应头含 `Content-Type: text/html`。
@@ -88,12 +90,11 @@
 
 ## 9. 应急预案
 
-| 故障类型 | 现象 | 应对动作 |
-|----------|------|----------|
-| 发布后页面异常 / 空白 | 新构建引入渲染 bug | 回滚到上一稳定 commit（§4）重新自动发布 |
-| 自定义域名不生效 | Pages 未读到 CNAME / DNS 未解析 | 确认产物根含 `CNAME`（`guoxin.space`）且 Pages Source=GitHub Actions；检查 DNSPod 解析 |
-| CI 构建失败 | `pnpm build` 报错 / `ERR_PNPM_BAD_PM_VERSION` | 本地用 Node 24 + pnpm 9.15 复现；确认 action-setup 未锁版本 |
-| 子路由刷新 404 | 缺少 SPA fallback | 确认 `app/dist/404.html` 存在（Qwik SSG 生成） |
+> 常见故障的「现象 → 原因 → 解决」清单已集中在 [`docs/third-party/github-pages.md` §五](../../docs/third-party/github-pages.md)；本节只保留处置原则：
+
+- 线上异常**先回滚再排查**（§4 方式一），不让坏版滞留；
+- CI 构建失败会有 Server酱微信通知（notify job），修复后重推即可；
+- 子路由 404 属产物完整性问题，`check-404-sync.yml` 会在发布前拦截。
 
 ## 10. 模拟上下游服务
 

@@ -25,13 +25,13 @@
 | .btn 基类 | .btn | — | 全站共用按钮基类（Skills/JSON/Running 三页 28 处引用）。页面差异样式只能在作用域内覆盖（如 `.mc-hero-cta .btn`），**不得改动基类**，否则三页按钮视觉一致性破坏。 | app/src/global.css:253；AGENTS.md 红线 2 |
 | --container-w | --container-w | — | 版面宽度单点开关变量（当前 1280px，宽板）。Header/main/Footer 共用 `.mc-container` 取此值；改整站宽度只改这一处，禁止在多处写 `max-w-*`。 | app/src/global.css:92；AGENTS.md 核心约定 2 |
 | DESIGN.md（设计真源） | DESIGN.md | — | 唯一视觉真源文档（9 章）。改视觉先改它，再同步 `app/src/global.css` 与组件；`global.css` 不得自行成为视觉真相源。 | 根目录 DESIGN.md；AGENTS.md「设计系统 v2」 |
-| Cloudflare Worker（Running 数据代理） | Worker | running-proxy | Running 数据的服务端代理：读私有仓库 `GuoxinL/running-private` 的轨迹产物，经白名单 `TRACKS_FILES` 暴露给前端；承载 OAuth 鉴权与收藏写通道。独立源码 `worker.js`，不属本静态站。 | AGENTS.md「数据流」；worker.js |
+| Cloudflare Worker（Running 数据代理） | Worker | running-proxy | Running 数据的服务端代理：读私有仓库 `GuoxinL/running-private` 的轨迹产物，经白名单 `TRACKS_FILES` 暴露给前端；承载 OAuth 鉴权与收藏写通道。独立源码 `worker.js`，不属本静态站。 | AGENTS.md「数据流」；worker.js；docs/third-party/cloudflare-worker.md |
 | Toolbox（万能工具箱） | Toolbox | JSON 工具 / 旧 /json | JSON 工具页现名，路由 `/toolbox/json`；旧名「JSON 工具」、旧路由 `/json` 已由 meta 刷新跳转弃用。 | app/src/routes/toolbox/json/index.tsx；AGENTS.md 路由说明 |
 | Skills / Running（内容区块） | — | — | 本站两大内容区块：Skills=技能夹（列表/详情/文件树/收藏/通道配置）；Running=骑行·跑步运动数据（地图/统计/轨迹回放，数据经 Worker 代理）。 | app/src/routes/；AGENTS.md 目录结构 |
 | pickaxe（Hero 主图） | pickaxe | 水晶镐 | 首页 Hero 右侧像素镐插画 `app/public/img/pickaxe.png`（880×986，`drop-shadow: 6px 6px 0`）。源图即像素方块风，**不做额外像素化**；换图须同步 `index.tsx` 的 `width/height`（CLS 占位）。 | app/public/img/pickaxe.png；AGENTS.md 设计系统 v2 |
-| CNAME（自定义域名） | CNAME | — | 仓库根 `CNAME` 文件，内容 `guoxin.space`，绑定自定义域名；CI 会 `cp CNAME app/dist/CNAME` 注入产物根。**不可删**，否则域名绑定失效。 | CNAME；.github/workflows/deploy.yml:44 |
+| CNAME（自定义域名） | CNAME | — | 仓库根 `CNAME` 文件，内容 `guoxin.space`，绑定自定义域名；CI 会 `cp CNAME app/dist/CNAME` 注入产物根。**不可删**，否则域名绑定失效。 | CNAME；.github/workflows/deploy.yml；docs/third-party/github-pages.md |
 | safe-delete guard（删除守卫） | CODEBUDDY_SAFE_DELETE_ENABLED | — | WorkBuddy 的删除守卫：本地 vite 清空 `app/dist/`（文件数 >50）会被拦截。构建前需 `export CODEBUDDY_SAFE_DELETE_ENABLED=0`，否则 `pnpm build` 失败。 | AGENTS.md 红线 5 / 设计系统 v2 |
-| 行者 OpenAPI（Xingzhe） | Xingzhe OpenAPI | 行者 | Running 数据上游：`running-private` 的 `xingzhe_sync.yml` 每小时从其 OAuth2 同步活动到 `activities.json`，再生成轨迹产物。改数据链路改 `running-private`，非本仓库。 | AGENTS.md「数据流」；running-private 仓库 |
+| 行者 OpenAPI（Xingzhe） | Xingzhe OpenAPI | 行者 | Running 数据上游：`running-private` 的 `xingzhe_sync.yml` 每小时从其 OAuth2 同步活动到 `activities.json`，再生成轨迹产物。改数据链路改 `running-private`，非本仓库。 | AGENTS.md「数据流」；running-private 仓库；docs/third-party/xingzhe-openapi.md |
 
 > 收录标准：高级工程师首次看到这个词，能否不查资料就理解？不能 → 收录。能 → 不收录。
 > 注：SSG / Qwik City / SSR 等属公知渲染概念，按「不收录清单」原则**不收录**；其项目相关事实（如「4 页预渲染」）可直接读 `app/src/routes/` 与 `deploy.yml` 推断。

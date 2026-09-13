@@ -115,7 +115,7 @@
 | 6 |  | 幂等 |  |  |  |
 
 > **硬要求**：至少覆盖 正向 + 逆向 + 边界 三类；涉及外部调用（Worker）须加 异常类；写操作须加 幂等类。
-> IT 走真实 `vite preview` 服务 `app/dist`（或 `BASE_URL=https://guoxin.space` 跑线上复验），由 Playwright 断言关键 DOM / 交互，失败自动截图 + trace。详见 `06-it.md`。
+> IT 走真实静态服务（python3 http.server）服务 `app/dist`（或 `BASE_URL=https://guoxin.space` 跑线上复验），由 Playwright 断言关键 DOM / 交互，失败自动截图 + trace。详见 `06-it.md`。
 
 ## 8. 风险与兜底
 

@@ -72,6 +72,8 @@ personal-homepage/
   - 获取/刷新行者凭据步骤见 `running-private` 仓库 `docs/GET-XINGZHE-CREDENTIALS.md`（或全局 skill `xz-credentials`）
   - **改 Running 数据链路时，改 `running-private` 仓库而非本仓库；原公开仓库 `GuoxinL/running` 已废弃，不再承担数据生产。**
 
+> 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
+
 ## 构建与验证
 
 ```bash
@@ -104,7 +106,7 @@ gh run list --workflow=deploy.yml --limit 5
 ```
 
 > **不要**用 `gh api repos/GuoxinL/guoxin.space/pages/builds/latest` 判断上线——workflow 模式下该接口停留在旧 branch-deploy 记录，不更新（见红线 6 / CONSTRAINTS C-19）。
-> 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动起 `vite preview` 服务 `app/dist`）。
+> 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动以 python3 http.server 静态服务 `app/dist`）。
 
 线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/running`（Running）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）。
 
@@ -244,7 +246,7 @@ gh run list --workflow=deploy.yml --limit 5
 | `npm run fmt` | Prettier 格式化 `app/src` | 提交前必跑；当前未接 pre-commit 钩子（仅 commit-msg 校验提交格式） |
 | `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
 | `npm run test` | `vitest run` 单测（9 文件 / 136 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
-| `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动起 `vite preview` 服务 `app/dist`；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
+| `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动以 python3 http.server 静态服务 `app/dist`；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
 | `npm run build` | Qwik SSG 构建（client + SSR 预渲染 4 页） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
 
 ### 语言 / 框架版本约束

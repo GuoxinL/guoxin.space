@@ -116,7 +116,7 @@ export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"
 npm run build
 
 # SSG 产物一致性校验 = 页面自动化（Playwright 回读 dist 关键 DOM）
-# webServer 自动起 vite preview 服务 dist，无需手工起 http.server
+# webServer 自动起 python3 http.server 静态服务 dist（目录路径行为与生产 Pages 一致）
 npm run test:e2e
 ```
 
@@ -126,7 +126,7 @@ npm run test:e2e
 # 构建产物（Playwright webServer 会复用 dist；如已手动起 dev 可跳过）
 npm run build
 
-# 跑页面自动化（自动起 vite preview 服务 dist；CI 下自带浏览器）
+# 跑页面自动化（webServer 自动起 python3 http.server 静态服务 dist）
 npm run test:e2e
 
 # 仅跑某文件 / 某用例
@@ -134,7 +134,7 @@ npx playwright test e2e/home.spec.ts
 npx playwright test -g "Hero"
 ```
 
-> 配置见 `playwright.config.ts`：`webServer` 用 `vite preview` 服务 `app/dist`（端口 4321，本地复用既有服务）；`baseURL` 已设；失败自动留截图 + trace（`only-on-failure`）。
+> 配置见 `playwright.config.ts`：`webServer` 用 `python3 -m http.server` 静态服务 `app/dist`（端口 4321，本地复用既有服务）；`baseURL` 已设；失败自动留截图 + trace（`only-on-failure`）。
 
 ### 2. 调试套路
 

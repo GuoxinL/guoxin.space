@@ -3,6 +3,7 @@
 // 个人主页的「鉴权 + 写通道 + 轨迹代理」：页面不接触任何凭证
 // ============================================================
 // 部署：dash.cloudflare.com → Workers & Pages → 新建 Worker → 粘贴本文件 → Deploy
+// 详细步骤 / Secret 清单 / wrangler --keep-vars 大坑：docs/third-party/cloudflare-worker.md
 // 环境变量（Settings → Variables）：
 //   GH_TOKEN            必填  细粒度 PAT，授权 skill-collection（Contents 读写）+
 //                             running-private 轨迹私有仓库（Contents 读）

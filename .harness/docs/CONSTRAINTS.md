@@ -47,7 +47,7 @@
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
 | C-10 | **UT（Vitest）强制**：改 `app/src/lib/` / 组件逻辑必跑 `npm run test`（9 文件 / 136 用例，CI 实测） | 逻辑回归无防线 | UT (Step4) | coding-style §11 / unittest.md |
-| C-11 | **页面自动化（Playwright E2E）强制门禁**：改任何页面 / 交互 / CSS 后必跑 `npm run test:e2e`（chromium，自动起 `vite preview` 服务 `app/dist`，端口 4321） | 交互/CSS 回归漏网 | IT (Step6) | integration_test.md / AGENTS.md |
+| C-11 | **页面自动化（Playwright E2E）强制门禁**：改任何页面 / 交互 / CSS 后必跑 `npm run test:e2e`（chromium，自动以 python3 http.server 静态服务 `app/dist`，端口 4321） | 交互/CSS 回归漏网 | IT (Step6) | integration_test.md / AGENTS.md |
 | C-12 | **CI 双门禁已落地**：`deploy.yml` build job 在 `pnpm build` 后跑 `pnpm test` + `playwright install --with-deps chromium` + `pnpm test:e2e`；任一门禁失败阻塞 deploy | push 即上线，门禁是最后防线 | Deploy / CI | integration_test.md §5 / unittest.md §5 |
 | C-13 | 页面自动化**禁用 `sleep` 死等**；用 `page.waitFor*` / `expect().toBeVisible()` 自动等待；用例独立、不依赖执行顺序 | 脆弱 / 假绿 | IT (Step6) | integration_test.md 红线6 |
 | C-14 | 页面自动化**必须断言关键 DOM / 交互态样式**；改 CSS 用 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读，不只断言状态码；禁止为过 CI 关用例 | 同特异性后置覆盖漏检 | IT (Step6) / Review | integration_test.md 红线7 / AGENTS.md 红线4 |
