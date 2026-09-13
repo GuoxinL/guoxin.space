@@ -31,6 +31,47 @@ gh secret list --repo GuoxinL/guoxin.space
 gh secret list --repo GuoxinL/running-private
 ```
 
+### 2.5 Worker 审计 Key（Cloudflare 侧，收藏/删除/同步审计推送用）
+
+> ⚠️ **与 §二 的 GitHub Secret 是两个独立的保险柜，互不相通**：GitHub Actions Secret 只供 CI 失败通知；Worker 的审计推送读取的是 **Cloudflare Worker 自己的 Secret**。要审计就两边都配。
+
+**方式 A：dashboard（不碰命令行）**
+
+Workers & Pages → **skillboard-collect** → **Settings** → **Variables and Secrets** → **+ Add**：
+
+- Type：**Secret**
+- Name：`SERVERCHAN_SENDKEY`
+- Value：SendKey
+
+保存即时生效（无需重新部署 Worker）。
+
+**方式 B：wrangler 命令**
+
+前置：Cloudflare API Token（创建步骤见 [cloudflare-worker.md §0.1](./cloudflare-worker.md)）。
+
+```bash
+# 授权（当前终端一次性）
+export CLOUDFLARE_API_TOKEN=<你的API_Token值>
+
+# 设置 Secret（回车后粘贴 SendKey 再回车，输入不回显）
+npx wrangler secret put SERVERCHAN_SENDKEY --name skillboard-collect
+
+# 复核（列表应出现 SERVERCHAN_SENDKEY）
+npx wrangler secret list --name skillboard-collect
+```
+
+若终端里已导出 `SERVERCHAN_SENDKEY` 环境变量，可免交互一行完成：
+
+```bash
+echo "$SERVERCHAN_SENDKEY" | npx wrangler secret put SERVERCHAN_SENDKEY --name skillboard-collect
+```
+
+注意：
+
+- Secret 保存后**即时生效**，无需重新部署 Worker；
+- 单账号无需 ACCOUNT_ID；同一登录下多账号时需另配 `CLOUDFLARE_ACCOUNT_ID`；
+- 用完 `unset CLOUDFLARE_API_TOKEN SERVERCHAN_SENDKEY`，并避免在 shell 历史留明文。
+
 ## 三、验证
 
 ```bash
@@ -50,6 +91,7 @@ curl -sS "https://sctapi.ftqq.com/<SendKey>.send" \
 |---|---|---|---|
 | guoxin.space | `.github/workflows/deploy.yml` → `notify` job | `needs: [build, deploy]` 且 `if: failure()` | 部署失败 + 分支 + 提交信息 + run 链接 |
 | running-private | `.github/workflows/xingzhe_sync.yml` → `notify` job | `needs: [sync]` 且 `if: failure()` | 同步失败 + run 链接 |
+| **Worker 审计**（cloudflare-worker.md §八） | `worker.js` `notifyAdmin()` | collect/remove/sync 成功后（`ctx.waitUntil`） | 操作名 + 目标；**Key 用 Worker 侧 Secret，配置见 §2.5** |
 
 ## 五、排障
 

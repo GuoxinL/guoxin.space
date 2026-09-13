@@ -33,7 +33,7 @@
 | `ADMIN_LOGIN` | ✅ | 站长 GitHub 用户名（admin 判定 = 登录 `login` 与之相等） |
 | `AUTH_SECRET` | ✅ | HMAC 签名密钥（`openssl rand -base64 32` 生成） |
 | `AUTH_SECRET_PREV` | ❌ | 轮换宽限：换新 SECRET 时把旧值放这里，旧 token ≤24h 内仍可验（runbook 见「八、权限模型」） |
-| `SERVERCHAN_SENDKEY` | ❌ | 写操作审计：collect/remove/sync 成功后 Server酱推微信（与 GitHub Actions 同名 Secret 同值） |
+| `SERVERCHAN_SENDKEY` | ❌ | 写操作审计：collect/remove/sync 成功后 Server酱推微信（与 GitHub Actions 同名 Secret 同值）。**配置步骤见 [serverchan.md §2.5](./serverchan.md)** |
 | `TRACKS_REPO` | ✅ | 轨迹私有仓库，形如 `GuoxinL/running-private` |
 | `REDIRECT_URL` | ❌ | 登录回跳地址，默认 `https://guoxin.space` |
 
@@ -255,7 +255,7 @@ curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rid
   1. `wrangler secret put AUTH_SECRET_PREV` ← 旧值
   2. `wrangler secret put AUTH_SECRET` ← 新值（新登录立即用新值，旧 token ≤24h 内仍可用）
   3. ≥24h 后 `wrangler secret delete AUTH_SECRET_PREV`
-- 审计：写端点 2xx 后 `ctx.waitUntil` 推 Server酱（未配 Key 静默跳过）。
+- 审计：写端点 2xx 后 `ctx.waitUntil` 推 Server酱（未配 Key 静默跳过）；Key 配置步骤见 [serverchan.md §2.5](./serverchan.md)。
 - 信任根：GitHub 账号本身——**站长账号必须开启 2FA**。
 
 ## 七、本地单测（可选）
