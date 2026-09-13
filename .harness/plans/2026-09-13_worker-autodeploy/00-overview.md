@@ -34,7 +34,7 @@
 | 任务目录 | `2026-09-13_worker-autodeploy` |
 | Issue | — |
 | 摘要 | Worker 自动部署（deploy-worker.yml）+ 回调 query 兼容移除 |
-| 状态 | 🔵 进行中 |
+| 状态 | ✅ 已完成 |
 | 创建日期 | 2026-09-13 |
 | 负责人 | guoxin |
 | 预期完成 | 2026-09-13 |
@@ -59,14 +59,14 @@ Progress 更新规则（AI 必读）：
 -->
 <!-- TEMPLATE-ONLY-DO-NOT-COPY: ↑↑↑ -->
 
-- [ ] 01. Clarify    → [01-clarify.md](./01-clarify.md)
-- [ ] 02. Plan       → [02-plan.md](./02-plan.md)
-- [ ] 03. Implement  → [03-implement.md](./03-implement.md)
-- [ ] 04. UT         → [04-ut.md](./04-ut.md)
-- [ ] 05. Deploy     → [05-deploy.md](./05-deploy.md)
-- [ ] 06. IT         → [06-it.md](./06-it.md)
-- [ ] 07. Docs       → [07-docs.md](./07-docs.md)
-- [ ] 08. Review     → [08-review.md](./08-review.md)
+- [x] 01. Clarify    → [01-clarify.md](./01-clarify.md)（query 移除 + Worker 自动部署）
+- [x] 02. Plan       → [02-plan.md](./02-plan.md)（UT 4 例）
+- [x] 03. Implement  → [03-implement.md](./03-implement.md)（auth 单读 + deploy-worker.yml）
+- [x] 04. UT         → [04-ut.md](./04-ut.md)（143/143；类型基线恢复 3）
+- [x] 05. Deploy     → [05-deploy.md](./05-deploy.md)（push 事件异常 → dispatch 部署 1m10s 全绿）
+- [x] 06. IT         → [06-it.md](./06-it.md)（登录中断窗口待用户部署新 Worker，清单已交付）
+- [x] 07. Docs       → [07-docs.md](./07-docs.md)（全仓「手动部署」表述 → 自动部署同步）
+- [x] 08. Review     → [08-review.md](./08-review.md)（自检 + 收尾 commit → 边界点 B）
 
 ---
 
@@ -105,14 +105,14 @@ Progress 更新规则（AI 必读）：
 
 | # | 步骤 | 开始时间 | 结束时间 | 耗时 | 备注 |
 |---|------|---------|---------|------|------|
-| 01 | Clarify    |  |  |  |  |
-| 02 | Plan       |  |  |  |  |
-| 03 | Implement  |  |  |  |  |
-| 04 | UT         |  |  |  |  |
-| 05 | Deploy     |  |  |  |  |
-| 06 | IT         |  |  |  |  |
-| 07 | Docs       |  |  |  |  |
-| 08 | Review     |  |  |  |  |
+| 01 | Clarify    | 2026-09-13 16:50:07 | 2026-09-13 16:50:43 | 36s |  |
+| 02 | Plan       | 2026-09-13 16:50:43 | 2026-09-13 16:50:43 | 0s（合并写入） |  |
+| 03 | Implement  | 2026-09-13 16:50:43 | 2026-09-13 16:52:07 | 1m24s |  |
+| 04 | UT         | 2026-09-13 16:52:07 | 2026-09-13 16:54:56 | 2m49s | 中途类型 +2 当场修复 |
+| 05 | Deploy     | 2026-09-13 16:57:21 | 2026-09-13 17:16:48 | 19m27s | push 事件异常 → dispatch 部署成功 |
+| 06 | IT         | 2026-09-13 17:16:48 | 2026-09-13 17:20:00 | 3m12s | 2 项待用户（Cloudflare 侧） |
+| 07 | Docs       | 2026-09-13 16:55:00 | 2026-09-13 16:57:21 | 2m21s | 与 04/05 并行 |
+| 08 | Review     | 2026-09-13 17:20:00 | 2026-09-13 17:21:00 | 1m00s | 收尾 commit → 边界点 B |
 
 ---
 
@@ -121,7 +121,8 @@ Progress 更新规则（AI 必读）：
 > **跨阶段共享的关键上下文**。仅记录影响后续步骤的决策，避免恢复时还要翻阅历史阶段文件。
 > 填写建议：接口命名最终选型、DataType 字段设计、兼容性约束、与其它模块的约定、跳过的步骤及原因等。
 
--
+- 用户在会话中以「就这么实现」授权全流程（各步骤确认以该指令与最终汇报为准）。
+- 关键事件：push 事件 startup_failure / 排队异常（GitHub 侧，状态页未反映），以 workflow_dispatch 完成部署验证；线上登录短暂中断，待用户部署新 Worker 闭环。
 
 ---
 
