@@ -445,11 +445,10 @@ select.lang-sel {
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--border2);
-  border-radius: 6px;
+  /* 输入框外框（常态）：包住 $. 与路径段；左边平方、右边圆 */
+  border-radius: 0 10px 10px 0;
   background: var(--surface);
-}
-.jp-inline .jp-box:focus-within {
-  border-color: var(--primary);
+  overflow: hidden;
 }
 .jp-inline .jp-prefix {
   padding: 0 0 0 7px;
@@ -469,6 +468,18 @@ select.lang-sel {
   font-size: 12px;
   outline: none;
   font-family: var(--mono);
+}
+/* 光标选中外框：只包住路径段（不含 $. 前缀），紫色、左平方右圆 */
+.jp-inline .jp-box .jp-input:focus {
+  border: 1px solid var(--primary);
+  border-radius: 0 10px 10px 0;
+}
+.jp-inline .jp-box .jp-input:focus-visible {
+  outline: none;
+  /* 覆盖全局焦点环（box-shadow 紫圈 + 10px 全圆角） */
+  box-shadow: none;
+  border: 1px solid var(--primary);
+  border-radius: 0 10px 10px 0;
 }
 .jp-inline .btn.ghost {
   min-height: 28px;

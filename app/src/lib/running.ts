@@ -13,10 +13,13 @@ import type { RunId } from '../types/running';
 /* ================= 常量 ================= */
 const RK_CACHE = 'wb_rk_acts_v3';
 const RK_CACHE_RIDES = 'wb_rk_rides_full';
+// 瓦片源：CARTO basemaps 自 2026-09 起要求 api key（无 key 返回「api key required」错误图），
+// 切换为 Esri 免 key 栅格瓦片（注意 Esri 路径为 {z}/{y}/{x} 顺序）。Esri 灰系最深层级 ~16，
+// 更深缩放瓦片 404 时回退样式底色。CARTO 方案若有免费 key 可随时切回。
 const RK_STYLES = [
-  { k: 'light', n: '浅色', bg: '#e9e5dd', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png' },
-  { k: 'voyager', n: '明亮', bg: '#e9e5dd', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png' },
-  { k: 'dark', n: '暗色', bg: '#1a2234', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png' },
+  { k: 'light', n: '浅色', bg: '#e9e5dd', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}' },
+  { k: 'voyager', n: '明亮', bg: '#e9e5dd', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}' },
+  { k: 'dark', n: '暗色', bg: '#1a2234', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}' },
 ];
 const RK_STYLE_KEY = 'wb_run_map_style';
 const RK_TILE = 256;
