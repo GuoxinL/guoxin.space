@@ -2,7 +2,8 @@
 // skillboard-collect — Cloudflare Worker
 // 个人主页的「鉴权 + 写通道 + 轨迹代理」：页面不接触任何凭证
 // ============================================================
-// 部署：dash.cloudflare.com → Workers & Pages → 新建 Worker → 粘贴本文件 → Deploy
+// 部署：push 改动本文件到 main → deploy-worker.yml 自动部署（推荐）；
+//       或 dash.cloudflare.com → Workers & Pages → 新建 Worker → 粘贴本文件 → Deploy
 // 详细步骤 / Secret 清单 / wrangler --keep-vars 大坑：docs/third-party/cloudflare-worker.md
 // 环境变量（Settings → Variables）：
 //   GH_TOKEN            必填  细粒度 PAT，授权 skill-collection（Contents 读写）+

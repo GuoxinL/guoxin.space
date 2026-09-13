@@ -1,0 +1,44 @@
+name: Deploy Worker (Cloudflare)
+
+# worker.js 变更自动部署到 Cloudflare（dashboard 粘贴 / 手动 wrangler 的替代）。
+# 前置 Secret：CLOUDFLARE_API_TOKEN（Cloudflare → My Profile → API Tokens →
+#   编辑权限 Cloudflare → Workers Scripts → Edit，手动创建后存入本仓库）。
+# --keep-vars 必带：无它时 wrangler deploy 会清掉 dashboard 配置的非加密环境变量
+#   （历史大坑，详见 docs/third-party/cloudflare-worker.md §3.5）。
+# 失败经 Server酱推微信（SERVERCHAN_SENDKEY，与 deploy.yml notify 同源）。
+
+on:
+  push:
+    branches: [main]
+    paths: ['worker.js']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # wrangler-action 内部用 pnpm 安装 wrangler，需先装 pnpm
+      - uses: pnpm/action-setup@v6
+
+      - name: 部署 worker.js（--keep-vars 保护 dashboard 变量）
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: "deploy worker.js --name skillboard-collect --compatibility-date 2026-08-20 --keep-vars"
+
+  notify:
+    needs: deploy-worker
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Server酱失败通知
+        run: |
+          curl -sS "https://sctapi.ftqq.com/${{ secrets.SERVERCHAN_SENDKEY }}.send" \
+            --data-urlencode "title=Worker 部署失败" \
+            --data-urlencode "desp=查看: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

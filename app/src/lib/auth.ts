@@ -149,13 +149,10 @@ export function authSave(token: string): boolean {
 /* ================= 启动与校验 ================= */
 let authInitRan = false;
 
-/** OAuth 回调结果解析：hash 优先（新 Worker `/#auth=`），兼容 query（旧 Worker `/?auth=`）。纯函数便于测试。 */
-export function parseAuthRedirect(hash: string, search: string): { auth: string; source: 'hash' | 'search' } | null {
+/** OAuth 回调结果解析：仅认 fragment（Worker 只发 `/#auth=`）。纯函数便于测试。 */
+export function parseAuthRedirect(hash: string): { auth: string } | null {
   const hm = /^#auth=([^&]*)$/.exec(hash || '');
-  if (hm) return { auth: decodeURIComponent(hm[1]), source: 'hash' };
-  const qm = /[?&]auth=([^&]*)/.exec(search || '');
-  if (qm) return { auth: decodeURIComponent(qm[1]), source: 'search' };
-  return null;
+  return hm ? { auth: decodeURIComponent(hm[1]) } : null;
 }
 
 /** 启动：消费 OAuth 回调结果（#auth= / 兼容 ?auth=）→ 清理地址栏 → 应用 UI → 静默校验。
@@ -170,7 +167,7 @@ export function authInit(): void {
   }
   authInitRan = true;
 
-  const cb = parseAuthRedirect(location.hash, location.search);
+  const cb = parseAuthRedirect(location.hash);
   if (cb) {
     if (cb.auth === 'denied') {
       if (typeof localStorage !== 'undefined') {
@@ -181,8 +178,8 @@ export function authInit(): void {
       authSave(cb.auth);
     }
     try {
-      // 清掉承载回调值的那一段：hash 来源清 hash、query 来源清 search
-      history.replaceState(null, '', cb.source === 'hash' ? location.pathname + location.search : location.pathname + location.hash);
+      // 清地址栏：保留 pathname/search，去掉承载回调值的 hash
+      history.replaceState(null, '', location.pathname + location.search);
     } catch {
       /* ignore */
     }

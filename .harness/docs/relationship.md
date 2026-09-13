@@ -26,7 +26,7 @@
 | Cloudflare Worker（轨迹代理 + 鉴权） | 源码 `guoxin.space/worker.js`；运行于 Cloudflare（独立服务） | Running 轨迹下发；Skills 的 GitHub OAuth 鉴权与写通道 | HTTPS / JSON API：`/api/tracks/raw?f=<file>`、`/api/auth/*` | 默认 `https://skillboard-collect.lgx31.workers.dev`（SK_DFLT_WORKER）；URL 存 localStorage | 无显式 SLA（Cloudflare Free）；`rides.full.json` 需 Bearer | 前端捕获异常 → 错误提示；**无数据缓存兜底**（见故障矩阵） | `app/src/lib/worker.ts`、`app/src/lib/auth.ts`、`app/src/lib/skills.ts` |
 | GuoxinL/running-private（私有数据仓） | github.com/GuoxinL/running-private | Running 轨迹数据生产：存放 xingzhe_sync 生成的轨迹产物 | Worker 经 GitHub Contents API 读根目录文件（白名单校验） | 仓根目录 4 个轨迹产物（preview / preview.meta / rides.full 等） | 私有仓；无 SLA | 同步失败 → 轨迹陈旧，站点无报错 | `running-private/.github/workflows/xingzhe_sync.yml` |
 | 行者 OpenAPI（Xingzhe） | 第三方 `imxingzhe.com` | Running 原始骑行/跑步轨迹来源 | HTTPS REST（OAuth2 client/refresh） | `running-private` 同步脚本 | 第三方；**有限流**；凭证（refresh_token）每次刷新轮换 | 限流/失效 → 同步中断 | `running-private/.github/workflows/xingzhe_sync.yml`（Secret `XINGZHE_CREDENTIALS_JSON`） |
-| GitHub Actions（部署） | `guoxin.space/.github/workflows/deploy.yml` | 构建 + 发布到 GitHub Pages | GitHub Actions（`push main` 触发） | `deploy.yml` | GitHub 平台 SLA | 失败 → 线上不更新，旧版继续服务 | `.github/workflows/deploy.yml` |
+| GitHub Actions（部署） | `guoxin.space/.github/workflows/deploy.yml` + `deploy-worker.yml` | deploy.yml：构建 + 发布 Pages；deploy-worker.yml：worker.js 变更自动部署 Cloudflare Worker | GitHub Actions（`push main`；后者 paths 过滤 `worker.js`） | `deploy.yml` / `deploy-worker.yml` | GitHub 平台 SLA | 失败 → 线上不更新（deploy）/ Worker 保持旧版（deploy-worker），均有 Server酱通知 | `.github/workflows/` |
 | GitHub Pages / CDN | github.io Pages + 自定义域名 guoxin.space | 静态托管 | HTTPS 静态资源 | 仓库根 `CNAME` | GitHub Pages SLA | 故障 → 全站不可达 | `deploy.yml` 注入 `CNAME` |
 | 自托管字体 / 资源 | 本仓库 `app/public/fonts`、`app/public/img` | 字体 / 图片（无第三方运行时请求） | 同源静态资源 | `app/public` | 无外部依赖 | 缺失 → 浏览器字体回退 | `app/public` |
 
@@ -66,7 +66,7 @@
 ### 4. 部署链（push main → GitHub Actions → Pages）
 
 - **触发场景**：`git push` 到 `main`（或 `workflow_dispatch`）。
-- **调用拓扑**：`<push main>` ─→ `<deploy.yml build（pnpm install + pnpm build）>` ─→ `<upload-pages-artifact>` ─→ `<deploy-pages>` ─→ `<GitHub Pages / guoxin.space>`。
+- **调用拓扑**：`<push main>` ─→ `<deploy.yml build（pnpm install + pnpm build）>` ─→ `<upload-pages-artifact>` ─→ `<deploy-pages>` ─→ `<GitHub Pages / guoxin.space>`；若本次 push 改动 `worker.js`，`<deploy-worker.yml>` 同步把 Worker 发到 Cloudflare（`--keep-vars`）。
 - **传输数据**：构建产物（`app/dist`）+ 补齐 `CNAME`。
 - **关键代码**：`.github/workflows/deploy.yml`。
 - **失败影响**：build 报错 → 线上不更新（旧版继续服务）；deploy-pages 故障 → 全站不可达。

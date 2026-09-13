@@ -27,7 +27,7 @@
 
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
-| C-01 | 本仓库是 **Qwik SSG 静态站**：无后端、无数据库、无 MQ、无独立测试环境；任何需服务端的能力走 Cloudflare Worker（`worker.js`，独立部署，不在本仓库 CI） | 架构错位、维护成本失控 | Plan / Implement | architecture.md §系统定位 |
+| C-01 | 本仓库是 **Qwik SSG 静态站**：无后端、无数据库、无 MQ、无独立测试环境；任何需服务端的能力走 Cloudflare Worker（`worker.js`，由 `deploy-worker.yml` 自动部署到 Cloudflare） | 架构错位、维护成本失控 | Plan / Implement | architecture.md §系统定位 |
 | C-02 | 代码**只进 `app/src/`**；新代码不写根 `index.html` / 旧静态文件（已删） | 重构隔离被破坏 | Implement | AGENTS.md 核心约定 / architecture.md |
 | C-03 | 构建产出 4 页静态预渲染（`/`、`/skills`、`/toolbox/json`、`/running`）+ `app/dist/`（gitignore，CI 生成） | 部署产物缺失 | Build / Deploy | architecture.md |
 | C-04 | 页面数据（Running 模块）**全部经 Cloudflare Worker 代理**，不直连任何公开 raw URL；白名单在 `worker.js` 的 `TRACKS_FILES` | 私有仓库暴露 / 鉴权失效 | Implement / Review | AGENTS.md 数据流 / architecture.md |

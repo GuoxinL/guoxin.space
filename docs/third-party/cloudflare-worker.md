@@ -54,6 +54,16 @@ CORS：`Access-Control-Allow-Origin: *`，允许头 `Content-Type, Authorization
 
 ## 三、部署步骤
 
+### 0. 自动部署（推荐，2026-09-13 起默认）
+
+本仓库 `.github/workflows/deploy-worker.yml` 会在 **push 改动 `worker.js` 到 main 时自动部署**（`wrangler deploy --keep-vars`），失败推 Server酱微信。前置一次性配置：
+
+1. Cloudflare → My Profile → **API Tokens** → Create Token（权限：**Account → Workers Scripts → Edit**，建议限定本账号）。
+2. GitHub 仓库 `Settings → Secrets and variables → Actions` → 新建 **`CLOUDFLARE_API_TOKEN`**（单账号环境无需 ACCOUNT_ID）。
+3. 之后改 `worker.js` → push main → run 绿即已上线（可 `wrangler tail` 复核）。
+
+手动部署（dashboard 粘贴 / 本地 wrangler）保留为兜底，见下方步骤。
+
 ### 1. 注册 GitHub OAuth App（一次）
 
 1. GitHub → Settings → **Developer settings** → **OAuth Apps** → **New OAuth App**。

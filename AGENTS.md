@@ -18,7 +18,7 @@ personal-homepage/
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
 │   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
-├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（独立部署，非本仓库 CI；无独立单测）
+├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（push 改动即由 deploy-worker.yml 自动部署；无独立单测）
 ├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、技能卡省略号实机校验 tools/verify-skname-ellipsis.mjs、提交校验 scripts/ 等）
 ├── .harness/           # SOP 真源（AI 开发流程）

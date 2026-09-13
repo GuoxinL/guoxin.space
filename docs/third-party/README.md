@@ -9,7 +9,7 @@
 | 组件 | 用途 | 凭据 / 配置存放 | 操作文档 |
 |---|---|---|---|
 | **GitHub Pages** | 静态托管 `guoxin.space`（4 页 SSG 产物） | 仓库根 `CNAME` 文件 + Pages Source 设置 | [github-pages.md](./github-pages.md) |
-| **Cloudflare Worker** | OAuth 鉴权 + Skills 写通道 + Running 轨迹代理 | Cloudflare dashboard Secrets（`GH_TOKEN` 等 8 项） | [cloudflare-worker.md](./cloudflare-worker.md) |
+| **Cloudflare Worker** | OAuth 鉴权 + Skills 写通道 + Running 轨迹代理 | Cloudflare dashboard Secrets（`GH_TOKEN` 等）；GitHub Secret：`CLOUDFLARE_API_TOKEN`（自动部署用） | [cloudflare-worker.md](./cloudflare-worker.md) |
 | ↳ GitHub OAuth App | Worker 登录流程的 OAuth 提供方 | Worker Secrets：`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | 同上 §三.1 |
 | ↳ GitHub 细粒度 PAT | Worker 读写 GitHub 仓库的凭据 | Worker Secret：`GH_TOKEN`（授权 skill-collection 读写 + running-private 只读） | 同上 §三.2 |
 | **Server酱** | CI 失败 → 微信推送（两个仓库的 notify job） | GitHub Actions Secret：`SERVERCHAN_SENDKEY`（guoxin.space + running-private 各一份） | [serverchan.md](./serverchan.md) |

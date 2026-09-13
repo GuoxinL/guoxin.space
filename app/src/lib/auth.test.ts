@@ -33,17 +33,17 @@ function setToken(token: string, login: string) {
 }
 
 describe('parseAuthRedirect', () => {
-  it('hash: #auth=<token> → token (source=hash)', () => {
-    expect(parseAuthRedirect('#auth=abc.def', '')).toEqual({ auth: 'abc.def', source: 'hash' });
+  it('hash: #auth=<token> → token', () => {
+    expect(parseAuthRedirect('#auth=abc.def')).toEqual({ auth: 'abc.def' });
   });
   it('hash: #auth=denied → denied', () => {
-    expect(parseAuthRedirect('#auth=denied', '')).toEqual({ auth: 'denied', source: 'hash' });
+    expect(parseAuthRedirect('#auth=denied')).toEqual({ auth: 'denied' });
   });
-  it('兼容旧 query：?auth=<token> → token (source=search)', () => {
-    expect(parseAuthRedirect('', '?auth=legacy')).toEqual({ auth: 'legacy', source: 'search' });
+  it('query 不再兼容（Worker 只发 fragment；非 #auth= 前缀一律忽略）', () => {
+    expect(parseAuthRedirect('?auth=legacy')).toBeNull();
   });
-  it('两者皆空 → null', () => {
-    expect(parseAuthRedirect('', '')).toBeNull();
+  it('空 → null', () => {
+    expect(parseAuthRedirect('')).toBeNull();
   });
 });
 
