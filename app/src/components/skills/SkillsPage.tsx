@@ -1,6 +1,19 @@
-import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik';
+import {
+  component$,
+  useSignal,
+  useComputed$,
+  useVisibleTask$,
+  $,
+} from '@builder.io/qwik';
 import type { SkCfg, SkillMeta, SkStatus } from '../../types/skills';
-import { loadSkCfg, fetchSkills, skRepoFull, skDirFromPath } from '../../lib/skills';
+import {
+  loadSkCfg,
+  fetchSkills,
+  skRepoFull,
+  skDirFromPath,
+  resolveInitialSkillDir,
+} from '../../lib/skills';
+import { readPendingRedirect } from '../../lib/spa-redirect';
 import { SkillDetail } from './SkillDetail';
 import { SkillGrid } from './SkillGrid';
 import { ChannelSettings } from './ChannelSettings';
@@ -30,6 +43,11 @@ export const SkillsPage = component$(() => {
       history.pushState(null, '', '/skills');
       selectedDir.value = '';
     }
+  });
+  /** 深链进入的兜底场景专用：直接压一条列表 URL（history.back 可能退出站点）。 */
+  const backToList = $(() => {
+    history.pushState(null, '', '/skills');
+    selectedDir.value = '';
   });
 
   const reload = $(async () => {
@@ -62,11 +80,24 @@ export const SkillsPage = component$(() => {
     }
   });
 
+  /** 深链「未找到」判定：仅在列表已成功加载且非空时判定，
+   *  避免把「加载中 / 未配置仓库 / 加载失败」误判成 404（Skills 数据是异步拉取的）。 */
+  const missing = useComputed$(() => {
+    const d = selectedDir.value;
+    if (!d) return false;
+    if (!rows.value.length) return false;
+    return !rows.value.some((r) => r.dir === d);
+  });
+
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
     reload();
     // 详情透传：初始从 pathname 恢复（配合 404 壳可实现刷新/深链），popstate 同步后退/前进
-    selectedDir.value = skDirFromPath(location.pathname);
+    // 深链：优先用 404 引导页暂存的原始路径，并把 URL 修正回 /skills/<dir>
+    const pending = readPendingRedirect();
+    const { dir, restoreUrl } = resolveInitialSkillDir(location.pathname, pending);
+    selectedDir.value = dir;
+    if (restoreUrl) history.replaceState({ skDetail: dir }, '', restoreUrl);
     const onPop = () => (selectedDir.value = skDirFromPath(location.pathname));
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -74,7 +105,20 @@ export const SkillsPage = component$(() => {
 
   return (
     <section class="sk-page">
-      {selectedDir.value ? (
+      {missing.value ? (
+        <div data-testid="skills-notfound">
+          <div class="sk-back">
+            <button type="button" class="btn ghost" onClick$={backToList}>
+              ← 返回列表
+            </button>
+          </div>
+          <h1 class="sk-title">未找到</h1>
+          <div class="sk-status">
+            <span class="dot err"></span>
+            <span>不存在名为「{selectedDir.value}」的技能。</span>
+          </div>
+        </div>
+      ) : selectedDir.value ? (
         <SkillDetail key={selectedDir.value} dir={selectedDir.value} onBack$={closeDetail} />
       ) : (
         <>

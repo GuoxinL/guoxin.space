@@ -85,10 +85,37 @@ export interface ParsedFrontmatter {
   sourceOwner: string;
 }
 
-/** 由 pathname 提取详情目录：`/skills/<dir>` → dir；列表/其他路径 → ''（pushState 透传 + popstate 恢复用） */
+/** 由 pathname 提取详情目录：`/skills/<dir>` 或 `/skills/<dir>/` → dir；列表/多级/其他路径 → ''。
+ *  （pushState 透传 + popstate 恢复 + 404 引导页深链恢复共用；尾斜杠必须兼容，
+ *  因为引导页暂存的原始路径带斜杠。）
+ */
 export function skDirFromPath(pathname: string): string {
-  const m = /^\/skills\/([^/]+)$/.exec(pathname || '');
-  return m ? decodeURIComponent(m[1]) : '';
+  const m = /^\/skills\/([^/]+?)\/?$/.exec(pathname || '');
+  if (!m) return '';
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return m[1]; // 畸形百分号编码（如 %zz）：原样返回，不抛异常
+  }
+}
+
+/** dir → 详情路径（与 openDetail 的 pushState 保持一致：无尾斜杠）。dir 为空 → 列表路径。 */
+export function skPathFor(dir: string): string {
+  return dir ? '/skills/' + encodeURIComponent(dir) : '/skills';
+}
+
+/** 初始详情目录：优先用 404 引导页暂存的原始路径（深链），否则取当前 pathname（同路由内导航/刷新）。
+ *  `restoreUrl` 非空表示需要 history.replaceState 把 URL 修正回深链形态。
+ */
+export function resolveInitialSkillDir(
+  pathname: string,
+  pending: string | null
+): { dir: string; restoreUrl: string | null } {
+  if (pending) {
+    const dir = skDirFromPath(pending);
+    if (dir) return { dir, restoreUrl: skPathFor(dir) };
+  }
+  return { dir: skDirFromPath(pathname), restoreUrl: null };
 }
 
 export function skParseFrontmatter(text: string): ParsedFrontmatter {

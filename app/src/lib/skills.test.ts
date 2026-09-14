@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   skDirFromPath,
+  skPathFor,
+  resolveInitialSkillDir,
   skParseFrontmatter,
   skMdRender,
   skRepoFull,
@@ -136,6 +138,57 @@ describe('skInstallCmd', () => {
     const cmd = skInstallCmd("it's a dir");
     expect(cmd).toContain("'it'\\''s a dir'");
     expect(cmd).toContain('--agent wb,cb');
+  });
+});
+
+describe('skDirFromPath（尾斜杠兼容 · 深链）', () => {
+  it('带尾斜杠的深链路径可解析', () => {
+    expect(skDirFromPath('/skills/fav-brainstorming/')).toBe('fav-brainstorming');
+  });
+  it('多级路径不解析', () => {
+    expect(skDirFromPath('/skills/foo/bar')).toBe('');
+    expect(skDirFromPath('/skills/foo/bar/')).toBe('');
+  });
+  it('畸形百分号编码不抛异常', () => {
+    expect(() => skDirFromPath('/skills/%zz')).not.toThrow();
+  });
+  it('空值安全', () => {
+    expect(skDirFromPath('')).toBe('');
+  });
+});
+
+describe('skPathFor', () => {
+  it('生成无尾斜杠详情路径', () => {
+    expect(skPathFor('fav-brainstorming')).toBe('/skills/fav-brainstorming');
+  });
+  it('中文目录编码', () => {
+    expect(skPathFor('中文名')).toBe('/skills/' + encodeURIComponent('中文名'));
+  });
+  it('空 dir 回到列表', () => {
+    expect(skPathFor('')).toBe('/skills');
+  });
+});
+
+describe('resolveInitialSkillDir（深链优先）', () => {
+  it('有暂存路径时用它恢复，并给出待还原 URL', () => {
+    const r = resolveInitialSkillDir('/skills/', '/skills/foo/');
+    expect(r.dir).toBe('foo');
+    expect(r.restoreUrl).toBe('/skills/foo');
+  });
+  it('无暂存时取当前 pathname，且不需要还原 URL', () => {
+    const r = resolveInitialSkillDir('/skills/bar', null);
+    expect(r.dir).toBe('bar');
+    expect(r.restoreUrl).toBeNull();
+  });
+  it('暂存路径不可解析时退回当前 pathname', () => {
+    const r = resolveInitialSkillDir('/skills/bar', '/notes/测试笔记/');
+    expect(r.dir).toBe('bar');
+    expect(r.restoreUrl).toBeNull();
+  });
+  it('列表页无暂存时返回空 dir', () => {
+    const r = resolveInitialSkillDir('/skills/', null);
+    expect(r.dir).toBe('');
+    expect(r.restoreUrl).toBeNull();
   });
 });
 

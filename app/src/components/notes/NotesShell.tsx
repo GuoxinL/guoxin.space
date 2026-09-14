@@ -1,5 +1,6 @@
 import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik';
 import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
+import { readPendingRedirect } from '../../lib/spa-redirect';
 
 /**
  * N-T00 spike 外壳：只验证「中文 slug 在纯 CSR 下能否正确路由与解析」。
@@ -21,20 +22,6 @@ const MOCK_NOTES: NoteSpikeItem[] = [
   { slug: '测试笔记', summary: '第一条中文样例，用于验证深链与解码。' },
   { slug: 'Go 笔记', summary: '第二条样例，标题含空格与英文。' },
 ];
-
-/**
- * 读取 404 引导页暂存的原始路径（见 `tools/make-404-fallback.mjs`），**读取后即清除**，
- * 避免刷新 / 后退时被重复回放。storage 不可用（隐私模式）时降级为普通访问，不抛异常。
- */
-function readPendingRedirect(): string | null {
-  try {
-    const v = sessionStorage.getItem('spaRedirect');
-    if (v) sessionStorage.removeItem('spaRedirect');
-    return v;
-  } catch {
-    return null;
-  }
-}
 
 export const NotesShell = component$(() => {
   // SSG 阶段无 location，初始 ''；客户端在 useVisibleTask$ 从 pathname 恢复
