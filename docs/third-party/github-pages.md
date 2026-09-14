@@ -18,7 +18,7 @@
 
 ```
 push main → deploy.yml build job:
-  pnpm install --frozen-lockfile → pnpm build（SSG 4 页）
+  pnpm install --frozen-lockfile → pnpm build（SSG 5 页）
   → pnpm test + pnpm test:e2e（双门禁，任一失败阻断）
   → cp CNAME app/dist/CNAME → upload-pages-artifact@v5
 → deploy job: deploy-pages@v5 上线 → https://guoxin.space

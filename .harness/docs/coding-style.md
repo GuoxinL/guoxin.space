@@ -122,7 +122,7 @@
 | ESLint 8.57 + `eslint-plugin-qwik` ~1.20 + `@typescript-eslint` 6.21 | `npm run lint` → `eslint app/src --ext .ts,.tsx` | 静态检查 | pre-commit / CI；配置 `.eslintrc.cjs` |
 | TypeScript 5.5（`tsc`） | `npm run type-check` → `tsc --noEmit` | 类型检查（strict） | 提交前 / CI |
 | Vitest 1.6 | `npm run test` → `vitest run` | 单元测试（`app/src/lib/`） | 改逻辑后 |
-| Vite 5.3 / Qwik build | `npm run build` | SSG 预渲染 4 页 | 发布前（需 Node ≥24 + `CODEBUDDY_SAFE_DELETE_ENABLED=0`） |
+| Vite 5.3 / Qwik build | `npm run build` | SSG 预渲染 5 页（末尾自动写 SPA fallback `404.html`，见 CONSTRAINTS C-52） | 发布前（需 Node ≥24 + `CODEBUDDY_SAFE_DELETE_ENABLED=0`） |
 
 > 包管理：pnpm 9.15.0（禁用 npm / yarn，禁止提交 `package-lock.json`；本地无全局 pnpm 时用 `npm run build` 代替，不生成 lock）。
 

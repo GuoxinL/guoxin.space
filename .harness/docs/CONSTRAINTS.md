@@ -29,7 +29,7 @@
 |----|------|---------|---------|------|
 | C-01 | 本仓库是 **Qwik SSG 静态站**：无后端、无数据库、无 MQ、无独立测试环境；任何需服务端的能力走 Cloudflare Worker（`worker.js`，由 `deploy-worker.yml` 自动部署到 Cloudflare） | 架构错位、维护成本失控 | Plan / Implement | architecture.md §系统定位 |
 | C-02 | 代码**只进 `app/src/`**；新代码不写根 `index.html` / 旧静态文件（已删） | 重构隔离被破坏 | Implement | AGENTS.md 核心约定 / architecture.md |
-| C-03 | 构建产出 **4 页 + `/notes` 两页外壳**（`/`、`/skills`、`/toolbox/json`、`/running` 照旧预渲染；`/notes` 列表页预渲染，`/notes/[...slug]` 详情外壳不预渲染正文）；文章正文由 CSR 运行时取数仓 `build/` JSON 渲染；`app/dist/`（gitignore，CI 生成） | 部署产物缺失 / 误将文章正文做进 SSG（破坏纯 CSR 决策） | Build / Deploy | architecture.md + writing-module-plan-refined.md §5/§12.1 |
+| C-03 | 构建产出 **5 页静态预渲染**（`/`、`/skills`、`/toolbox/json`、`/running`、`/notes` 列表页）；`/notes/[...slug]` **详情页不预渲染**（无对应 HTML 产物），正文由 CSR 运行时取数仓 `build/` JSON 渲染；`app/dist/`（gitignore，CI 生成） | 部署产物缺失 / 误将文章正文做进 SSG（破坏纯 CSR 决策） | Build / Deploy | architecture.md + writing-module-plan-refined.md §5/§12.1 |
 | C-04 | 页面数据（Running 模块）**全部经 Cloudflare Worker 代理**，不直连任何公开 raw URL；白名单在 `worker.js` 的 `TRACKS_FILES` | 私有仓库暴露 / 鉴权失效 | Implement / Review | AGENTS.md 数据流 / architecture.md |
 
 ### 1.2 构建与工具链
@@ -48,7 +48,7 @@
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
 | C-10 | **UT（Vitest）强制**：改 `app/src/lib/` / 组件逻辑必跑 `npm run test`（9 文件 / 136 用例，CI 实测） | 逻辑回归无防线 | UT (Step4) | coding-style §11 / unittest.md |
-| C-11 | **页面自动化（Playwright E2E）强制门禁**：改任何页面 / 交互 / CSS 后必跑 `npm run test:e2e`（chromium，自动以 python3 http.server 静态服务 `app/dist`，端口 4321） | 交互/CSS 回归漏网 | IT (Step6) | integration_test.md / AGENTS.md |
+| C-11 | **页面自动化（Playwright E2E）强制门禁**：改任何页面 / 交互 / CSS 后必跑 `npm run test:e2e`（chromium，自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`，**模拟 GitHub Pages 语义**：未知路径回 `404.html` + 状态码 404、目录路径 301 补尾斜杠，端口 4321） | 交互/CSS 回归漏网；若退回 `python3 -m http.server` 会因缺少 404 fallback 而无法验证深链（`/notes/<中文>`、`/skills/<dir>`） | IT (Step6) | integration_test.md / AGENTS.md |
 | C-12 | **CI 双门禁已落地**：`deploy.yml` build job 在 `pnpm build` 后跑 `pnpm test` + `playwright install --with-deps chromium` + `pnpm test:e2e`；任一门禁失败阻塞 deploy | push 即上线，门禁是最后防线 | Deploy / CI | integration_test.md §5 / unittest.md §5 |
 | C-13 | 页面自动化**禁用 `sleep` 死等**；用 `page.waitFor*` / `expect().toBeVisible()` 自动等待；用例独立、不依赖执行顺序 | 脆弱 / 假绿 | IT (Step6) | integration_test.md 红线6 |
 | C-14 | 页面自动化**必须断言关键 DOM / 交互态样式**；改 CSS 用 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读，不只断言状态码；禁止为过 CI 关用例 | 同特异性后置覆盖漏检 | IT (Step6) / Review | integration_test.md 红线7 / AGENTS.md 红线4 |

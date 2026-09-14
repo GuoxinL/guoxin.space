@@ -21,7 +21,7 @@ flowchart LR
     subgraph Build["构建期（CI / 本地）"]
         SRC["app/src/*<br/>(TSX 源码)"]
         VITE["vite build<br/>(client bundle + q-manifest)"]
-        SSR["vite build --ssr<br/>(SSG 预渲染 4 页)"]
+        SSR["vite build --ssr<br/>(SSG 预渲染 5 页)"]
         DIST["app/dist/<br/>(静态 HTML + assets + CNAME + 404.html)"]
         SRC --> VITE --> SSR --> DIST
     end
@@ -94,7 +94,7 @@ sequenceDiagram
 
 ### 流程 C：构建产物生成（写，CI）
 
-`push main` → `pnpm install --frozen-lockfile` → `pnpm build`（`vite build` 产出 client bundle + `q-manifest.json`，随后 `vite build --ssr` 用该 manifest 预渲染 4 页）→ `cp CNAME app/dist/CNAME` → `upload-pages-artifact` → `deploy-pages`。详见「部署 / 分发拓扑」。
+`push main` → `pnpm install --frozen-lockfile` → `pnpm build`（`vite build` 产出 client bundle + `q-manifest.json`，随后 `vite build --ssr` 用该 manifest 预渲染 5 页）→ `cp CNAME app/dist/CNAME` → `upload-pages-artifact` → `deploy-pages`。详见「部署 / 分发拓扑」。
 
 ---
 
@@ -148,7 +148,7 @@ app/dist/<route>.html   ← 含真实预渲染内容 + q: 属性 + 脚本引用
 | # | 决策 | 备注 / Why |
 |---|------|------|
 | 1 | 选用 **Qwik + Qwik City** | resumability 使首屏 JS 与组件规模解耦，适合"内容站 + 少量交互"，且原生支持 SSG。 |
-| 2 | **SSG 静态预渲染**（static adapter，origin=guoxin.space） | 4 个顶层页面构建期产出纯 HTML，可直接被 GitHub Pages / 任意静态托管；零服务器成本、CDN 友好、SEO 友好。 |
+| 2 | **SSG 静态预渲染**（static adapter，origin=guoxin.space） | 5 个页面构建期产出纯 HTML（`/`、`/skills`、`/toolbox/json`、`/running`、`/notes` 列表页），可直接被 GitHub Pages / 任意静态托管；零服务器成本、CDN 友好、SEO 友好。`/notes/<中文标题>` 详情为**纯 CSR**（无预渲染产物，经 `404.html` 引导页接管，见 CONSTRAINTS C-03 / C-52）。 |
 | 3 | **无后端 / 无数据库** | 个人站点内容静态即可承载；任何需服务端的能力（鉴权、私有数据代理）外移到 Cloudflare Worker，避免维护服务器。 |
 | 4 | Vite `root` 指向 `app/`，与旧站根 `index.html` 隔离 | 重构期彻底隔离旧静态文件，新代码只进 `app/src/`。 |
 | 5 | 设计真源 = 根 `DESIGN.md`，同步到 `app/src/global.css` | 单一视觉真相源，避免组件各自写死样式；`.btn` 基类全局共用（Skills/JSON/Running 28 处），版面宽度只改 `--container-w` 一处。 |

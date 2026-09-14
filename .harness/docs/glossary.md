@@ -34,7 +34,7 @@
 | 行者 OpenAPI（Xingzhe） | Xingzhe OpenAPI | 行者 | Running 数据上游：`running-private` 的 `xingzhe_sync.yml` 每小时从其 OAuth2 同步活动到 `activities.json`，再生成轨迹产物。改数据链路改 `running-private`，非本仓库。 | AGENTS.md「数据流」；running-private 仓库；docs/third-party/xingzhe-openapi.md |
 
 > 收录标准：高级工程师首次看到这个词，能否不查资料就理解？不能 → 收录。能 → 不收录。
-> 注：SSG / Qwik City / SSR 等属公知渲染概念，按「不收录清单」原则**不收录**；其项目相关事实（如「4 页预渲染」）可直接读 `app/src/routes/` 与 `deploy.yml` 推断。
+> 注：SSG / Qwik City / SSR 等属公知渲染概念，按「不收录清单」原则**不收录**；其项目相关事实（如「5 页预渲染」）可直接读 `app/src/routes/` 与 `deploy.yml` 推断。
 
 ## 项目缩写速查
 
