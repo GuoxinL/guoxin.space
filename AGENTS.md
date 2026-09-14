@@ -1,6 +1,6 @@
 # AGENTS.md — 仓库操作指南（供 AI Agent 阅读）
 
-个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（4 页静态预渲染），推送 `main` 即 GitHub Actions 自动构建并上线。
+个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（4 页 + `/notes` 两页外壳静态预渲染，文章正文为纯 CSR 运行时取数），推送 `main` 即 GitHub Actions 自动构建并上线。
 
 > 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：AI 开发动作一律走 `.harness/plans/_template/` 的 8 步 SOP；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若本文档（操作指南 / 上下文）与 CONSTRAINTS.md / 对应 SOP 步骤冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文档定位 = AI 操作入口与项目上下文（目录 / 数据流 / 红线速览），非硬约束真源。
 
@@ -248,7 +248,7 @@ gh run list --workflow=deploy.yml --limit 5
 | `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
 | `npm run test` | `vitest run` 单测（9 文件 / 136 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
 | `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动以 python3 http.server 静态服务 `app/dist`；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
-| `npm run build` | Qwik SSG 构建（client + SSR 预渲染 4 页） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
+| `npm run build` | Qwik SSG 构建（client + SSR 预渲染 4 页 + `/notes` 两页外壳，文章正文 CSR 运行时取数仓 JSON） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
 
 ### 语言 / 框架版本约束
 
@@ -281,3 +281,5 @@ gh run list --workflow=deploy.yml --limit 5
 | 8 | **换 Hero 主图必须同步 `index.tsx` 的 `width/height`**（CLS 占位，须匹配真实宽高比）。 | 布局偏移 / 累计布局抖动 |
 | 9 | **禁止新增 `/favicon.ico`**（用 `app/public/favicon.svg`）。 | 404 控制台报错 |
 | 10 | **改 Running 数据链路改 `running-private` 仓库，非本仓库**；原公开 `GuoxinL/running` 已废弃。 | 数据生产链路错位 |
+| 11 | **文章模块（Notes）红线**：`/notes` 列表页预渲染、**详情外壳不预渲染正文**（纯 CSR）；文章数据**只走运行时取数**（可经「通道设置」切 raw / jsDelivr / 自定义）；mdast 渲染用 `lib/notes/map.ts` **白名单映射表**；数仓 vault `.md` 文件名**全局唯一**（slug ≡ basename）。详情见 CONSTRAINTS `C-03` / `C-4y` / `C-4z` / `C-4w`。 | 破坏纯 CSR 决策 / 静默丢内容 / slug 碰撞 |
+| 12 | **`404.html` 必须是 SPA 引导页**：由 `npm run build` 末尾的 `tools/make-404-fallback.mjs` 生成（暂存原始路径 → 跳同一路由入口页 → 应用 `replaceState` 修正 URL）。**禁止**保留 Qwik City 默认的静态占位页，也不要用 `cp index.html 404.html` 代替（resumability 会恢复首页状态，不按当前 URL 重路由）。详情见 CONSTRAINTS `C-52`。 | 深链全面失效：`/notes/<中文标题>`、`/skills/<dir>` 直接访问只看到静态 404 页 |

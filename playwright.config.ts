@@ -3,9 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * 页面自动化测试配置（guoxin.space · Qwik SSG 静态站）
  *
- * - webServer：自动用 `python3 -m http.server` 静态服务 `app/dist`
- *   （先在 build job / 本地 `npm run build` 产出）。目录路径行为与生产 GitHub Pages
- *   一致（/running → 301 → /running/ → index.html）。
+ * - webServer：自动用 `tools/serve-pages.mjs`（Pages 语义）静态服务 `app/dist`
+ *   （先在 build job / 本地 `npm run build` 产出）。相较原 `python3 -m http.server`，
+ *   它对未知路径返回 `404.html` 且状态码 404，与生产 GitHub Pages 一致 —— 深链
+ *   （`/notes/<中文标题>/`、`/skills/<dir>`）用例才能被验证；目录路径同样 301 补尾斜杠。
  *   ⚠️ 不能用根 vite.config.ts 直接 `vite preview`——Qwik 插件会接管 preview 并要求
  *   entry.preview 构建，对全部请求回 400；vite preview 的 spa fallback 还会把
  *   /running 等无扩展名路径回退到首页 index.html。
@@ -51,7 +52,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: `python3 -m http.server ${PORT} --bind 127.0.0.1 --directory app/dist`,
+          command: `node tools/serve-pages.mjs ${PORT} app/dist`,
           url: BASE_URL,
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,

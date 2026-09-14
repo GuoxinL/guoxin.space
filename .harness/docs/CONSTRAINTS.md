@@ -1,6 +1,6 @@
 # 约束总纲（CONSTRAINTS · SOP 绝对权威）
 
-> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-12
+> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html）
 > **适用范围**：guoxin.space（Qwik + Qwik City SSG 静态站，GitHub Pages 托管）
 
 ---
@@ -29,7 +29,7 @@
 |----|------|---------|---------|------|
 | C-01 | 本仓库是 **Qwik SSG 静态站**：无后端、无数据库、无 MQ、无独立测试环境；任何需服务端的能力走 Cloudflare Worker（`worker.js`，由 `deploy-worker.yml` 自动部署到 Cloudflare） | 架构错位、维护成本失控 | Plan / Implement | architecture.md §系统定位 |
 | C-02 | 代码**只进 `app/src/`**；新代码不写根 `index.html` / 旧静态文件（已删） | 重构隔离被破坏 | Implement | AGENTS.md 核心约定 / architecture.md |
-| C-03 | 构建产出 4 页静态预渲染（`/`、`/skills`、`/toolbox/json`、`/running`）+ `app/dist/`（gitignore，CI 生成） | 部署产物缺失 | Build / Deploy | architecture.md |
+| C-03 | 构建产出 **4 页 + `/notes` 两页外壳**（`/`、`/skills`、`/toolbox/json`、`/running` 照旧预渲染；`/notes` 列表页预渲染，`/notes/[...slug]` 详情外壳不预渲染正文）；文章正文由 CSR 运行时取数仓 `build/` JSON 渲染；`app/dist/`（gitignore，CI 生成） | 部署产物缺失 / 误将文章正文做进 SSG（破坏纯 CSR 决策） | Build / Deploy | architecture.md + writing-module-plan-refined.md §5/§12.1 |
 | C-04 | 页面数据（Running 模块）**全部经 Cloudflare Worker 代理**，不直连任何公开 raw URL；白名单在 `worker.js` 的 `TRACKS_FILES` | 私有仓库暴露 / 鉴权失效 | Implement / Review | AGENTS.md 数据流 / architecture.md |
 
 ### 1.2 构建与工具链
@@ -41,6 +41,7 @@
 | C-07 | CI 两个 workflow（`deploy.yml`、`check-404-sync.yml`）**必须 Node 24** 且**不给 `pnpm/action-setup` 写死 `version`**（与 `packageManager: pnpm@9.15.0` 冲突报 `ERR_PNPM_BAD_PM_VERSION`） | CI 失败 | Deploy | AGENTS.md 红线5 / architecture.md |
 | C-08 | 包管理统一 **pnpm 9.15.0**：禁用 npm / yarn 作主管理器；**禁止提交 `package-lock.json`**（本地无全局 pnpm 时用 `npm run <script>` 跑脚本兜底，不生成 lock） | 与 `packageManager` 冲突 | Implement / Commit | AGENTS.md 红线7 / coding-style §11 |
 | C-09 | `vite.config.ts` 须先 `vite build`（client）再 `vite build --ssr`（注入 `q-manifest.json`），否则 SSG 整页空壳（`q:container="paused"`） | 线上空壳 | Build | architecture.md 并发/资源模型 |
+| C-52 | **`npm run build` 末尾必须生成 SPA fallback `404.html`**（由 `tools/make-404-fallback.mjs` 写入「引导页」：暂存原始路径到 `sessionStorage['spaRedirect']` 后 `location.replace` 到**同一路由**的已预渲染入口页）；**禁止**保留 Qwik City 默认的静态占位 `404.html`（759B、不含 Qwik 应用） | 深链全面失效：`/notes/<中文标题>`、`/skills/<dir>` 只能看到静态 404 页（`cp index.html 404.html` 亦无效 —— Qwik resumability 会恢复首页状态，不按当前 URL 重路由） | Build / Deploy | writing-module-plan-refined.md §5 / 2026-09-14_notes-csr-spike/06-it.md §4 |
 
 ### 1.3 测试门禁（强制双门禁）
 
@@ -119,6 +120,14 @@
 | C-50 | 外部输入白名单校验（类型/长度/范围/格式）；HTML 输出对第三方数据编码（禁未处理 `dangerouslySetInnerHTML`） | XSS | Implement / Review | AGENTS.md 安全基线 / code-review.md |
 | C-51 | 加密/签名用标准库（Web Crypto），禁止自研算法；`Math.random()` 不用于安全场景（用 `crypto.getRandomValues`） | 安全漏洞 | Implement | coding-style §10 |
 
+### 1.10 文章模块（Notes）专用约束
+
+| ID | 规则 | 违反后果 | 执行步骤 | 来源 |
+|----|------|---------|---------|------|
+| C-4y | 文章数据**只走运行时取数**，绝不进网站仓构建期、不提交进网站仓；数据源经「通道设置」可切换（raw.githubusercontent / jsDelivr / 自定义） | 破坏「网站仓只做运行时」+ 重新引入跨仓触发链路 | Implement / Review | writing-module-plan-refined.md §5/§6 |
+| C-4z | mdast 渲染采用**白名单映射表**（`lib/notes/map.ts` 唯一登记处）：未登记节点类型 → 可见「不支持」标记 + 解析期告警；**禁止**在渲染器散落 `switch(node.type)` 分支 | 静默丢内容 / 维护失控 | Implement / UT | writing-module-plan-refined.md §7 |
+| C-4w | 数仓 vault **所有 `.md` 文件名（basename，去扩展名）全局唯一**（slug ≡ basename = URL）；解析期强制校验，重复即中止构建 | 中文 slug 碰撞 / 跨目录文章互相覆盖 | Implement (notes-build) / UT | writing-module-plan-refined.md §4.5 |
+
 ---
 
 ## 2. SOP 步骤 → 约束执行矩阵
@@ -129,9 +138,9 @@
 |---------|------------------|
 | 01 Clarify | C-01, C-42（范围是否触后端/running-private） |
 | 02 Plan | C-01, C-02, C-04, C-29, C-42, C-43（影响范围/调用链终点=静态产物或 Worker） |
-| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51 |
+| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-4y, C-4z, C-4w |
 | 04 UT | C-10, C-15 |
-| 05 Deploy | C-05, C-06, C-07, C-09, C-16, C-17, C-18, C-19, C-44, C-45, C-46, C-47, C-48 |
+| 05 Deploy | C-05, C-06, C-07, C-09, C-16, C-17, C-18, C-19, C-44, C-45, C-46, C-47, C-48, C-4y, C-52 |
 | 06 IT | C-11, C-12, C-13, C-14 |
 | 07 Docs | C-01（文档与代码一致） |
 | 08 Review | C-20~C-51（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
