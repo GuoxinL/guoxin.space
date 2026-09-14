@@ -16,6 +16,7 @@
 //   AUTH_SECRET         必填  HMAC 签名密钥（openssl rand -base64 32）
 //   AUTH_SECRET_PREV    选填  轮换宽限：旧签名密钥，验签回退用（换新后 ≥24h 可删）
 //   SERVERCHAN_SENDKEY  选填  写操作审计：collect/remove/sync 成功后 Server酱推微信
+//   CARTO_API_KEY       选填  地图瓦片代理（/api/tiles/）的 CARTO key；未配时 302 降级 Esri 免 key 瓦片
 //   TRACKS_REPO         必填  轨迹私有仓库，形如 GuoxinL/running-private
 //   REDIRECT_URL        选填  登录回跳地址，默认 https://guoxin.space
 // 鉴权：写通道（collect/remove/sync）与完整轨迹（tracks/raw?f=rides.full.json）
@@ -62,6 +63,12 @@ export default {
       if (url.pathname === "/api/auth/me" && request.method === "GET") return await authMe(request, env, cors);
       if (url.pathname === "/api/tracks/raw" && request.method === "GET") return await tracksRaw(request, env, cors);
       if (url.pathname === "/api/health" && request.method === "GET") return await health(env, repo, branch, cors);
+
+      // 地图瓦片代理（GET /api/tiles/{style}/{z}/{x}/{y}）：key 存 Worker Secret，
+      // Cache API 边缘缓存（瓦片不可变）；未配 key 时 302 降级到 Esri 免 key 瓦片
+      if (url.pathname.startsWith("/api/tiles/") && request.method === "GET") {
+        return await tilesProxy(request, env, ctx, cors, url);
+      }
 
       // 写通道（collect/remove/sync）：仅限 GitHub 登录本人（Bearer token 校验）
       const isWrite = url.pathname === "/api/collect" || url.pathname === "/api/remove" || url.pathname === "/api/sync";
@@ -561,6 +568,54 @@ async function requireAdmin(request, env, cors) {
   const payload = await verifyToken(token, env);
   if (!payload || payload.login !== env.ADMIN_LOGIN) return { ok: false };
   return { ok: true, payload };
+}
+
+// ---- 地图瓦片代理：CARTO basemaps（key 存 Secret CARTO_API_KEY，不进前端）----
+const TILE_UPSTREAM = {
+  light: "https://basemaps.cartocdn.com/light_all",
+  voyager: "https://basemaps.cartocdn.com/rastertiles/voyager",
+  dark: "https://basemaps.cartocdn.com/dark_all",
+};
+/* 无 key 时的免 key 降级源（注意 Esri 路径为 {z}/{y}/{x} 顺序） */
+const TILE_FALLBACK = {
+  light: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile",
+  voyager: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile",
+  dark: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile",
+};
+
+async function tilesProxy(request, env, ctx, cors, url) {
+  const m = /^\/api\/tiles\/(light|voyager|dark)\/(\d{1,2})\/(\d{1,3})\/(\d{1,3})$/.exec(url.pathname);
+  if (!m) return json(cors, 404, { error: "Not Found: " + url.pathname });
+  const style = m[1];
+  const z = Number(m[2]);
+  const x = Number(m[3]);
+  const y = Number(m[4]);
+  const n = Math.pow(2, z);
+  if (z > 20 || x >= n || y >= n) return json(cors, 404, { error: "tile out of range" });
+
+  // 瓦片不可变：Cache API 边缘缓存（键不含 key；Cache-Control 控制保留 1 天）
+  const cacheKey = new Request(url.origin + url.pathname);
+  const hit = await caches.default.match(cacheKey);
+  if (hit) return hit;
+
+  if (!env.CARTO_API_KEY) {
+    // 未配 key：302 降级到 Esri 免 key 瓦片（行为与直接使用 Esri 一致）
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${TILE_FALLBACK[style]}/${z}/${y}/${x}.png`, "Access-Control-Allow-Origin": "*" },
+    });
+  }
+  const res = await fetch(`${TILE_UPSTREAM[style]}/${z}/${x}/${y}.png?key=${encodeURIComponent(env.CARTO_API_KEY)}`);
+  if (!res.ok) return new Response("tile upstream error", { status: 502, headers: cors });
+  const out = new Response(res.body, {
+    headers: {
+      "Content-Type": res.headers.get("Content-Type") || "image/png",
+      "Cache-Control": "public, max-age=86400",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+  if (ctx) ctx.waitUntil(caches.default.put(cacheKey, out.clone()));
+  return out;
 }
 
 async function authLogin(request, env, cors) {

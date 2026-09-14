@@ -924,9 +924,8 @@ function rkMapInit(
   const tileUrl = (tx: number, ty: number) => {
     const n = Math.pow(2, S.z);
     const wx = ((tx % n) + n) % n;
-    let u = S.style.url.replace('{z}', String(S.z)).replace('{x}', String(wx)).replace('{y}', String(ty));
-    if (u.indexOf('{s}') >= 0) u = u.replace('{s}', 'abcd'[(wx + ty + S.z) % 4]);
-    return u;
+    const wBase = loadSkCfg().worker.replace(/\/+$/, '');
+    return `${wBase}/api/tiles/${S.style.k}/${S.z}/${wx}/${ty}`;
   };
   const finishPrepare = () => {
     S.prep = 0;
@@ -1418,7 +1417,7 @@ export function rkActReplay(wrap: HTMLElement, a: RkActivity, ridesFull: Record<
   if (bgCtx) {
     bgCtx.fillStyle = bgStyle.bg;
     bgCtx.fillRect(0, 0, W, H);
-    rkActLoadBg(bgCtx, z, cx - W / 2, cy - H / 2, W, H, bgStyle);
+    rkActLoadBg(bgCtx, z, cx - W / 2, cy - H / 2, W, H, bgStyle.k);
   }
 
   const draw = (prog: number) => {
@@ -1487,7 +1486,7 @@ export function rkActReplay(wrap: HTMLElement, a: RkActivity, ridesFull: Record<
   };
 }
 
-function rkActLoadBg(bgCtx: CanvasRenderingContext2D, z: number, vx0: number, vy0: number, W: number, H: number, style: { url: string }): void {
+function rkActLoadBg(bgCtx: CanvasRenderingContext2D, z: number, vx0: number, vy0: number, W: number, H: number, styleKey: string): void {
   const tx0 = Math.floor(vx0 / RK_TILE);
   const ty0 = Math.floor(vy0 / RK_TILE);
   const tx1 = Math.floor((vx0 + W) / RK_TILE);
@@ -1497,8 +1496,7 @@ function rkActLoadBg(bgCtx: CanvasRenderingContext2D, z: number, vx0: number, vy
     for (let tx = tx0; tx <= tx1; tx++) {
       ((tx: number, ty: number) => {
         const wx = ((tx % n) + n) % n;
-        let u = style.url.replace('{z}', String(z)).replace('{x}', String(wx)).replace('{y}', String(ty));
-        if (u.indexOf('{s}') >= 0) u = u.replace('{s}', 'abcd'[(wx + ty + z) % 4]);
+        const u = `${loadSkCfg().worker.replace(/\/+$/, '')}/api/tiles/${styleKey}/${z}/${wx}/${ty}`;
         const img = new Image();
         img.onload = () => bgCtx.drawImage(img, tx * RK_TILE - vx0, ty * RK_TILE - vy0, RK_TILE, RK_TILE);
         img.src = u;
