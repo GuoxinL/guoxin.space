@@ -34,6 +34,7 @@
 | `AUTH_SECRET` | ✅ | HMAC 签名密钥（`openssl rand -base64 32` 生成） |
 | `AUTH_SECRET_PREV` | ❌ | 轮换宽限：换新 SECRET 时把旧值放这里，旧 token ≤24h 内仍可验（runbook 见「八、权限模型」） |
 | `SERVERCHAN_SENDKEY` | ❌ | 写操作审计：collect/remove/sync 成功后 Server酱推微信（与 GitHub Actions 同名 Secret 同值）。**配置步骤见 [serverchan.md §2.5](./serverchan.md)** |
+| `CARTO_API_KEY` | ❌ | 地图瓦片代理（`/api/tiles/`）的 CARTO key；未配时 302 降级 Esri 免 key 瓦片 |
 | `TRACKS_REPO` | ✅ | 轨迹私有仓库，形如 `GuoxinL/running-private` |
 | `REDIRECT_URL` | ❌ | 登录回跳地址，默认 `https://guoxin.space` |
 
@@ -45,6 +46,7 @@
 | GET | `/api/auth/login` | 无 | 302 到 GitHub OAuth authorize |
 | GET | `/api/auth/callback?code&state` | 无 | OAuth 回调：验身份 → 签 token → 302 回站 `?auth=<token>` |
 | GET | `/api/auth/me` | Bearer | 校验 token 有效性，返回 `{ok, login, exp}` |
+| GET | `/api/tiles/{style}/{z}/{x}/{y}` | 无 | 地图瓦片代理：style ∈ light/voyager/dark；Cache API 边缘缓存 24h；未配 `CARTO_API_KEY` 时 302 降级 Esri 免 key 瓦片（详见 [carto-basemaps.md](../third-party/carto-basemaps.md)） |
 | GET | `/api/tracks/raw?f=<file>` | 白名单 | 代理轨迹私有仓库。`preview.json` / `preview.meta.json` / `previews/{light,dark}.png`（双主题总览垫底）/ `thumb/<run_id>.<light\|dark>.png`（双主题活动缩略图，`run_id` 纯数字防路径注入）游客可读；`rides.full.json`（完整骑行轨迹）需 Bearer |
 | POST | `/api/collect` | **Bearer** | 收藏 skill。`mode`：`proxy` / `mirror`（≤60 文件） |
 | POST | `/api/remove` | **Bearer** | 删除目录（仅 `fav-*` / `my-*` 前缀） |

@@ -22,16 +22,21 @@
 
 > 逐文件记录**关键**实现细节。不要复制代码；只写**为什么这么写**、**踩过什么坑**、**特殊处理**。
 
-### 1.1 `<文件路径>`
+### 1.1 `worker.js`
 
-- 关键逻辑：
-- 特殊处理：
-- 兼容性考虑：
-- 引用 / 参考：
+- 关键逻辑：`GET /api/tiles/{style}/{z}/{x}/{y}`（style 白名单 light/voyager/dark、z≤20、x/y 越界校验）→ Cache API 命中直返 → 未命中带 `CARTO_API_KEY`（URL 参数）请求 CARTO → `ctx.waitUntil(cache.put)` 边缘缓存 24h。未配 key 时 302 降级 Esri 免 key 瓦片（零配置不断供）。
+- 特殊处理：缓存键 = origin+pathname（**不含 key**，凭据恒定不参与匹配）；响应带 `Cache-Control: public, max-age=86400` 与 ACAO *（前端 background-image 无需 CORS，透传兜底）。
+- 兼容性考虑：未配 Secret 时行为退化为「302 Esri」，与修复前 Esri 直连观感一致，无断裂。
 
-### 1.2 `<文件路径>`
+### 1.2 `app/src/lib/running.ts`
 
-<!-- 重复 -->
+- 关键逻辑：RK_STYLES 弃直连 URL 模板（k/n/bg/attr 元数据），`tileUrl` 与 `rkActLoadBg` 改经 Worker 代理路径（Worker 地址取 `loadSkCfg().worker`，与 tracks/thumb 同源）。
+- 兼容性考虑：明暗主题取样式索引逻辑不变；回放底图浅色/暗色自动跟随；`{s}` 子域轮换与 Esri `{z}/{y}/{x}` 顺序差异随直连 URL 一并废除。
+
+### 1.3 对照旧实现（ba5816b^: js/running.js）
+
+- 旧注释「MapCN（CARTO Basemaps）免费瓦片，无 token」——「MapCN」即 CARTO 的注释昵称，平台从未更换；本次回归 = CARTO 政策变化（免费无 token 用法要求 key）。
+- 旧 `RK_Z_MAX = 18`（CARTO 支持）；Esri 方案仅 ~16——方案一恢复 CARTO 后回到 z20。
 
 ## 2. 与 Plan 的差异
 
