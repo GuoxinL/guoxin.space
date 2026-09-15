@@ -182,9 +182,14 @@ const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
 const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
   const ref = useSignal<HTMLDivElement>();
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(() => {
+  useVisibleTask$(({ cleanup }) => {
     if (!cfg.giscus || !ref.value) return;
     const g = cfg.giscus!;
+    const host = ref.value;
+    const themeOf = () => (document.body.dataset.theme === 'dark' ? 'dark' : 'light');
+
+    // 先清空：SPA 内切换文章会重新执行本任务，避免 iframe 越叠越多
+    host.replaceChildren();
     const s = document.createElement('script');
     s.src = 'https://giscus.app/client.js';
     s.async = true;
@@ -197,9 +202,25 @@ const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
     s.setAttribute('data-reactions-enabled', '1');
     s.setAttribute('data-emit-metadata', '0');
     s.setAttribute('data-input-position', 'bottom');
-    s.setAttribute('data-theme', document.body.dataset.theme === 'dark' ? 'dark' : 'light');
+    s.setAttribute('data-theme', themeOf());
     s.setAttribute('data-lang', 'zh-CN');
-    ref.value.appendChild(s);
+    host.appendChild(s);
+
+    // 主题跟随：站点明暗切换后通知已加载的 giscus iframe 换主题（否则评论框停在进入时的主题）
+    const postTheme = () => {
+      const frame = host.querySelector('iframe.giscus-frame') as HTMLIFrameElement | null;
+      frame?.contentWindow?.postMessage(
+        { giscus: { setConfig: { theme: themeOf() } } },
+        'https://giscus.app'
+      );
+    };
+    const mo = new MutationObserver(postTheme);
+    mo.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+
+    cleanup(() => {
+      mo.disconnect();
+      s.remove();
+    });
   });
 
   if (!cfg.giscus) {

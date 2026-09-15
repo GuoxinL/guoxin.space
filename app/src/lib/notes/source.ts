@@ -8,12 +8,23 @@
  * 经 raw.githubusercontent.com 拉取（可经 NotesCfg.source 切 jsDelivr / 自定义镜像）。
  * 取数失败（网络/404）回退本地 SAMPLE 兜底，避免白屏（plan R-3）。
  */
-import type { ArticleDoc, NotesCfg, PostsIndex } from './types';
+import type { ArticleDoc, NotesCfg, NotesGiscus, PostsIndex } from './types';
 import { SAMPLE_ARTICLES, SAMPLE_INDEX } from './sample';
 
 export const NOTES_DFLT_REPO = 'GuoxinL/notes';
 export const NOTES_DFLT_BRANCH = 'main';
 export const NOTES_DFLT_SOURCE: NotesCfg['source'] = 'raw';
+
+/**
+ * Giscus 评论配置（N-T27）。**null = 未启用**（详情页显示诚实占位，不静默失效）。
+ *
+ * 启用步骤见 `docs/third-party/giscus.md`：① 目标仓库开启 Discussions → ② 安装 giscus GitHub App
+ * → ③ 建一个讨论分类（推荐 Announcements）→ ④ 在 https://giscus.app/zh-CN 生成四元组后填入这里。
+ *
+ * 四个值会出现在公开 HTML 中，**不属于机密**（与 CARTO key 同性质），可直接写在此处；
+ * 换仓库/换分类时改这里并重新部署即可。
+ */
+export const NOTES_GISCUS: NotesGiscus | null = null;
 
 /** 通道设置（与 Skills/Running 现有模式一致，可切 raw / jsDelivr / 自定义镜像）。 */
 export function defaultNotesCfg(): NotesCfg {
@@ -21,6 +32,7 @@ export function defaultNotesCfg(): NotesCfg {
     repo: NOTES_DFLT_REPO,
     branch: NOTES_DFLT_BRANCH,
     source: NOTES_DFLT_SOURCE,
+    giscus: NOTES_GISCUS ?? undefined,
   };
 }
 
