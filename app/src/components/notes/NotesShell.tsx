@@ -1,6 +1,6 @@
 import { component$, useSignal, useStore, useVisibleTask$, $, type QRL } from '@builder.io/qwik';
-import type { ArticleDoc, ArticleSummary, PostsIndex } from '../../lib/notes/types';
-import { loadArticle, loadNotesIndex, loadAllArticles } from '../../lib/notes/source';
+import type { ArticleDoc, ArticleSummary, PostsIndex, NotesCfg } from '../../lib/notes/types';
+import { loadArticle, loadNotesIndex, loadAllArticles, defaultNotesCfg } from '../../lib/notes/source';
 import { buildIndex, search, type NoteSearch } from '../../lib/notes/search';
 import { computeRelated, type RelatedItem } from '../../lib/notes/related';
 import { computeStats, intensityLevel } from '../../lib/notes/stats';
@@ -174,6 +174,50 @@ const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
   );
 });
 
+/**
+ * 评论（N-T27）：Giscus 配置驱动。
+ * 有 NotesCfg.giscus → 注入 Giscus 脚本（需目标仓库开启 GitHub Discussions）；
+ * 无配置 → 显示占位说明，避免静默失效。
+ */
+const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
+  const ref = useSignal<HTMLDivElement>();
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(() => {
+    if (!cfg.giscus || !ref.value) return;
+    const g = cfg.giscus!;
+    const s = document.createElement('script');
+    s.src = 'https://giscus.app/client.js';
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.setAttribute('data-repo', g.repo);
+    s.setAttribute('data-repo-id', g.repoId);
+    s.setAttribute('data-category', g.category);
+    s.setAttribute('data-category-id', g.categoryId);
+    s.setAttribute('data-mapping', g.mapping ?? 'pathname');
+    s.setAttribute('data-reactions-enabled', '1');
+    s.setAttribute('data-emit-metadata', '0');
+    s.setAttribute('data-input-position', 'bottom');
+    s.setAttribute('data-theme', document.body.dataset.theme === 'dark' ? 'dark' : 'light');
+    s.setAttribute('data-lang', 'zh-CN');
+    ref.value.appendChild(s);
+  });
+
+  if (!cfg.giscus) {
+    return (
+      <section class="notes-comments notes-comments--off" data-testid="notes-comments" aria-label="评论">
+        <h2 class="notes-section-title">评论</h2>
+        <p class="notes-muted">评论功能需在 NotesCfg 中配置 GitHub Discussions（Giscus）。当前站点未启用。</p>
+      </section>
+    );
+  }
+  return (
+    <section class="notes-comments" data-testid="notes-comments" aria-label="评论">
+      <h2 class="notes-section-title">评论</h2>
+      <div ref={ref} class="notes-giscus" />
+    </section>
+  );
+});
+
 /** 写作统计与热力图（N-T22）：总数/字数/标签分布 + GitHub 风格按日热力图。 */
 const NotesStatsPanel = component$<{ posts: ArticleSummary[] }>(({ posts }) => {
   const stats = computeStats(posts);
@@ -216,6 +260,81 @@ const NotesStatsPanel = component$<{ posts: ArticleSummary[] }>(({ posts }) => {
           </div>
         ))}
       </div>
+    </details>
+  );
+});
+
+/** 双链图谱（N-T25）：d3-force 计算力导向布局，渲染笔记节点 + 引用/反链边。 */
+const NotesGraph = component$(() => {
+  const graph = useSignal<{
+    nodes: { id: string; title: string; x: number; y: number }[];
+    links: { x1: number; y1: number; x2: number; y2: number }[];
+  } | null>(null);
+
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    try {
+      const { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide } = await import('d3-force');
+      const docs = await loadAllArticles();
+      const W = 320;
+      const H = 200;
+      const nodes = docs.map((d) => ({ id: d.slug, title: d.title, x: 0, y: 0 }));
+      const idset = new Set(nodes.map((n) => n.id));
+      const links: { source: string; target: string }[] = [];
+      const seen = new Set<string>();
+      const addLink = (a: string, b: string) => {
+        if (a === b) return; // 跳过自引用（如文章引用自身）
+        const key = [a, b].sort().join('|');
+        if (!seen.has(key)) {
+          seen.add(key);
+          links.push({ source: a, target: b });
+        }
+      };
+      for (const d of docs) {
+        for (const r of d.references ?? [])
+          if (r.kind === 'internal' && r.target && idset.has(r.target)) addLink(d.slug, r.target);
+        for (const b of d.backlinks ?? []) if (idset.has(b.slug)) addLink(d.slug, b.slug);
+      }
+      if (nodes.length === 0) return;
+      const sim = forceSimulation(nodes as never)
+        .force('link', forceLink(links as never).id((d: never) => (d as { id: string }).id))
+        .force('charge', forceManyBody().strength(-160))
+        .force('center', forceCenter(W / 2, H / 2))
+        .force('collide', forceCollide(30))
+        .stop();
+      for (let i = 0; i < 300; i += 1) sim.tick();
+      const linksOut = (links as unknown as { source: { x: number; y: number }; target: { x: number; y: number } }[]).map(
+        (l) => ({ x1: l.source.x, y1: l.source.y, x2: l.target.x, y2: l.target.y })
+      );
+      graph.value = {
+        nodes: nodes.map((n) => ({ id: n.id, title: n.title, x: n.x, y: n.y })),
+        links: linksOut,
+      };
+    } catch {
+      graph.value = null;
+    }
+  });
+
+  return (
+    <details class="notes-graph" data-testid="notes-graph" open>
+      <summary class="notes-graph-summary">双链图谱</summary>
+      <svg class="notes-graph-svg" data-testid="notes-graph-svg" viewBox="0 0 320 200">
+        {graph.value && (
+          <>
+            {graph.value.links.map((l, i) => (
+              <line key={`l-${i}`} class="notes-graph-edge" x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />
+            ))}
+            {graph.value.nodes.map((n, i) => (
+              <g key={`n-${i}`} class="notes-graph-node-g" transform={`translate(${n.x},${n.y})`}>
+                <circle class="notes-graph-node" r={8} />
+                <text class="notes-graph-label" x={12} y={4}>
+                  {n.title}
+                </text>
+              </g>
+            ))}
+          </>
+        )}
+      </svg>
     </details>
   );
 });
@@ -294,6 +413,20 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav
     }
   });
 
+  // N-T28：运行时注入 og:image（构建期由 tools/gen-og.mjs 生成 SVG）。
+  // 注意：纯 CSR 站点爬虫不执行 JS，故真实 OG 抓取需回到 per-route SSG（见计划 R-1 / §12.4）。
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(() => {
+    const fileName = doc.slug.replace(/ /g, '_');
+    let el = document.head.querySelector('meta[property="og:image"]') as HTMLMetaElement | null;
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('property', 'og:image');
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', `/og/${fileName}.svg`);
+  });
+
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     const headings = Array.from(
@@ -361,6 +494,7 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav
         <BacklinksBlock doc={doc} />
         <HistoryBlock doc={doc} />
         <RelatedArticles items={related.value} />
+        <Comments cfg={defaultNotesCfg()} />
       </article>
     </div>
   );
@@ -633,6 +767,7 @@ export const NotesShell = component$(() => {
                 </ul>
               )}
               <NotesStatsPanel posts={allPosts} />
+              <NotesGraph />
             </>
           ) : state.err ? (
             <div class="notes-error" data-testid="notes-error">

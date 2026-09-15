@@ -276,6 +276,17 @@ const ast: MdNode = {
       },
     },
     {
+      type: 'paragraph',
+      children: [{ type: 'text', value: '交互式代码示例（StackBlitz 嵌入）：' }],
+    },
+    {
+      type: 'wikiEmbed',
+      data: {
+        embedType: 'stackblitz',
+        src: 'https://stackblitz.com/edit/qwik-starter?embed=1&file=src%2Froot.tsx',
+      },
+    },
+    {
       type: 'heading',
       depth: 2,
       children: [{ type: 'text', value: '脚注' }],
@@ -299,6 +310,22 @@ const ast: MdNode = {
       label: '1',
       data: { footnoteId: 'fn-1' },
       children: [{ type: 'text', value: '脚注内容：这里是补充说明文字。' }],
+    },
+    {
+      type: 'heading',
+      depth: 2,
+      children: [{ type: 'text', value: '流程图（Mermaid）' }],
+    },
+    {
+      type: 'paragraph',
+      children: [{ type: 'text', value: '下面用 Mermaid 语法画一个笔记关系流程图（运行时懒加载渲染）：' }],
+    },
+    {
+      type: 'code',
+      lang: 'mermaid',
+      value:
+        'graph TD\n  A[笔记] --> B(双链)\n  B --> C{关系}\n  C -->|引用| D[相关文章]\n  C -->|反链| E[双链图谱]\n  C -->|嵌入| F[笔记嵌入卡片]',
+      data: {},
     },
     { type: 'thematicBreak' },
     {

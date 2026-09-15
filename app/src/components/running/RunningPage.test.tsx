@@ -77,7 +77,7 @@ describe('RunningPage 页面功能（全部用户可见功能）', () => {
       const f = new URL(url).searchParams.get('f') || '';
       if (f === 'preview.json') return { ok: true, status: 200, text: async () => JSON.stringify(ACTS), json: async () => ACTS };
       if (f === 'preview.meta.json') return { ok: true, status: 200, text: async () => JSON.stringify(META), json: async () => META };
-      if (f === 'rides.full.json') return { ok: false, status: 401, json: async () => null };
+      if (f === 'rides.full.json') return { ok: false, status: 401, json: async (): Promise<unknown> => null };
       return { ok: true, status: 200, text: async () => '', json: async () => ({}) };
     });
     (globalThis as any).requestAnimationFrame = () => 1;
@@ -191,7 +191,7 @@ describe('RunningPage 页面功能（全部用户可见功能）', () => {
   it('#21 统计总览卡片', async () => {
     await settle(() => screen.querySelector('.rk-section-h'));
     const sections = Array.from(screen.querySelectorAll('.rk-section'));
-    const stats = sections.find((s: any) => s.querySelector('.rk-section-h')?.textContent === '运动总览');
+    const stats = sections.find((s: any) => s.querySelector('.rk-section-h')?.textContent === '运动总览') as any;
     expect(stats).toBeTruthy();
     const cards = stats.querySelectorAll('.rk-pb-item');
     expect(cards.length).toBe(5);
@@ -231,7 +231,7 @@ describe('RunningPage 页面功能（全部用户可见功能）', () => {
     const sections = Array.from(screen.querySelectorAll('.rk-section'));
     const pb = sections.find((s: any) => s.querySelector('.rk-section-h')?.textContent === '个人最佳 / 总览');
     expect(pb).toBeTruthy();
-    expect(pb.querySelectorAll('.rk-pb-item').length).toBe(6);
+    expect((pb as any).querySelectorAll('.rk-pb-item').length).toBe(6);
   });
 
   it('#25 活动列表（加载更多 + 年份过滤）', async () => {

@@ -4,7 +4,7 @@
  * 未登记节点类型走 UnsupportedNode（可见标记），禁止在渲染器散落 switch 分支以外的新逻辑。
  * 代码高亮 / 公式渲染在客户端 useVisibleTask$ 中经 Prism / KaTeX 运行时增强（见 lib/notes/*）。
  */
-import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik';
+import { component$, useSignal, useVisibleTask$, useStore, $ } from '@builder.io/qwik';
 import type { MdNode } from '../../lib/notes/types';
 import { slugifyHeading } from '../../lib/notes/slugify';
 import { getKnownSlugs } from '../../lib/notes/source';
@@ -143,6 +143,26 @@ const WikiEmbed = component$<{ node: MdNode }>(({ node }) => {
       </a>
     );
   }
+  // N-T29：交互式示例（StackBlitz 嵌入）—— 渲染可交互 iframe
+  if (embed === 'stackblitz') {
+    const src = (node.data?.src as string) ?? '';
+    if (!src) {
+      return (
+        <span class="md-unsupported" title="缺少 StackBlitz 源">
+          ⚠ 未提供 StackBlitz 链接
+        </span>
+      );
+    }
+    return (
+      <iframe
+        class="md-embed-stackblitz"
+        data-testid="md-embed-stackblitz"
+        src={src}
+        title="StackBlitz 交互示例"
+        loading="lazy"
+      />
+    );
+  }
   return (
     <span class="md-unsupported" title="不支持的嵌入类型">
       ⚠ 未知嵌入：{String(embed ?? 'unknown')}
@@ -173,6 +193,35 @@ const FootnoteDef = component$<{ node: MdNode }>(({ node }) => {
 const RawHtml = component$<{ node: MdNode }>(({ node }) => (
   <div class="md-html" dangerouslySetInnerHTML={node.value ?? ''} />
 ));
+
+// N-T26：Mermaid 图表（运行时懒加载 mermaid，避免拖慢首屏）。主题跟随站点明暗。
+// 初始化标记用组件级 useStore（mermaid 为全局单例，多实例各自 initialize 幂等无害），
+// 避免模块级可变状态被 Qwik optimizer 抽取闭包时丢失或判为非法重赋值。
+const MermaidBlock = component$<{ code: string }>(({ code }) => {
+  const ref = useSignal<HTMLDivElement>();
+  const uid = useSignal(`mermaid-${Math.random().toString(36).slice(2, 9)}`);
+  const init = useStore({ ready: false });
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    if (!ref.value) return;
+    try {
+      const mermaid = (await import('mermaid')).default;
+      if (!init.ready) {
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'loose',
+          theme: document.body.dataset.theme === 'dark' ? 'dark' : 'default',
+        });
+        init.ready = true;
+      }
+      const { svg } = await mermaid.render(uid.value, code);
+      ref.value.innerHTML = svg;
+    } catch (e) {
+      ref.value.innerHTML = `<pre class="md-mermaid-error">Mermaid 渲染失败：${String(e)}</pre>`;
+    }
+  });
+  return <div class="md-mermaid" data-testid="md-mermaid" ref={ref} />;
+});
 
 const CodeBlock = component$<{ node: MdNode }>(({ node }) => {
   const ref = useSignal<HTMLPreElement>();
@@ -276,6 +325,7 @@ const NodeView = component$<{ node: MdNode }>(({ node }) => {
     case 'blockquote':
       return <Blockquote node={node} />;
     case 'code':
+      if (node.lang === 'mermaid') return <MermaidBlock code={node.value ?? ''} />;
       return <CodeBlock node={node} />;
     case 'table':
       return <Table node={node} />;

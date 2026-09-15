@@ -97,9 +97,19 @@ export interface ArticleDoc {
   ast: MdNode; // 已剥离 position 的纯数据根节点
 }
 
+/** Giscus 评论配置（N-T27）。仅当显式提供时才注入 Giscus 脚本；否则详情页显示占位说明。 */
+export interface NotesGiscus {
+  repo: string; // 形如 "owner/repo"
+  repoId: string;
+  category: string;
+  categoryId: string;
+  mapping?: 'pathname' | 'url' | 'title' | 'og:title' | 'specific' | 'number';
+}
+
 export interface NotesCfg {
   repo: string;
   branch: string;
   source: 'raw' | 'jsdelivr' | 'custom';
   custom?: string;
+  giscus?: NotesGiscus;
 }

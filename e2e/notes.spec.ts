@@ -38,7 +38,7 @@ test('详情页渲染目录(TOC)且条目数匹配标题数', async ({ page }) =
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
   const tocItems = page.locator('.notes-toc-list > li');
-  await expect(tocItems).toHaveCount(11);
+  await expect(tocItems).toHaveCount(12);
   await expect(tocItems.first()).toContainText('基础文本样式');
   // 锚点 slug 与渲染器 heading id 一致：点击目录项应定位到对应标题
   await expect(page.locator('.notes-detail h2#基础文本样式')).toBeVisible();
@@ -243,5 +243,48 @@ test('正文渲染笔记嵌入卡片（N-T24：![[笔记]]）', async ({ page })
   // 点击卡片跳转至被嵌入笔记
   await card.click();
   await expect(page).toHaveURL(new RegExp(`/notes/${encodeURIComponent('Qwik 与 SSR 笔记')}/`));
+});
+
+test('正文渲染 Mermaid 图表（N-T26 运行时懒加载）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const mermaid = page.getByTestId('md-mermaid');
+  await expect(mermaid).toBeVisible();
+  await expect(mermaid.locator('svg')).toBeVisible({ timeout: 10_000 });
+});
+
+test('列表页渲染双链图谱（N-T25 force-graph）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  const graph = page.getByTestId('notes-graph-svg');
+  await expect(graph).toBeVisible();
+  await expect(graph.locator('circle')).toHaveCount(2);
+  await expect(graph.locator('line')).toHaveCount(1);
+});
+
+test('详情页评论区在未配置 Giscus 时显示占位（N-T27）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const c = page.getByTestId('notes-comments');
+  await expect(c).toBeVisible();
+  await expect(c).toContainText('GitHub Discussions');
+});
+
+test('正文渲染 StackBlitz 交互示例嵌入（N-T29）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const sb = page.getByTestId('md-embed-stackblitz');
+  await expect(sb).toBeVisible();
+  await expect(sb).toHaveAttribute('src', /stackblitz\.com/);
+});
+
+test('详情页注入 og:image meta（N-T28）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const content = await page.evaluate(
+    () => document.querySelector('meta[property="og:image"]')?.getAttribute('content') ?? ''
+  );
+  expect(content).toContain('/og/');
+  expect(content).toContain('.svg');
 });
 
