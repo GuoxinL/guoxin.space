@@ -2638,9 +2638,19 @@ select:focus-visible {
   border-left: 3px solid var(--violet-15); background: var(--violet-0);
   padding: 10px 16px; border-radius: 0 8px 8px 0; margin: 0;
 }
-.md-callout--warning, .md-callout--danger { border-left-color: #e0533d; }
-.md-callout--info { border-left-color: #2d8cf0; }
-.md-callout--tip { border-left-color: #1aa179; }
+.md-callout__label {
+  display: block; font-size: .78rem; font-weight: 600; letter-spacing: .03em;
+  text-transform: uppercase; margin-bottom: .3rem;
+}
+.md-callout--note    { border-left-color: #6b7280; } .md-callout--note    .md-callout__label { color: #6b7280; }
+.md-callout--tip     { border-left-color: #1aa179; } .md-callout--tip     .md-callout__label { color: #1aa179; }
+.md-callout--info    { border-left-color: #2d8cf0; } .md-callout--info    .md-callout__label { color: #2d8cf0; }
+.md-callout--warning { border-left-color: #e0a83d; } .md-callout--warning .md-callout__label { color: #b9842a; }
+.md-callout--danger  { border-left-color: #e0533d; } .md-callout--danger  .md-callout__label { color: #e0533d; }
+.md-callout--quote   { border-left-color: #8b5cf6; font-style: italic; } .md-callout--quote .md-callout__label { color: #8b5cf6; }
+
+/* 脚注跳转避开顶部固定进度条 */
+.md-footnote-ref, .md-footnote-def { scroll-margin-top: 1.5rem; }
 
 /* 代码块 */
 .md-code { margin: 0; border-radius: 10px; overflow: hidden; background: #0b1020; }
@@ -2667,6 +2677,14 @@ select:focus-visible {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13.5px; line-height: 1.5;
 }
 .md-pre code { font: inherit; background: none; color: inherit; }
+
+/* 明亮主题下代码块配色（暗色为默认，见上） */
+body[data-theme='light'] .md-code { background: #f6f8fa; }
+body[data-theme='light'] .md-code-bar { background: #eaeef2; color: #57606a; }
+body[data-theme='light'] .md-code-gutter { background: #f6f8fa; color: #afb8c1; }
+body[data-theme='light'] .md-code-copy { background: #d8dee4; color: #24292f; }
+body[data-theme='light'] .md-code-copy:hover { background: #c9d1d9; }
+body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 
 /* 图片 */
 .md-img { max-width: 100%; height: auto; border-radius: 10px; display: block; }

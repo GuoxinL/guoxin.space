@@ -179,6 +179,31 @@ const ast: MdNode = {
       ],
     },
     {
+      type: 'blockquote',
+      data: { callout: 'note' },
+      children: [{ type: 'paragraph', children: [{ type: 'text', value: '说明：note 类型，用于补充说明。' }] }],
+    },
+    {
+      type: 'blockquote',
+      data: { callout: 'info' },
+      children: [{ type: 'paragraph', children: [{ type: 'text', value: '信息：info 类型，用于背景知识。' }] }],
+    },
+    {
+      type: 'blockquote',
+      data: { callout: 'warning' },
+      children: [{ type: 'paragraph', children: [{ type: 'text', value: '警告：warning 类型，需要注意。' }] }],
+    },
+    {
+      type: 'blockquote',
+      data: { callout: 'danger' },
+      children: [{ type: 'paragraph', children: [{ type: 'text', value: '危险：danger 类型，严禁操作。' }] }],
+    },
+    {
+      type: 'blockquote',
+      data: { callout: 'quote' },
+      children: [{ type: 'paragraph', children: [{ type: 'text', value: '引用：quote 类型，常用于引述他人观点。' }] }],
+    },
+    {
       type: 'heading',
       depth: 2,
       children: [{ type: 'text', value: '表格' }],

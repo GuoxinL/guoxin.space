@@ -90,3 +90,37 @@ test('点击引用列表中的脚注条目跳转到正文脚注定义', async ({
   await fnLink.click();
   await expect(page.locator('#fn-1')).toBeVisible();
 });
+
+test('Callout 6 型均渲染且带中文标签', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  for (const t of ['note', 'tip', 'info', 'warning', 'danger', 'quote']) {
+    await expect(page.locator(`.md-callout--${t}`).first()).toBeVisible();
+  }
+  await expect(page.locator('.md-callout--tip .md-callout__label')).toHaveText('提示');
+  await expect(page.locator('.md-callout--danger .md-callout__label')).toHaveText('危险');
+});
+
+test('脚注定义区返回链接可跳回正文引用（双向跳转）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const back = page.locator('#fn-1 a[href="#ref-fn-1"]');
+  await expect(back).toBeVisible();
+  await back.click();
+  await expect(page.locator('#ref-fn-1')).toBeVisible();
+});
+
+test('代码块 Prism 主题随站点明暗切换', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const code = page.locator('.md-code').first();
+  await expect(code).toBeVisible();
+  const link = page.locator('#prism-theme');
+  await expect(link).toHaveCount(1);
+  // 明亮主题 → 默认 prism 主题
+  await page.evaluate(() => { document.body.dataset.theme = 'light'; });
+  await expect(link).toHaveAttribute('href', /prism\.min\.css/);
+  // 暗色主题 → prism-tomorrow
+  await page.evaluate(() => { document.body.dataset.theme = 'dark'; });
+  await expect(link).toHaveAttribute('href', /prism-tomorrow\.min\.css/);
+});

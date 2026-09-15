@@ -51,11 +51,22 @@ const ListItem = component$<{ node: MdNode }>(({ node }) => {
   return <li>{renderChildren(node.children)}</li>;
 });
 
+const CALLOUT_LABELS: Record<string, string> = {
+  note: '说明',
+  tip: '提示',
+  info: '信息',
+  warning: '警告',
+  danger: '危险',
+  quote: '引用',
+};
+
 const Blockquote = component$<{ node: MdNode }>(({ node }) => {
   const callout = node.data?.callout as string | undefined;
   if (callout) {
+    const label = CALLOUT_LABELS[callout] ?? callout;
     return (
       <blockquote class={`md-callout md-callout--${callout}`} data-callout={callout}>
+        <span class="md-callout__label">{label}</span>
         {renderChildren(node.children)}
       </blockquote>
     );
