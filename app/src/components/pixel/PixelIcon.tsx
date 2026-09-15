@@ -4,7 +4,7 @@ import { component$ } from '@builder.io/qwik';
  * 像素图标：16x16 网格，全部由 1x1 对齐的矩形拼成，无曲线、无描边圆角。
  * 明暗层次用 opacity（0.45 = 暗部），保证单色下也能读形状。
  */
-export type PixelIconName = 'home' | 'chest' | 'scroll' | 'boot' | 'pickaxe' | 'user' | 'sun' | 'moon';
+export type PixelIconName = 'home' | 'chest' | 'scroll' | 'boot' | 'pickaxe' | 'user' | 'sun' | 'moon' | 'note';
 
 const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
   // 草方块：绿顶 + 棕色土身
@@ -72,6 +72,14 @@ const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
     { d: 'M7 5h4v7H7z' },
     { d: 'M8 12h3v2H8z' },
     { d: 'M11 3h2v6h-2z', o: 0.35 },
+  ],
+  // 书本：笔记
+  note: [
+    { d: 'M3 2h8v12H3z', o: 0.4 },
+    { d: 'M4 2h6v12H4z' },
+    { d: 'M4 5h6v1H4z', o: 0.6 },
+    { d: 'M4 8h4v1H4z', o: 0.6 },
+    { d: 'M11 3h2v11h-2z', o: 0.3 },
   ],
 };
 

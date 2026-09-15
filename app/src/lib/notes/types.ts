@@ -1,0 +1,95 @@
+/**
+ * Notes 模块数据契约（对齐 writing-module-plan-refined.md §4）。
+ *
+ * 全部 JSON 带 schemaVersion: 1；网站仓运行时校验主版本不匹配即提示升级数据源。
+ * v5 红线：数仓纯数据 —— AST 内不存在任何 HTML / hast / 内联样式；
+ * 代码只有 lang + value + meta，公式只有 TeX 源码 value。高亮与公式渲染在浏览器运行时完成。
+ */
+
+export interface ArticleSummary {
+  id: string;
+  slug: string; // 中文标题原文（= vault 文件名 basename）
+  title: string;
+  date: string;
+  updated?: string;
+  description?: string;
+  tags: string[];
+  category?: string;
+  status: 'evergreen' | 'draft' | 'wip' | 'archived';
+  series?: { name: string; order: number };
+  readingTime: { minutes: number; words: number };
+}
+
+export interface PostsIndex {
+  schemaVersion: 1;
+  generatedAt: string;
+  sourceRef: string;
+  toolchain: { node: string; builder: string };
+  posts: ArticleSummary[]; // date desc, slug asc
+  slugToId: Record<string, string>;
+}
+
+export interface Reference {
+  kind: 'internal' | 'external' | 'footnote';
+  label: string;
+  target?: string;
+  href?: string;
+  footnoteId?: string;
+  exists?: boolean;
+}
+
+export interface HeadingMeta {
+  depth: number;
+  text: string;
+  slug: string;
+}
+
+/**
+ * mdast 节点（弹性定义：可选字段覆盖全部白名单类型，便于客户端直接消费纯数据）。
+ * 不使用 `any`；自定义 data 用 `Record<string, unknown>`。
+ */
+export interface MdNode {
+  type: string;
+  value?: string;
+  depth?: number;
+  ordered?: boolean;
+  checked?: boolean | null;
+  spread?: boolean;
+  url?: string;
+  title?: string;
+  alt?: string;
+  lang?: string | null;
+  meta?: string | null;
+  identifier?: string;
+  label?: string;
+  align?: Array<'left' | 'right' | 'center' | null>;
+  data?: { [k: string]: unknown };
+  children?: MdNode[];
+}
+
+export interface ArticleDoc {
+  schemaVersion: 1;
+  id: string;
+  slug: string;
+  title: string;
+  date: string;
+  updated?: string;
+  description?: string;
+  tags: string[];
+  category?: string;
+  status: ArticleSummary['status'];
+  series?: { name: string; order: number; total: number; prev?: { slug: string; title: string }; next?: { slug: string; title: string } };
+  prev?: { slug: string; title: string };
+  next?: { slug: string; title: string };
+  readingTime: { minutes: number; words: number };
+  headings: HeadingMeta[];
+  references: Reference[];
+  ast: MdNode; // 已剥离 position 的纯数据根节点
+}
+
+export interface NotesCfg {
+  repo: string;
+  branch: string;
+  source: 'raw' | 'jsdelivr' | 'custom';
+  custom?: string;
+}

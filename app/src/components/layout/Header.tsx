@@ -8,6 +8,7 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: '/skills', label: 'Skills', icon: 'chest' },
   { href: '/toolbox/json', label: 'Toolbox', icon: 'scroll' },
   { href: '/running', label: 'Running', icon: 'boot' },
+  { href: '/notes', label: '笔记', icon: 'note' },
 ];
 
 export const Header = component$(() => {
