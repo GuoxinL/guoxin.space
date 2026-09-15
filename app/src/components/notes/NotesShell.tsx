@@ -1,4 +1,4 @@
-import { component$, useSignal, useStore, useVisibleTask$, $ } from '@builder.io/qwik';
+import { component$, useSignal, useStore, useVisibleTask$, $, type QRL } from '@builder.io/qwik';
 import type { ArticleDoc, PostsIndex } from '../../lib/notes/types';
 import { loadArticle, loadNotesIndex } from '../../lib/notes/source';
 import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
@@ -26,6 +26,84 @@ const ArticleHeader = component$<{ doc: ArticleDoc }>(({ doc }) => (
     </div>
   </header>
 ));
+
+/**
+ * 详情视图（N-T13 TOC 悬浮目录 + 滚动高亮；N-T14 阅读进度条）。
+ * - TOC 由 doc.headings 生成，锚点 slug 与 MdastRenderer 的 heading id 完全一致（数据层注入 headingId）。
+ * - IntersectionObserver 跟踪当前可见区块高亮对应目录项；scroll 监听计算进度条宽度。
+ * - 切换文章时用 key={doc.id} 强制重挂载，observer/listener 随卸载清理（C-33）。
+ */
+const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void> }>(({ doc, onBack }) => {
+  const toc = doc.headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+  const activeSlug = useSignal(toc[0]?.slug ?? '');
+  const progress = useSignal(0);
+
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ cleanup }) => {
+    const headings = Array.from(
+      document.querySelectorAll('.md-body h2[id], .md-body h3[id], .md-body h4[id]')
+    ) as HTMLElement[];
+    const visible = new Set<string>();
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const id = (e.target as HTMLElement).id;
+          if (e.isIntersecting) visible.add(id);
+          else visible.delete(id);
+        }
+        const top = headings.find((h) => visible.has(h.id));
+        if (top) activeSlug.value = top.id;
+      },
+      { rootMargin: '0px 0px -70% 0px', threshold: [0, 1] }
+    );
+    headings.forEach((h) => obs.observe(h));
+    cleanup(() => obs.disconnect());
+
+    const onScroll = () => {
+      const el = document.documentElement;
+      const max = el.scrollHeight - el.clientHeight;
+      progress.value = max > 0 ? Math.min(1, Math.max(0, el.scrollTop / max)) : 0;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    cleanup(() => window.removeEventListener('scroll', onScroll));
+  });
+
+  return (
+    <div class="notes-detail-wrap">
+      <div class="notes-progress" style={{ width: `${progress.value * 100}%` }} aria-hidden="true" />
+      <aside class="notes-toc" aria-label="目录">
+        <div class="notes-toc-title">目录</div>
+        <ul class="notes-toc-list">
+          {toc.map((h) => (
+            <li key={h.slug} class={`notes-toc-item notes-toc-item--d${h.depth}`}>
+              <a
+                href={`#${h.slug}`}
+                class={{ 'is-active': activeSlug.value === h.slug }}
+                onClick$={(ev) => {
+                  ev.preventDefault();
+                  const t = document.getElementById(h.slug);
+                  if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  activeSlug.value = h.slug;
+                  history.replaceState(null, '', `#${h.slug}`);
+                }}
+              >
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+      <article class="notes-detail" data-testid="notes-detail">
+        <button type="button" class="notes-back" onClick$={onBack}>
+          ← 返回列表
+        </button>
+        <ArticleHeader doc={doc} />
+        <MdastRenderer ast={doc.ast} />
+      </article>
+    </div>
+  );
+});
 
 export const NotesShell = component$(() => {
   const state = useStore<{
@@ -142,13 +220,7 @@ export const NotesShell = component$(() => {
       ) : state.loading ? (
         <p class="notes-muted">加载中…</p>
       ) : state.doc ? (
-        <article data-testid="notes-detail" class="notes-detail">
-          <button type="button" class="notes-back" onClick$={backToList}>
-            ← 返回列表
-          </button>
-          <ArticleHeader doc={state.doc} />
-          <MdastRenderer ast={state.doc.ast} />
-        </article>
+        <ArticleView key={state.doc.id} doc={state.doc} onBack={backToList} />
       ) : (
         <div data-testid="notes-notfound" class="notes-notfound">
           <h1>{state.err || '未找到'}</h1>

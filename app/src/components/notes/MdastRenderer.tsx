@@ -17,7 +17,7 @@ function renderChildren(children?: MdNode[]) {
 
 const Heading = component$<{ node: MdNode }>(({ node }) => {
   const text = (node.children ?? []).map((c) => c.value ?? '').join('');
-  const id = slugifyHeading(text);
+  const id = (node.data?.headingId as string | undefined) ?? slugifyHeading(text);
   const depth = Math.min(Math.max(node.depth ?? 2, 1), 4);
   const anchor = (
     <a class="md-anchor" href={`#${id}`} aria-label="复制锚点链接">

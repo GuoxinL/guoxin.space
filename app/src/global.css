@@ -2701,3 +2701,46 @@ select:focus-visible {
   display: inline-block; background: #fff4d6; color: #8a6d00;
   border: 1px solid #f0d27a; border-radius: 6px; padding: 0 6px; font-size: 13px;
 }
+
+/* ---------- Notes 阅读体验：TOC 悬浮目录 + 阅读进度条 (N-T13 / N-T14) ---------- */
+.notes-detail-wrap { position: relative; }
+.notes-progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0;
+  background: linear-gradient(90deg, var(--violet-65), #00B5F1);
+  z-index: 60; transition: width .12s ease-out; pointer-events: none;
+}
+.notes-toc {
+  position: sticky; top: 1rem; align-self: start;
+  max-height: calc(100vh - 2rem); overflow: auto;
+  padding-left: .75rem; border-left: 1px solid var(--slate-5);
+  font-size: .85rem; line-height: 1.5;
+}
+.notes-toc-title { font-weight: 600; color: var(--slate-80); margin-bottom: .5rem; }
+.notes-toc-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: .15rem;
+}
+.notes-toc-item--d3 { padding-left: .9rem; }
+.notes-toc-item a {
+  display: block; text-decoration: none; color: var(--slate-65);
+  padding: .15rem 0; border-left: 2px solid transparent; margin-left: -2px;
+  transition: color .15s, border-color .15s;
+}
+.notes-toc-item a:hover { color: var(--slate-95); }
+.notes-toc-item a.is-active {
+  color: var(--violet-65); border-left-color: var(--violet-65); font-weight: 600;
+}
+/* 锚点跳转时避开顶部固定进度条 */
+.notes-detail :is(h2, h3, h4)[id] { scroll-margin-top: 1.5rem; }
+
+@media (min-width: 1024px) {
+  .notes-detail-wrap {
+    display: grid; grid-template-columns: minmax(0, 1fr) 15rem;
+    gap: 2.5rem; align-items: start;
+  }
+  .notes-toc { order: 2; }
+  .notes-detail { order: 1; min-width: 0; }
+}
+@media (max-width: 1023px) {
+  .notes-toc { display: none; }
+}

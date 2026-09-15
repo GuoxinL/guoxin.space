@@ -5,7 +5,8 @@
  * 本文件即「示例文章」：一篇文章覆盖写作模块计划支持的全部 Markdown 功能
  * （图 / 双链 / 代码高亮 / 公式 / 表格 / 列表 / 脚注 / Callout / 链接 / 分割线 / 内嵌 HTML）。
  */
-import type { ArticleDoc, MdNode, PostsIndex } from './types';
+import type { ArticleDoc, HeadingMeta, MdNode, PostsIndex } from './types';
+import { dedupHeadingSlugs } from './slugify';
 
 const SAMPLE_SLUG = 'Markdown 全功能示例';
 const SAMPLE_ID = 'a1b2c3d4';
@@ -264,6 +265,27 @@ const ast: MdNode = {
   ],
 };
 
+/** 统一标题 slug 生成：遍历 AST 收集标题，去重后回写 data.headingId，并返回 HeadingMeta[]。
+ *  保证渲染器的 heading id 与 doc.headings 的 slug 完全一致（TOC 锚点才能命中）。 */
+function collectHeadings(root: MdNode): HeadingMeta[] {
+  const hs: MdNode[] = [];
+  const walk = (n: MdNode) => {
+    if (n.type === 'heading') hs.push(n);
+    (n.children ?? []).forEach(walk);
+  };
+  walk(root);
+  const texts = hs.map((h) => (h.children ?? []).map((c) => c.value ?? '').join(''));
+  const slugs = dedupHeadingSlugs(texts);
+  hs.forEach((h, i) => {
+    h.data = { ...(h.data ?? {}), headingId: slugs[i] };
+  });
+  return hs.map((h, i) => ({
+    depth: Math.min(Math.max(h.depth ?? 2, 1), 4),
+    text: texts[i],
+    slug: slugs[i],
+  }));
+}
+
 export const SAMPLE_DOC: ArticleDoc = {
   schemaVersion: 1,
   id: SAMPLE_ID,
@@ -274,19 +296,7 @@ export const SAMPLE_DOC: ArticleDoc = {
   tags: ['markdown', 'demo', 'notes'],
   status: 'evergreen',
   readingTime: { minutes: 3, words: 420 },
-  headings: [
-    { depth: 2, text: '基础文本样式', slug: '基础文本样式' },
-    { depth: 2, text: '代码块', slug: '代码块' },
-    { depth: 2, text: '数学公式', slug: '数学公式' },
-    { depth: 2, text: '列表', slug: '列表' },
-    { depth: 3, text: '无序列表', slug: '无序列表' },
-    { depth: 3, text: '有序列表', slug: '有序列表' },
-    { depth: 3, text: '任务列表', slug: '任务列表' },
-    { depth: 2, text: '引用与 Callout', slug: '引用与-Callout' },
-    { depth: 2, text: '表格', slug: '表格' },
-    { depth: 2, text: '图片与嵌入', slug: '图片与嵌入' },
-    { depth: 2, text: '脚注', slug: '脚注' },
-  ],
+  headings: collectHeadings(ast),
   references: [
     { kind: 'external', label: 'Qwik 官网', href: 'https://qwik.dev' },
     { kind: 'internal', label: '本文自身（存在）', target: SAMPLE_SLUG, exists: true },

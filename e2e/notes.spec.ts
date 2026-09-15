@@ -34,6 +34,16 @@ test('访问不存在的笔记显示未找到', async ({ page }) => {
   await expect(page.getByTestId('notes-notfound')).toBeVisible({ timeout: 10_000 });
 });
 
+test('详情页渲染目录(TOC)且条目数匹配标题数', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const tocItems = page.locator('.notes-toc-list > li');
+  await expect(tocItems).toHaveCount(11);
+  await expect(tocItems.first()).toContainText('基础文本样式');
+  // 锚点 slug 与渲染器 heading id 一致：点击目录项应定位到对应标题
+  await expect(page.locator('.notes-detail h2#基础文本样式')).toBeVisible();
+});
+
 test('示例文章覆盖全部 md 功能节点', async ({ page }) => {
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
