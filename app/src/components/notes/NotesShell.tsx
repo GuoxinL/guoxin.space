@@ -1,5 +1,5 @@
 import { component$, useSignal, useStore, useVisibleTask$, $, type QRL } from '@builder.io/qwik';
-import type { ArticleDoc, PostsIndex } from '../../lib/notes/types';
+import type { ArticleDoc, ArticleSummary, PostsIndex } from '../../lib/notes/types';
 import { loadArticle, loadNotesIndex } from '../../lib/notes/source';
 import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
 import { readPendingRedirect } from '../../lib/spa-redirect';
@@ -115,12 +115,48 @@ const BacklinksBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
 });
 
 /**
+ * 系列导航（N-T17）：详情页展示所属系列名称与序号，并提供上一篇/下一篇跳转（SPA 内导航）。
+ * 系列信息由 doc.series 提供；首篇无 prev、末篇无 next 时显示禁用态。
+ */
+const SeriesNav = component$<{ doc: ArticleDoc; onNav: QRL<(slug: string) => void> }>(({ doc, onNav }) => {
+  const s = doc.series;
+  if (!s) return null;
+  return (
+    <nav class="notes-series" data-testid="notes-series" aria-label="系列导航">
+      <div class="notes-series-head">
+        <span class="notes-series-name">{s.name}</span>
+        <span class="notes-series-order">
+          {s.order} / {s.total}
+        </span>
+      </div>
+      <div class="notes-series-nav">
+        {s.prev ? (
+          <button type="button" class="notes-series-link" onClick$={() => onNav(s.prev!.slug)}>
+            ← {s.prev.title}
+          </button>
+        ) : (
+          <span class="notes-series-link notes-series-link--disabled">← 上一篇</span>
+        )}
+        {s.next ? (
+          <button type="button" class="notes-series-link" onClick$={() => onNav(s.next!.slug)}>
+            {s.next.title} →
+          </button>
+        ) : (
+          <span class="notes-series-link notes-series-link--disabled">下一篇 →</span>
+        )}
+      </div>
+    </nav>
+  );
+});
+
+/**
  * 详情视图（N-T13 TOC 悬浮目录 + 滚动高亮；N-T14 阅读进度条）。
  * - TOC 由 doc.headings 生成，锚点 slug 与 MdastRenderer 的 heading id 完全一致（数据层注入 headingId）。
  * - IntersectionObserver 跟踪当前可见区块高亮对应目录项；scroll 监听计算进度条宽度。
  * - 切换文章时用 key={doc.id} 强制重挂载，observer/listener 随卸载清理（C-33）。
  */
-const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void> }>(({ doc, onBack }) => {
+const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav: QRL<(slug: string) => void> }>(
+  ({ doc, onBack, onNav }) => {
   const toc = doc.headings.filter((h) => h.depth >= 2 && h.depth <= 3);
   const activeSlug = useSignal(toc[0]?.slug ?? '');
   const progress = useSignal(0);
@@ -186,6 +222,7 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void> }>(({ 
           ← 返回列表
         </button>
         <ArticleHeader doc={doc} />
+        <SeriesNav doc={doc} onNav={onNav} />
         <MdastRenderer ast={doc.ast} />
         <ReferencesBlock doc={doc} />
         <BacklinksBlock doc={doc} />
@@ -193,6 +230,28 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void> }>(({ 
     </div>
   );
 });
+
+/** 按 年 → 月 对文章分组，供归档视图使用（N-T17）。 */
+function buildArchive(posts: ArticleSummary[]): { year: string; months: { key: string; label: string; posts: ArticleSummary[] }[] }[] {
+  const byYear = new Map<string, Map<string, ArticleSummary[]>>();
+  for (const p of posts) {
+    const d = new Date(p.date);
+    const year = String(d.getFullYear());
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    if (!byYear.has(year)) byYear.set(year, new Map());
+    const ym = byYear.get(year)!;
+    if (!ym.has(month)) ym.set(month, []);
+    ym.get(month)!.push(p);
+  }
+  return Array.from(byYear.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([year, mons]) => ({
+      year,
+      months: Array.from(mons.entries())
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .map(([m, ps]) => ({ key: `${year}-${m}`, label: `${Number(m)} 月`, posts: ps })),
+    }));
+}
 
 export const NotesShell = component$(() => {
   const state = useStore<{
@@ -203,6 +262,10 @@ export const NotesShell = component$(() => {
     index: PostsIndex | null;
     indexLoading: boolean;
   }>({ slug: '', doc: null, loading: false, err: '', index: null, indexLoading: true });
+
+  // N-T17：列表筛选（标签）与视图（列表/归档）状态
+  const tagFilter = useSignal('');
+  const viewMode = useSignal<'list' | 'archive'>('list');
 
   const loadArticleBySlug = $(async (slug: string) => {
     state.loading = true;
@@ -266,6 +329,12 @@ export const NotesShell = component$(() => {
     return () => window.removeEventListener('popstate', onPop);
   });
 
+  const allPosts = state.index?.posts ?? [];
+  const tagCounts = new Map<string, number>();
+  allPosts.forEach((p) => p.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)));
+  const tags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const visiblePosts = tagFilter.value ? allPosts.filter((p) => p.tags.includes(tagFilter.value)) : allPosts;
+
   const isList = !state.slug;
 
   return (
@@ -275,26 +344,96 @@ export const NotesShell = component$(() => {
           <h1 class="notes-page-title">笔记</h1>
           {state.indexLoading ? (
             <p class="notes-muted">加载中…</p>
-          ) : state.index && state.index.posts.length ? (
-            <ul class="notes-cards">
-              {state.index.posts.map((p) => (
-                <li key={p.slug}>
+          ) : allPosts.length ? (
+            <>
+              <div class="notes-toolbar">
+                <div class="notes-tags" data-testid="notes-tags">
                   <button
                     type="button"
-                    class="notes-card"
-                    data-testid="notes-item"
-                    data-slug={p.slug}
-                    onClick$={() => openNote(p.slug)}
+                    class={{ 'notes-tag': true, 'notes-tag--active': tagFilter.value === '' }}
+                    onClick$={() => (tagFilter.value = '')}
                   >
-                    <span class="notes-card-title">{p.title}</span>
-                    {p.description && <span class="notes-card-desc">{p.description}</span>}
-                    <span class="notes-card-meta">
-                      {p.date} · {p.readingTime.minutes} 分钟 · {p.tags.join(' / ')}
-                    </span>
+                    全部
                   </button>
-                </li>
-              ))}
-            </ul>
+                  {tags.map(([t, c]) => (
+                    <button
+                      key={t}
+                      type="button"
+                      class={{ 'notes-tag': true, 'notes-tag--active': tagFilter.value === t }}
+                      onClick$={() => (tagFilter.value = tagFilter.value === t ? '' : t)}
+                    >
+                      {t}
+                      <span class="notes-tag-count">{c}</span>
+                    </button>
+                  ))}
+                </div>
+                <div class="notes-view-toggle" data-testid="notes-view-toggle">
+                  <button
+                    type="button"
+                    class={{ 'notes-view-btn': true, 'is-active': viewMode.value === 'list' }}
+                    onClick$={() => (viewMode.value = 'list')}
+                  >
+                    列表
+                  </button>
+                  <button
+                    type="button"
+                    class={{ 'notes-view-btn': true, 'is-active': viewMode.value === 'archive' }}
+                    onClick$={() => (viewMode.value = 'archive')}
+                  >
+                    归档
+                  </button>
+                </div>
+              </div>
+              {viewMode.value === 'archive' ? (
+                <div class="notes-archive" data-testid="notes-archive">
+                  {buildArchive(visiblePosts).map((y) => (
+                    <section key={y.year} class="notes-archive-year">
+                      <h3 class="notes-archive-year-title">{y.year}</h3>
+                      {y.months.map((m) => (
+                        <div key={m.key} class="notes-archive-month">
+                          <h4 class="notes-archive-month-title">{m.label}</h4>
+                          <ul class="notes-archive-list">
+                            {m.posts.map((p) => (
+                              <li key={p.slug}>
+                                <button
+                                  type="button"
+                                  class="notes-archive-item"
+                                  data-testid="notes-archive-item"
+                                  onClick$={() => openNote(p.slug)}
+                                >
+                                  <span class="notes-archive-item-title">{p.title}</span>
+                                  <span class="notes-archive-item-date">{p.date}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <ul class="notes-cards">
+                  {visiblePosts.map((p) => (
+                    <li key={p.slug}>
+                      <button
+                        type="button"
+                        class="notes-card"
+                        data-testid="notes-item"
+                        data-slug={p.slug}
+                        onClick$={() => openNote(p.slug)}
+                      >
+                        <span class="notes-card-title">{p.title}</span>
+                        {p.description && <span class="notes-card-desc">{p.description}</span>}
+                        <span class="notes-card-meta">
+                          {p.date} · {p.readingTime.minutes} 分钟 · {p.tags.join(' / ')}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           ) : state.err ? (
             <div class="notes-error" data-testid="notes-error">
               <p>加载失败：{state.err}</p>
@@ -309,7 +448,7 @@ export const NotesShell = component$(() => {
       ) : state.loading ? (
         <p class="notes-muted">加载中…</p>
       ) : state.doc ? (
-        <ArticleView key={state.doc.id} doc={state.doc} onBack={backToList} />
+        <ArticleView key={state.doc.id} doc={state.doc} onBack={backToList} onNav={openNote} />
       ) : (
         <div data-testid="notes-notfound" class="notes-notfound">
           <h1>{state.err || '未找到'}</h1>

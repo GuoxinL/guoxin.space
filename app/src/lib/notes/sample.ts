@@ -320,6 +320,7 @@ export const SAMPLE_DOC: ArticleDoc = {
   description: '一篇覆盖写作模块计划支持的全部 Markdown 功能的示例文章。',
   tags: ['markdown', 'demo', 'notes'],
   status: 'evergreen',
+  series: { name: 'Markdown 实战', order: 1, total: 2, next: { slug: 'Qwik 与 SSR 笔记', title: 'Qwik 与 SSR 笔记' } },
   readingTime: { minutes: 3, words: 420 },
   headings: collectHeadings(ast),
   references: [
@@ -382,6 +383,7 @@ export const SAMPLE2_DOC: ArticleDoc = {
   description: '一篇演示反链（backlinks）的短示例文章。',
   tags: ['qwik', 'ssr', 'demo'],
   status: 'evergreen',
+  series: { name: 'Markdown 实战', order: 2, total: 2, prev: { slug: SAMPLE_SLUG, title: SAMPLE_SLUG } },
   readingTime: { minutes: 1, words: 80 },
   headings: collectHeadings(ast2),
   references: [{ kind: 'internal', label: 'Markdown 全功能示例', target: SAMPLE_SLUG, exists: true }],
@@ -402,6 +404,7 @@ export const SAMPLE_INDEX: PostsIndex = {
       description: SAMPLE_DOC.description,
       tags: SAMPLE_DOC.tags,
       status: 'evergreen',
+      series: { name: 'Markdown 实战', order: 1 },
       readingTime: SAMPLE_DOC.readingTime,
     },
     {
@@ -412,6 +415,7 @@ export const SAMPLE_INDEX: PostsIndex = {
       description: SAMPLE2_DOC.description,
       tags: SAMPLE2_DOC.tags,
       status: 'evergreen',
+      series: { name: 'Markdown 实战', order: 2 },
       readingTime: SAMPLE2_DOC.readingTime,
     },
   ],

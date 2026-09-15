@@ -124,3 +124,39 @@ test('代码块 Prism 主题随站点明暗切换', async ({ page }) => {
   await page.evaluate(() => { document.body.dataset.theme = 'dark'; });
   await expect(link).toHaveAttribute('href', /prism-tomorrow\.min\.css/);
 });
+
+test('标签筛选：点击标签只显示相关笔记', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  await expect(page.getByTestId('notes-item')).toHaveCount(2);
+  await page.getByTestId('notes-tags').getByText('markdown', { exact: false }).click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  await expect(page.getByTestId('notes-item').first()).toContainText('Markdown 全功能示例');
+  await page.getByTestId('notes-tags').getByText('demo', { exact: false }).click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(2);
+  await page.getByTestId('notes-tags').getByText('全部').click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(2);
+});
+
+test('归档视图按年月分组展示笔记', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  await page.getByTestId('notes-view-toggle').getByText('归档').click();
+  const archive = page.getByTestId('notes-archive');
+  await expect(archive).toBeVisible();
+  await expect(archive.locator('.notes-archive-year-title').first()).toContainText('2026');
+  await expect(page.getByTestId('notes-archive-item')).toHaveCount(2);
+});
+
+test('系列导航：详情页展示上下篇并可跳转', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const series = page.getByTestId('notes-series');
+  await expect(series).toBeVisible();
+  await expect(series).toContainText('1 / 2');
+  await expect(series.getByText('Qwik 与 SSR 笔记', { exact: false })).toBeVisible();
+  await series.getByText('Qwik 与 SSR 笔记', { exact: false }).click();
+  await expect(page).toHaveURL(new RegExp(`/notes/${encodeURIComponent('Qwik 与 SSR 笔记')}/`));
+  await expect(page.locator('.notes-article-title')).toHaveText('Qwik 与 SSR 笔记');
+  await expect(page.getByTestId('notes-series').getByText('Markdown 全功能示例', { exact: false })).toBeVisible();
+});
