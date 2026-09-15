@@ -1,6 +1,6 @@
 # 约束总纲（CONSTRAINTS · SOP 绝对权威）
 
-> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html）
+> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html + C-53 CSR 深链统一口径 / C-10 用例基线更新）
 > **适用范围**：guoxin.space（Qwik + Qwik City SSG 静态站，GitHub Pages 托管）
 
 ---
@@ -41,13 +41,13 @@
 | C-07 | CI 两个 workflow（`deploy.yml`、`check-404-sync.yml`）**必须 Node 24** 且**不给 `pnpm/action-setup` 写死 `version`**（与 `packageManager: pnpm@9.15.0` 冲突报 `ERR_PNPM_BAD_PM_VERSION`） | CI 失败 | Deploy | AGENTS.md 红线5 / architecture.md |
 | C-08 | 包管理统一 **pnpm 9.15.0**：禁用 npm / yarn 作主管理器；**禁止提交 `package-lock.json`**（本地无全局 pnpm 时用 `npm run <script>` 跑脚本兜底，不生成 lock） | 与 `packageManager` 冲突 | Implement / Commit | AGENTS.md 红线7 / coding-style §11 |
 | C-09 | `vite.config.ts` 须先 `vite build`（client）再 `vite build --ssr`（注入 `q-manifest.json`），否则 SSG 整页空壳（`q:container="paused"`） | 线上空壳 | Build | architecture.md 并发/资源模型 |
-| C-52 | **`npm run build` 末尾必须生成 SPA fallback `404.html`**（由 `tools/make-404-fallback.mjs` 写入「引导页」：暂存原始路径到 `sessionStorage['spaRedirect']` 后 `location.replace` 到**同一路由**的已预渲染入口页）；**禁止**保留 Qwik City 默认的静态占位 `404.html`（759B、不含 Qwik 应用） | 深链全面失效：`/notes/<中文标题>`、`/skills/<dir>` 只能看到静态 404 页（`cp index.html 404.html` 亦无效 —— Qwik resumability 会恢复首页状态，不按当前 URL 重路由） | Build / Deploy | writing-module-plan-refined.md §5 / 2026-09-14_notes-csr-spike/06-it.md §4 |
+| C-52 | **`npm run build` 末尾必须生成 SPA fallback `404.html`**（由 `tools/make-404-fallback.mjs` 写入「引导页」：暂存原始路径到 `sessionStorage['spaRedirect']` 后 `location.replace` 到**同一路由**的已预渲染入口页）；**禁止**保留 Qwik City 默认的静态占位 `404.html`（759B、不含 Qwik 应用）。应用侧的读回与 URL 还原口径见 **C-53** | 深链全面失效：`/notes/<中文标题>`、`/skills/<dir>` 只能看到静态 404 页（`cp index.html 404.html` 亦无效 —— Qwik resumability 会恢复首页状态，不按当前 URL 重路由） | Build / Deploy | writing-module-plan-refined.md §5 / 2026-09-14_notes-csr-spike/06-it.md §4 |
 
 ### 1.3 测试门禁（强制双门禁）
 
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
-| C-10 | **UT（Vitest）强制**：改 `app/src/lib/` / 组件逻辑必跑 `npm run test`（9 文件 / 136 用例，CI 实测） | 逻辑回归无防线 | UT (Step4) | coding-style §11 / unittest.md |
+| C-10 | **UT（Vitest）强制**：改 `app/src/lib/` / 组件逻辑必跑 `npm run test`（11 文件 / 186 用例，2026-09-15 实测；基线数字随用例增长更新） | 逻辑回归无防线 | UT (Step4) | coding-style §11 / unittest.md |
 | C-11 | **页面自动化（Playwright E2E）强制门禁**：改任何页面 / 交互 / CSS 后必跑 `npm run test:e2e`（chromium，自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`，**模拟 GitHub Pages 语义**：未知路径回 `404.html` + 状态码 404、目录路径 301 补尾斜杠，端口 4321） | 交互/CSS 回归漏网；若退回 `python3 -m http.server` 会因缺少 404 fallback 而无法验证深链（`/notes/<中文>`、`/skills/<dir>`） | IT (Step6) | integration_test.md / AGENTS.md |
 | C-12 | **CI 双门禁已落地**：`deploy.yml` build job 在 `pnpm build` 后跑 `pnpm test` + `playwright install --with-deps chromium` + `pnpm test:e2e`；任一门禁失败阻塞 deploy | push 即上线，门禁是最后防线 | Deploy / CI | integration_test.md §5 / unittest.md §5 |
 | C-13 | 页面自动化**禁用 `sleep` 死等**；用 `page.waitFor*` / `expect().toBeVisible()` 自动等待；用例独立、不依赖执行顺序 | 脆弱 / 假绿 | IT (Step6) | integration_test.md 红线6 |
@@ -120,10 +120,11 @@
 | C-50 | 外部输入白名单校验（类型/长度/范围/格式）；HTML 输出对第三方数据编码（禁未处理 `dangerouslySetInnerHTML`） | XSS | Implement / Review | AGENTS.md 安全基线 / code-review.md |
 | C-51 | 加密/签名用标准库（Web Crypto），禁止自研算法；`Math.random()` 不用于安全场景（用 `crypto.getRandomValues`） | 安全漏洞 | Implement | coding-style §10 |
 
-### 1.10 文章模块（Notes）专用约束
+### 1.10 文章模块（Notes）与纯 CSR 深链专用约束
 
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
+| C-53 | **纯 CSR 深链（`/notes/<中文标题>`、`/skills/<dir>`）的恢复口径必须统一**：① 引导页暂存值的读取只走 `app/src/lib/spa-redirect.ts`（`readPendingRedirect()`，读后即删），**禁止**各组件自行 `sessionStorage.getItem('spaRedirect')`；② 路径解析与还原 URL 由各页**纯函数**产出（`lib/notes/slug.ts` 的 `resolveInitialSlug` / `lib/skills.ts` 的 `resolveInitialSkillDir`），组件只负责接线；③ 目标不存在时必须给出**显式「未找到」兜底 UI + 返回列表**，**禁止**静默退回列表页；④ 路径正则必须**兼容尾斜杠**（引导页暂存的是原始路径，带斜杠） | 两处实现漂移 / 深链静默降级为列表页 / 带尾斜杠的深链解析为「无详情」 | Implement / UT / IT | 2026-09-15_skills-deeplink-restore/02-plan.md §2、06-it.md §4 |
 | C-4y | 文章数据**只走运行时取数**，绝不进网站仓构建期、不提交进网站仓；数据源经「通道设置」可切换（raw.githubusercontent / jsDelivr / 自定义） | 破坏「网站仓只做运行时」+ 重新引入跨仓触发链路 | Implement / Review | writing-module-plan-refined.md §5/§6 |
 | C-4z | mdast 渲染采用**白名单映射表**（`lib/notes/map.ts` 唯一登记处）：未登记节点类型 → 可见「不支持」标记 + 解析期告警；**禁止**在渲染器散落 `switch(node.type)` 分支 | 静默丢内容 / 维护失控 | Implement / UT | writing-module-plan-refined.md §7 |
 | C-4w | 数仓 vault **所有 `.md` 文件名（basename，去扩展名）全局唯一**（slug ≡ basename = URL）；解析期强制校验，重复即中止构建 | 中文 slug 碰撞 / 跨目录文章互相覆盖 | Implement (notes-build) / UT | writing-module-plan-refined.md §4.5 |
@@ -138,12 +139,12 @@
 |---------|------------------|
 | 01 Clarify | C-01, C-42（范围是否触后端/running-private） |
 | 02 Plan | C-01, C-02, C-04, C-29, C-42, C-43（影响范围/调用链终点=静态产物或 Worker） |
-| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-4y, C-4z, C-4w |
+| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-53, C-4y, C-4z, C-4w |
 | 04 UT | C-10, C-15 |
 | 05 Deploy | C-05, C-06, C-07, C-09, C-16, C-17, C-18, C-19, C-44, C-45, C-46, C-47, C-48, C-4y, C-52 |
 | 06 IT | C-11, C-12, C-13, C-14 |
 | 07 Docs | C-01（文档与代码一致） |
-| 08 Review | C-20~C-51（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
+| 08 Review | C-20~C-53（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
 
 ---
 

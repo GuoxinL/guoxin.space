@@ -1,6 +1,6 @@
 # 业务术语表
 
-> 状态：草稿 | 维护者：guoxin.space 仓库 AI 协作 | 最后更新：2026-09-12
+> 状态：草稿 | 维护者：guoxin.space 仓库 AI 协作 | 最后更新：2026-09-15（新增「SPA 引导页」「深链还原」词条）
 
 ## 范围
 
@@ -28,6 +28,8 @@
 | Cloudflare Worker（Running 数据代理） | Worker | running-proxy | Running 数据的服务端代理：读私有仓库 `GuoxinL/running-private` 的轨迹产物，经白名单 `TRACKS_FILES` 暴露给前端；承载 OAuth 鉴权与收藏写通道。独立源码 `worker.js`，不属本静态站。 | AGENTS.md「数据流」；worker.js；docs/third-party/cloudflare-worker.md |
 | Toolbox（万能工具箱） | Toolbox | JSON 工具 / 旧 /json | JSON 工具页现名，路由 `/toolbox/json`；旧名「JSON 工具」、旧路由 `/json` 已由 meta 刷新跳转弃用。 | app/src/routes/toolbox/json/index.tsx；AGENTS.md 路由说明 |
 | Skills / Running（内容区块） | — | — | 本站两大内容区块：Skills=技能夹（列表/详情/文件树/收藏/通道配置）；Running=骑行·跑步运动数据（地图/统计/轨迹回放，数据经 Worker 代理）。 | app/src/routes/；AGENTS.md 目录结构 |
+| SPA 引导页 | SPA fallback / guide page | 404 引导页 | `app/dist/404.html` 的**实际形态**：不是 Qwik City 的静态占位页，而是 `tools/make-404-fallback.mjs` 生成的极简页——把原始路径写入 `sessionStorage['spaRedirect']` 后 `location.replace` 到**同一路由**的已预渲染入口页。跳同一路由是为了避开 `q-data.json` 404 中止 SPA 导航；`cp index.html 404.html` 无效（resumability 会恢复首页状态）。 | tools/make-404-fallback.mjs；CONSTRAINTS C-52 |
+| 深链还原 | deep-link restore | spaRedirect 恢复 | 纯 CSR 页面（`/notes/<中文标题>`、`/skills/<dir>`）经引导页回来后：读暂存值 → `history.replaceState` 把 URL 修正回深链形态 → 渲染目标；目标不存在时显示「未找到 + 返回列表」（**禁止**静默退回列表页）。读取统一走 `lib/spa-redirect.ts`（读后即删），路径解析用各页纯函数（`resolveInitialSlug` / `resolveInitialSkillDir`），正则须兼容尾斜杠。 | app/src/lib/spa-redirect.ts；CONSTRAINTS C-53 |
 | pickaxe（Hero 主图） | pickaxe | 水晶镐 | 首页 Hero 右侧像素镐插画 `app/public/img/pickaxe.png`（880×986，`drop-shadow: 6px 6px 0`）。源图即像素方块风，**不做额外像素化**；换图须同步 `index.tsx` 的 `width/height`（CLS 占位）。 | app/public/img/pickaxe.png；AGENTS.md 设计系统 v2 |
 | CNAME（自定义域名） | CNAME | — | 仓库根 `CNAME` 文件，内容 `guoxin.space`，绑定自定义域名；CI 会 `cp CNAME app/dist/CNAME` 注入产物根。**不可删**，否则域名绑定失效。 | CNAME；.github/workflows/deploy.yml；docs/third-party/github-pages.md |
 | safe-delete guard（删除守卫） | CODEBUDDY_SAFE_DELETE_ENABLED | — | WorkBuddy 的删除守卫：本地 vite 清空 `app/dist/`（文件数 >50）会被拦截。构建前需 `export CODEBUDDY_SAFE_DELETE_ENABLED=0`，否则 `pnpm build` 失败。 | AGENTS.md 红线 5 / 设计系统 v2 |

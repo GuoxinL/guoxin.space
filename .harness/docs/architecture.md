@@ -10,7 +10,7 @@
 
 ## 系统定位
 
-个人主页 / 工作台站点（Personal Homepage + Toolbox + Skills + Running 数据展示），托管于 GitHub Pages（自定义域名 `guoxin.space`）。形态为 **Qwik + Qwik City 的 SSG 静态预渲染站点**：构建期把 4 个顶层页面预渲染为纯静态 HTML，运行时通过 Qwik 的 resumability 进行客户端激活，全站**无后端、无数据库**。面向两类用户——访客（浏览 Skills / 使用 JSON 工具 / 查看骑行公开轨迹）与管理员（GitHub OAuth 登录后可读完整轨迹）。
+个人主页 / 工作台站点（Personal Homepage + Toolbox + Skills + Running 数据展示），托管于 GitHub Pages（自定义域名 `guoxin.space`）。形态为 **Qwik + Qwik City 的 SSG 静态预渲染站点**：构建期把 5 个顶层页面预渲染为纯静态 HTML，运行时通过 Qwik 的 resumability 进行客户端激活，全站**无后端、无数据库**。面向两类用户——访客（浏览 Skills / 使用 JSON 工具 / 查看骑行公开轨迹）与管理员（GitHub OAuth 登录后可读完整轨迹）。
 
 ---
 
@@ -148,7 +148,7 @@ app/dist/<route>.html   ← 含真实预渲染内容 + q: 属性 + 脚本引用
 | # | 决策 | 备注 / Why |
 |---|------|------|
 | 1 | 选用 **Qwik + Qwik City** | resumability 使首屏 JS 与组件规模解耦，适合"内容站 + 少量交互"，且原生支持 SSG。 |
-| 2 | **SSG 静态预渲染**（static adapter，origin=guoxin.space） | 5 个页面构建期产出纯 HTML（`/`、`/skills`、`/toolbox/json`、`/running`、`/notes` 列表页），可直接被 GitHub Pages / 任意静态托管；零服务器成本、CDN 友好、SEO 友好。`/notes/<中文标题>` 详情为**纯 CSR**（无预渲染产物，经 `404.html` 引导页接管，见 CONSTRAINTS C-03 / C-52）。 |
+| 2 | **SSG 静态预渲染**（static adapter，origin=guoxin.space） | 5 个页面构建期产出纯 HTML（`/`、`/skills`、`/toolbox/json`、`/running`、`/notes` 列表页），可直接被 GitHub Pages / 任意静态托管；零服务器成本、CDN 友好、SEO 友好。`/notes/<中文标题>` 与 `/skills/<dir>` 详情为**纯 CSR**（无预渲染产物，经 `404.html` 引导页接管并还原 URL，见 CONSTRAINTS C-03 / C-52 / C-53）。 |
 | 3 | **无后端 / 无数据库** | 个人站点内容静态即可承载；任何需服务端的能力（鉴权、私有数据代理）外移到 Cloudflare Worker，避免维护服务器。 |
 | 4 | Vite `root` 指向 `app/`，与旧站根 `index.html` 隔离 | 重构期彻底隔离旧静态文件，新代码只进 `app/src/`。 |
 | 5 | 设计真源 = 根 `DESIGN.md`，同步到 `app/src/global.css` | 单一视觉真相源，避免组件各自写死样式；`.btn` 基类全局共用（Skills/JSON/Running 28 处），版面宽度只改 `--container-w` 一处。 |
@@ -195,7 +195,7 @@ flowchart TD
 ## 待核实项核实结果（原 TODO(sop.init) 已于 2026-09-13 全部核销）
 
 - **Worker 部署流水线**：已自动化（2026-09-13）——`deploy-worker.yml` 在 push 改动 `worker.js` 时经 wrangler-action `--keep-vars` 部署（**无** wrangler.toml；前置 GitHub Secret `CLOUDFLARE_API_TOKEN`）。手动 dashboard / wrangler 仍可兜底，步骤与 `--keep-vars` 大坑见 `docs/third-party/cloudflare-worker.md` §3.5。
-- **`/skills/[dir]` SSG 策略**：动态路由**未预渲染**（dir 列表构建期未知，产物仅 `skills/index.html`）。直连 `/skills/<dir>` 返回 404，且 `404.html` 仅 759B 静态页、无应用壳——**深层直链当前不可恢复**，需从列表页 SPA 导航进入；如需直链可达，另开任务（构建期拉目录清单生成详情页，或 404.html 引导回站）。
+- **`/skills/[dir]` SSG 策略**：动态路由**未预渲染**（dir 列表构建期未知，产物仅 `skills/index.html`）。直连 `/skills/<dir>` 由 GitHub Pages 返回 404，但 `404.html` 已是 **SPA 引导页**（`tools/make-404-fallback.mjs` 生成）：暂存原始路径到 `sessionStorage['spaRedirect']` → `location.replace` 到同一路由入口页 `/skills/` → 应用读取暂存值并用 `history.replaceState` 把 URL 还原回 `/skills/<dir>`（见 CONSTRAINTS `C-52`/`C-53`）。**深链已可达**；dir 不存在时显示「未找到 · 不存在名为「X」的技能」+ 返回列表（与 `/notes/<中文标题>` 口径一致）。首屏仍返回 404 状态码（既定代价，不执行 JS 的爬虫抓不到正文）。
 - **Service Worker**：`root.tsx` 挂载 `ServiceWorkerRegister`，但无 service-worker 源文件 → `/service-worker.js` 线上 404、注册无效；后续补 `src/routes/service-worker.ts` 或移除挂载（见决策 10）。
 - **单测规模**：9 文件 / 136 用例（CI 实测 2026-09-12；`app/src/lib/` 7 个 + `app/src/components/` 2 个）。
 - **Web Worker / 分块**：未使用（grep 核实），重计算均在主线程；当前体量可接受。

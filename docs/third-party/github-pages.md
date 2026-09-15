@@ -32,7 +32,7 @@ push main → deploy.yml build job:
 | 项 | 说明 |
 |---|---|
 | `CNAME` | 仓库根文件（内容 `guoxin.space`），CI `cp CNAME app/dist/CNAME` 注入产物根。**不可删**，删了域名绑定失效 |
-| `404.html` | Qwik SSG 自动生成；`check-404-sync.yml` 每次 push 校验产物含 404.html 与 CNAME。注意：当前 404.html 仅 759B 静态页、无应用壳——深层直链（如 `/skills/<dir>` 刷新）不可恢复，见 architecture.md 已核实项 |
+| `404.html` | **SPA 引导页**，由 `npm run build` 末尾的 `tools/make-404-fallback.mjs` 生成（暂存原始路径 → `location.replace` 到同路由入口页 → 应用 `history.replaceState` 还原 URL）。深链 `/notes/<中文标题>`、`/skills/<dir>` 因此**可达**（首屏仍为 404 状态码，属既定代价）。`check-404-sync.yml` 每次 push 校验产物含非空 404.html 与 CNAME；**注意**该 workflow 只校验「存在且非空」，无法识别「被换成静态占位页」——语义保卫见 CONSTRAINTS `C-52` / `C-53` |
 | 保留策略 | Pages 仅保留最新发布；历史版本靠 git 历史回滚 |
 
 ## 四、回滚（二选一）
