@@ -160,3 +160,15 @@ test('系列导航：详情页展示上下篇并可跳转', async ({ page }) => 
   await expect(page.locator('.notes-article-title')).toHaveText('Qwik 与 SSR 笔记');
   await expect(page.getByTestId('notes-series').getByText('Markdown 全功能示例', { exact: false })).toBeVisible();
 });
+
+test('RSS 入口指向 feed.xml 且可访问', async ({ page }) => {
+  await page.goto('/notes/');
+  const rss = page.getByTestId('notes-rss');
+  await expect(rss).toBeVisible();
+  await expect(rss).toHaveAttribute('href', '/notes/feed.xml');
+  const resp = await page.goto('/notes/feed.xml');
+  expect(resp?.status()).toBe(200);
+  const body = (await resp?.text()) ?? '';
+  expect(body).toContain('<rss');
+  expect(body).toContain('Markdown 全功能示例');
+});

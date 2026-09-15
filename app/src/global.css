@@ -2806,6 +2806,13 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-tag--active { border-color: var(--violet-65); color: var(--violet-65); background: var(--violet-0); font-weight: 600; }
 .notes-tag-count { font-size: .72rem; opacity: .7; }
 .notes-view-toggle { display: inline-flex; border: 1px solid var(--slate-5); border-radius: 8px; overflow: hidden; }
+.notes-toolbar-right { display: inline-flex; align-items: center; gap: .6rem; }
+.notes-rss {
+  display: inline-flex; align-items: center; padding: .3rem .7rem;
+  border: 1px solid var(--slate-5); border-radius: 8px; color: var(--slate-65);
+  font-size: .82rem; text-decoration: none; transition: border-color .15s, color .15s;
+}
+.notes-rss:hover { border-color: var(--violet-65); color: var(--violet-65); }
 .notes-view-btn {
   padding: .3rem .8rem; border: 0; background: transparent; color: var(--slate-65);
   cursor: pointer; font-size: .85rem;

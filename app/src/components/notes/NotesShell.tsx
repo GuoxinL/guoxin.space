@@ -367,21 +367,33 @@ export const NotesShell = component$(() => {
                     </button>
                   ))}
                 </div>
-                <div class="notes-view-toggle" data-testid="notes-view-toggle">
-                  <button
-                    type="button"
-                    class={{ 'notes-view-btn': true, 'is-active': viewMode.value === 'list' }}
-                    onClick$={() => (viewMode.value = 'list')}
+                <div class="notes-toolbar-right">
+                  <div class="notes-view-toggle" data-testid="notes-view-toggle">
+                    <button
+                      type="button"
+                      class={{ 'notes-view-btn': true, 'is-active': viewMode.value === 'list' }}
+                      onClick$={() => (viewMode.value = 'list')}
+                    >
+                      列表
+                    </button>
+                    <button
+                      type="button"
+                      class={{ 'notes-view-btn': true, 'is-active': viewMode.value === 'archive' }}
+                      onClick$={() => (viewMode.value = 'archive')}
+                    >
+                      归档
+                    </button>
+                  </div>
+                  <a
+                    class="notes-rss"
+                    href="/notes/feed.xml"
+                    rel="alternate"
+                    type="application/rss+xml"
+                    title="RSS 订阅"
+                    data-testid="notes-rss"
                   >
-                    列表
-                  </button>
-                  <button
-                    type="button"
-                    class={{ 'notes-view-btn': true, 'is-active': viewMode.value === 'archive' }}
-                    onClick$={() => (viewMode.value = 'archive')}
-                  >
-                    归档
-                  </button>
+                    RSS
+                  </a>
                 </div>
               </div>
               {viewMode.value === 'archive' ? (

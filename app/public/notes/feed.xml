@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>guoxin.space 笔记</title>
+    <link>https://guoxin.space/notes/</link>
+    <description>guoxin.space 写作模块 RSS（demo 阶段为示例数据，生产接入 GuoxinL/notes 数仓后改为其生成的 feed.xml）</description>
+    <language>zh-CN</language>
+    <lastBuildDate>Mon, 15 Sep 2026 00:00:00 +0800</lastBuildDate>
+    <generator>demo-sample</generator>
+    <atom:link href="https://guoxin.space/notes/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Markdown 全功能示例</title>
+      <link>https://guoxin.space/notes/Markdown%20全功能示例/</link>
+      <guid isPermaLink="true">https://guoxin.space/notes/Markdown%20全功能示例/</guid>
+      <pubDate>Mon, 15 Sep 2026 00:00:00 +0800</pubDate>
+      <description>一篇覆盖写作模块计划支持的全部 Markdown 功能的示例文章。</description>
+    </item>
+    <item>
+      <title>Qwik 与 SSR 笔记</title>
+      <link>https://guoxin.space/notes/Qwik%20与%20SSR%20笔记/</link>
+      <guid isPermaLink="true">https://guoxin.space/notes/Qwik%20与%20SSR%20笔记/</guid>
+      <pubDate>Sun, 14 Sep 2026 00:00:00 +0800</pubDate>
+      <description>一篇演示反链（backlinks）的短示例文章。</description>
+    </item>
+  </channel>
+</rss>
