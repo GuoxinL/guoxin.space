@@ -2744,3 +2744,30 @@ select:focus-visible {
 @media (max-width: 1023px) {
   .notes-toc { display: none; }
 }
+
+/* ---------- Notes 阅读体验：底部引用列表 + 反链区块 (N-T15) ---------- */
+.notes-section-title {
+  font-size: 1.05rem; font-weight: 600; color: var(--slate-80);
+  margin: 2.5rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--slate-5);
+}
+.notes-ref-group { margin-bottom: 1rem; }
+.notes-ref-group-title {
+  font-size: .78rem; font-weight: 600; letter-spacing: .04em;
+  color: var(--slate-65); text-transform: uppercase; margin-bottom: .4rem;
+}
+.notes-ref-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.notes-ref-item { font-size: .92rem; }
+.notes-ref-link {
+  color: var(--violet-65); text-decoration: none;
+  border-bottom: 1px solid transparent; transition: border-color .15s, color .15s;
+}
+.notes-ref-link:hover { border-bottom-color: var(--violet-65); }
+.notes-ref-link--missing {
+  color: var(--slate-50); border-bottom: 1px dashed var(--slate-50); opacity: .7; cursor: help;
+}
+.notes-backlink-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+.notes-backlink-item {
+  padding: .55rem .8rem; background: var(--violet-0);
+  border-left: 3px solid var(--violet-65); border-radius: 0 8px 8px 0;
+}
+.notes-backlink-ctx { margin: .25rem 0 0; font-size: .85rem; color: var(--slate-65); }

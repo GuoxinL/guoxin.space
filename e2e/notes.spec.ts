@@ -57,3 +57,36 @@ test('示例文章覆盖全部 md 功能节点', async ({ page }) => {
   await expect(page.locator('.md-img').first()).toBeVisible(); // 图片/嵌入
   await expect(page.locator('.md-footnote-ref').first()).toBeVisible(); // 脚注
 });
+
+test('详情页底部引用列表按内链/外链/脚注分组', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const refs = page.getByTestId('notes-refs');
+  await expect(refs).toBeVisible();
+  await expect(refs.getByText('内部链接', { exact: true })).toBeVisible();
+  await expect(refs.getByText('外部链接', { exact: true })).toBeVisible();
+  await expect(refs.getByText('脚注', { exact: true })).toBeVisible();
+  // 内部链接分组：存在的双链 + 缺失双链（虚线样式）
+  await expect(refs.getByText('本文自身', { exact: false })).toBeVisible();
+  await expect(refs.getByText('缺失双链', { exact: false })).toBeVisible();
+  await expect(refs.locator('.notes-ref-link--missing').first()).toBeVisible();
+  // 外部链接分组含 Qwik 官网
+  await expect(refs.getByText('Qwik 官网', { exact: false })).toBeVisible();
+});
+
+test('详情页反链区块展示引用来源', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const bl = page.getByTestId('notes-backlinks');
+  await expect(bl).toBeVisible();
+  await expect(bl.getByText('Qwik 与 SSR 笔记', { exact: false })).toBeVisible();
+});
+
+test('点击引用列表中的脚注条目跳转到正文脚注定义', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const fnLink = page.getByTestId('notes-refs').locator('a[href="#fn-1"]');
+  await expect(fnLink).toBeVisible();
+  await fnLink.click();
+  await expect(page.locator('#fn-1')).toBeVisible();
+});

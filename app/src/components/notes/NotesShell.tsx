@@ -28,6 +28,93 @@ const ArticleHeader = component$<{ doc: ArticleDoc }>(({ doc }) => (
 ));
 
 /**
+ * 底部引用列表（N-T15）：按 内部链接 / 外部链接 / 脚注 分组渲染 doc.references。
+ * 内链走 notePathFor；外链新窗口打开；脚注锚点指向正文 footnoteDefinition 的 id（fn-*）。
+ */
+const ReferencesBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
+  const refs = doc.references ?? [];
+  const internal = refs.filter((r) => r.kind === 'internal');
+  const external = refs.filter((r) => r.kind === 'external');
+  const footnotes = refs.filter((r) => r.kind === 'footnote');
+  if (!refs.length) return null;
+  return (
+    <section class="notes-refs" data-testid="notes-refs" aria-label="引用">
+      <h2 class="notes-section-title">引用</h2>
+      {internal.length > 0 && (
+        <div class="notes-ref-group">
+          <div class="notes-ref-group-title">内部链接</div>
+          <ul class="notes-ref-list">
+            {internal.map((r, i) => (
+              <li key={`i-${i}`} class="notes-ref-item">
+                <a
+                  class={{ 'notes-ref-link': true, 'notes-ref-link--missing': !r.exists }}
+                  href={notePathFor(r.target ?? '')}
+                  title={r.exists ? undefined : '尚未创建'}
+                >
+                  {r.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {external.length > 0 && (
+        <div class="notes-ref-group">
+          <div class="notes-ref-group-title">外部链接</div>
+          <ul class="notes-ref-list">
+            {external.map((r, i) => (
+              <li key={`e-${i}`} class="notes-ref-item">
+                <a class="notes-ref-link" href={r.href} target="_blank" rel="noopener noreferrer">
+                  {r.label} ↗
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {footnotes.length > 0 && (
+        <div class="notes-ref-group">
+          <div class="notes-ref-group-title">脚注</div>
+          <ul class="notes-ref-list">
+            {footnotes.map((r, i) => (
+              <li key={`f-${i}`} class="notes-ref-item">
+                <a class="notes-ref-link" href={`#${r.footnoteId}`}>
+                  {r.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+});
+
+/**
+ * 反链区块（N-T15）：渲染 doc.backlinks（被其他笔记引用的来源）。
+ * demo 阶段由 sample 数据提供；真实数据源由数仓 graph.json 聚合后注入。
+ */
+const BacklinksBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
+  const links = doc.backlinks ?? [];
+  if (!links.length) return null;
+  return (
+    <section class="notes-backlinks" data-testid="notes-backlinks" aria-label="反链">
+      <h2 class="notes-section-title">被以下笔记引用</h2>
+      <ul class="notes-backlink-list">
+        {links.map((b, i) => (
+          <li key={`b-${i}`} class="notes-backlink-item">
+            <a class="notes-ref-link" href={notePathFor(b.slug)}>
+              {b.title}
+            </a>
+            {b.context && <p class="notes-backlink-ctx">{b.context}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+});
+
+/**
  * 详情视图（N-T13 TOC 悬浮目录 + 滚动高亮；N-T14 阅读进度条）。
  * - TOC 由 doc.headings 生成，锚点 slug 与 MdastRenderer 的 heading id 完全一致（数据层注入 headingId）。
  * - IntersectionObserver 跟踪当前可见区块高亮对应目录项；scroll 监听计算进度条宽度。
@@ -100,6 +187,8 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void> }>(({ 
         </button>
         <ArticleHeader doc={doc} />
         <MdastRenderer ast={doc.ast} />
+        <ReferencesBlock doc={doc} />
+        <BacklinksBlock doc={doc} />
       </article>
     </div>
   );

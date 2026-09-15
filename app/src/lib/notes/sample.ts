@@ -303,7 +303,64 @@ export const SAMPLE_DOC: ArticleDoc = {
     { kind: 'internal', label: '缺失双链（虚线样式）', target: '尚未创建的笔记', exists: false },
     { kind: 'footnote', label: '脚注内容：这里是补充说明文字。', footnoteId: 'fn-1' },
   ],
+  backlinks: [
+    { slug: 'Qwik 与 SSR 笔记', title: 'Qwik 与 SSR 笔记', context: '本文引用了 Markdown 全功能示例 一文，作为反链演示。' },
+  ],
   ast,
+};
+
+/** 第二篇示例文章：含指向首篇的 wikilink，用于演示 N-T15 反链（backlinks）区块。 */
+const SAMPLE2_SLUG = 'Qwik 与 SSR 笔记';
+const SAMPLE2_ID = 'b2c3d4e5';
+const ast2: MdNode = {
+  type: 'root',
+  children: [
+    {
+      type: 'heading',
+      depth: 2,
+      children: [{ type: 'text', value: '概述' }],
+    },
+    {
+      type: 'paragraph',
+      children: [
+        { type: 'text', value: '本文引用了 ' },
+        {
+          type: 'wikiLink',
+          data: {
+            target: SAMPLE_SLUG,
+            exists: true,
+            permalink: '/notes/Markdown%20全功能示例/',
+          },
+          children: [{ type: 'text', value: 'Markdown 全功能示例' }],
+        },
+        { type: 'text', value: ' 一文，作为反链演示。' },
+      ],
+    },
+    {
+      type: 'heading',
+      depth: 2,
+      children: [{ type: 'text', value: '小结' }],
+    },
+    {
+      type: 'paragraph',
+      children: [{ type: 'text', value: 'Qwik 的 resumability 是其 SSR 性能的核心。' }],
+    },
+  ],
+};
+
+export const SAMPLE2_DOC: ArticleDoc = {
+  schemaVersion: 1,
+  id: SAMPLE2_ID,
+  slug: SAMPLE2_SLUG,
+  title: SAMPLE2_SLUG,
+  date: '2026-09-14',
+  description: '一篇演示反链（backlinks）的短示例文章。',
+  tags: ['qwik', 'ssr', 'demo'],
+  status: 'evergreen',
+  readingTime: { minutes: 1, words: 80 },
+  headings: collectHeadings(ast2),
+  references: [{ kind: 'internal', label: 'Markdown 全功能示例', target: SAMPLE_SLUG, exists: true }],
+  ast: ast2,
 };
 
 export const SAMPLE_INDEX: PostsIndex = {
@@ -322,11 +379,22 @@ export const SAMPLE_INDEX: PostsIndex = {
       status: 'evergreen',
       readingTime: SAMPLE_DOC.readingTime,
     },
+    {
+      id: SAMPLE2_ID,
+      slug: SAMPLE2_SLUG,
+      title: SAMPLE2_SLUG,
+      date: '2026-09-14',
+      description: SAMPLE2_DOC.description,
+      tags: SAMPLE2_DOC.tags,
+      status: 'evergreen',
+      readingTime: SAMPLE2_DOC.readingTime,
+    },
   ],
-  slugToId: { [SAMPLE_SLUG]: SAMPLE_ID },
+  slugToId: { [SAMPLE_SLUG]: SAMPLE_ID, [SAMPLE2_SLUG]: SAMPLE2_ID },
 };
 
-/** slug → 文章文档（demo 阶段仅一篇）。 */
+/** slug → 文章文档（demo 阶段两篇，首篇覆盖全功能，次篇演示反链）。 */
 export const SAMPLE_ARTICLES: Record<string, ArticleDoc> = {
   [SAMPLE_SLUG]: SAMPLE_DOC,
+  [SAMPLE2_SLUG]: SAMPLE2_DOC,
 };

@@ -44,6 +44,13 @@ export interface HeadingMeta {
   slug: string;
 }
 
+/** 反链（被其他笔记引用的来源，N-T15）。context 为引用处上下文片段。 */
+export interface Backlink {
+  slug: string;
+  title: string;
+  context?: string;
+}
+
 /**
  * mdast 节点（弹性定义：可选字段覆盖全部白名单类型，便于客户端直接消费纯数据）。
  * 不使用 `any`；自定义 data 用 `Record<string, unknown>`。
@@ -84,6 +91,7 @@ export interface ArticleDoc {
   readingTime: { minutes: number; words: number };
   headings: HeadingMeta[];
   references: Reference[];
+  backlinks?: Backlink[];
   ast: MdNode; // 已剥离 position 的纯数据根节点
 }
 
