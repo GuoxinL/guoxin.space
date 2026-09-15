@@ -2,6 +2,8 @@ import { component$, useSignal, useStore, useVisibleTask$, $, type QRL } from '@
 import type { ArticleDoc, ArticleSummary, PostsIndex } from '../../lib/notes/types';
 import { loadArticle, loadNotesIndex, loadAllArticles } from '../../lib/notes/source';
 import { buildIndex, search, type NoteSearch } from '../../lib/notes/search';
+import { computeRelated, type RelatedItem } from '../../lib/notes/related';
+import { computeStats, intensityLevel } from '../../lib/notes/stats';
 import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
 import { readPendingRedirect } from '../../lib/spa-redirect';
 import { MdastRenderer } from './MdastRenderer';
@@ -126,6 +128,98 @@ const BacklinksBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
  * 系列导航（N-T17）：详情页展示所属系列名称与序号，并提供上一篇/下一篇跳转（SPA 内导航）。
  * 系列信息由 doc.series 提供；首篇无 prev、末篇无 next 时显示禁用态。
  */
+/**
+ * 更新历史（N-T23）：渲染 doc.history（date + message 时间线）。
+ * demo 由 sample 提供；生产需接 git log（见 N-T06 数仓管线）注入 history 字段。
+ */
+const HistoryBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
+  const items = doc.history ?? [];
+  if (!items.length) return null;
+  return (
+    <section class="notes-history" data-testid="notes-history" aria-label="更新历史">
+      <h2 class="notes-section-title">更新历史</h2>
+      <ul class="notes-history-list">
+        {items.map((h, i) => (
+          <li key={`h-${i}`} class="notes-history-item">
+            <time class="notes-history-date">{h.date}</time>
+            <span class="notes-history-msg">{h.message}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+});
+
+/**
+ * 相关文章（N-T21）：渲染 computeRelated 计算出的候选列表（共同引用 + 标签 Jaccard 综合分）。
+ * 每个条目为可跳转卡片（href 指向笔记深链，全量重载进入详情；与现有 content 内链一致）。
+ */
+const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
+  if (!items.length) return null;
+  return (
+    <section class="notes-related" data-testid="notes-related" aria-label="相关文章">
+      <h2 class="notes-section-title">相关文章</h2>
+      <ul class="notes-related-list">
+        {items.map((r, i) => (
+          <li key={`r-${i}`} class="notes-related-item">
+            <a class="notes-related-link" href={notePathFor(r.slug)} data-testid="notes-related-item">
+              <span class="notes-related-title">{r.title}</span>
+              {r.description && <span class="notes-related-desc">{r.description}</span>}
+              <span class="notes-related-reason">{r.reason}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+});
+
+/** 写作统计与热力图（N-T22）：总数/字数/标签分布 + GitHub 风格按日热力图。 */
+const NotesStatsPanel = component$<{ posts: ArticleSummary[] }>(({ posts }) => {
+  const stats = computeStats(posts);
+  return (
+    <details class="notes-stats" data-testid="notes-stats" open>
+      <summary class="notes-stats-summary">写作统计</summary>
+      <div class="notes-stats-grid">
+        <div class="notes-stat">
+          <span class="notes-stat-num">{stats.total}</span>
+          <span class="notes-stat-label">篇文章</span>
+        </div>
+        <div class="notes-stat">
+          <span class="notes-stat-num">{stats.totalWords}</span>
+          <span class="notes-stat-label">总字数</span>
+        </div>
+        <div class="notes-stat">
+          <span class="notes-stat-num">{stats.monthsActive}</span>
+          <span class="notes-stat-label">活跃月份</span>
+        </div>
+      </div>
+      {stats.tagCounts.length > 0 && (
+        <div class="notes-stats-tags">
+          {stats.tagCounts.map((t, i) => (
+            <span key={`tg-${i}`} class="notes-stat-tag">
+              {t.tag} <b>{t.count}</b>
+            </span>
+          ))}
+        </div>
+      )}
+      <div class="notes-heatmap" data-testid="notes-heatmap" aria-label="发文热力图">
+        {stats.heatmap.map((col, w) => (
+          <div key={`w-${w}`} class="notes-heatmap-week">
+            {col.map((cell, r) => (
+              <span
+                key={`c-${w}-${r}`}
+                class={`notes-heatmap-cell lv-${intensityLevel(cell.count, stats.maxDay)}`}
+                title={`${cell.date}：${cell.count} 篇`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+});
+
 const SeriesNav = component$<{ doc: ArticleDoc; onNav: QRL<(slug: string) => void> }>(({ doc, onNav }) => {
   const s = doc.series;
   if (!s) return null;
@@ -187,6 +281,18 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav
   const toc = doc.headings.filter((h) => h.depth >= 2 && h.depth <= 3);
   const activeSlug = useSignal(toc[0]?.slug ?? '');
   const progress = useSignal(0);
+  const related = useSignal<RelatedItem[]>([]);
+
+  // N-T21：懒加载全量文章并基于「共同引用 + 标签 Jaccard」计算相关文章
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    try {
+      const all = await loadAllArticles();
+      related.value = computeRelated(doc, all);
+    } catch {
+      related.value = [];
+    }
+  });
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
@@ -253,6 +359,8 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav
         <MdastRenderer ast={doc.ast} />
         <ReferencesBlock doc={doc} />
         <BacklinksBlock doc={doc} />
+        <HistoryBlock doc={doc} />
+        <RelatedArticles items={related.value} />
       </article>
     </div>
   );
@@ -469,16 +577,6 @@ export const NotesShell = component$(() => {
                       归档
                     </button>
                   </div>
-                  <a
-                    class="notes-rss"
-                    href="/notes/feed.xml"
-                    rel="alternate"
-                    type="application/rss+xml"
-                    title="RSS 订阅"
-                    data-testid="notes-rss"
-                  >
-                    RSS
-                  </a>
                 </div>
               </div>
               {viewMode.value === 'archive' ? (
@@ -534,6 +632,7 @@ export const NotesShell = component$(() => {
                   ))}
                 </ul>
               )}
+              <NotesStatsPanel posts={allPosts} />
             </>
           ) : state.err ? (
             <div class="notes-error" data-testid="notes-error">

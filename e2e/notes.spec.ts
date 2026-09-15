@@ -161,18 +161,6 @@ test('系列导航：详情页展示上下篇并可跳转', async ({ page }) => 
   await expect(page.getByTestId('notes-series').getByText('Markdown 全功能示例', { exact: false })).toBeVisible();
 });
 
-test('RSS 入口指向 feed.xml 且可访问', async ({ page }) => {
-  await page.goto('/notes/');
-  const rss = page.getByTestId('notes-rss');
-  await expect(rss).toBeVisible();
-  await expect(rss).toHaveAttribute('href', '/notes/feed.xml');
-  const resp = await page.goto('/notes/feed.xml');
-  expect(resp?.status()).toBe(200);
-  const body = (await resp?.text()) ?? '';
-  expect(body).toContain('<rss');
-  expect(body).toContain('Markdown 全功能示例');
-});
-
 test('页脚展示数据版本（来源 + 生成时间）', async ({ page }) => {
   await page.goto('/notes/');
   const dv = page.getByTestId('notes-dataver');
@@ -211,3 +199,49 @@ test('全文搜索：无匹配时显示空状态（N-T20）', async ({ page }) =
   await expect(page.getByTestId('notes-search-empty')).toBeVisible();
   await expect(page.getByTestId('notes-item')).toHaveCount(0);
 });
+
+test('列表页展示写作统计面板与热力图（N-T22）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  const stats = page.getByTestId('notes-stats');
+  await expect(stats).toBeVisible();
+  await expect(stats.getByText('篇文章')).toBeVisible();
+  await expect(stats.getByText('总字数')).toBeVisible();
+  // 热力图：含若干按日单元格，且至少 1 个非 lv-0（两篇示例文章落在近两周）
+  const heatmap = page.getByTestId('notes-heatmap');
+  await expect(heatmap).toBeVisible();
+  await expect(heatmap.locator('.notes-heatmap-cell')).toHaveCount(18 * 7);
+  await expect(heatmap.locator('.notes-heatmap-cell:not(.lv-0)').first()).toBeVisible();
+});
+
+test('详情页展示更新历史（N-T23）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const hist = page.getByTestId('notes-history');
+  await expect(hist).toBeVisible();
+  await expect(hist.getByText('补充笔记嵌入卡片', { exact: false })).toBeVisible();
+  await expect(hist.locator('time').first()).toContainText('2026-09-15');
+});
+
+test('详情页展示相关文章（N-T21：共同引用 + 标签 Jaccard）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const rel = page.getByTestId('notes-related');
+  await expect(rel).toBeVisible();
+  // SAMPLE1 与 SAMPLE2 互为反链 + 共享 demo 标签 → 相关
+  await expect(rel.getByTestId('notes-related-item').first()).toContainText('Qwik 与 SSR 笔记');
+  await expect(rel.getByText('共同引用', { exact: false })).toBeVisible();
+});
+
+test('正文渲染笔记嵌入卡片（N-T24：![[笔记]]）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const card = page.getByTestId('md-embed-note');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Qwik 与 SSR 笔记');
+  await expect(card).toContainText('一篇演示反链');
+  // 点击卡片跳转至被嵌入笔记
+  await card.click();
+  await expect(page).toHaveURL(new RegExp(`/notes/${encodeURIComponent('Qwik 与 SSR 笔记')}/`));
+});
+

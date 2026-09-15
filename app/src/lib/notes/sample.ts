@@ -258,6 +258,24 @@ const ast: MdNode = {
       data: { target: 'sample.png', embedType: 'image', src: SAMPLE_IMG, alt: '嵌入图片' },
     },
     {
+      type: 'paragraph',
+      children: [
+        { type: 'text', value: '笔记嵌入卡片（语法 ' },
+        { type: 'inlineCode', value: '![[笔记标题]]' },
+        { type: 'text', value: '）：' },
+      ],
+    },
+    {
+      type: 'wikiEmbed',
+      data: {
+        target: 'Qwik 与 SSR 笔记',
+        embedType: 'note',
+        title: 'Qwik 与 SSR 笔记',
+        description: '一篇演示反链（backlinks）的短示例文章。',
+        tags: ['qwik', 'ssr', 'demo'],
+      },
+    },
+    {
       type: 'heading',
       depth: 2,
       children: [{ type: 'text', value: '脚注' }],
@@ -332,6 +350,10 @@ export const SAMPLE_DOC: ArticleDoc = {
   backlinks: [
     { slug: 'Qwik 与 SSR 笔记', title: 'Qwik 与 SSR 笔记', context: '本文引用了 Markdown 全功能示例 一文，作为反链演示。' },
   ],
+  history: [
+    { date: '2026-09-15', message: '补充笔记嵌入卡片（![[笔记]]）与相关文章区块' },
+    { date: '2026-09-14', message: '初稿：覆盖全部 Markdown 功能节点' },
+  ],
   ast,
 };
 
@@ -387,6 +409,9 @@ export const SAMPLE2_DOC: ArticleDoc = {
   readingTime: { minutes: 1, words: 80 },
   headings: collectHeadings(ast2),
   references: [{ kind: 'internal', label: 'Markdown 全功能示例', target: SAMPLE_SLUG, exists: true }],
+  history: [
+    { date: '2026-09-14', message: '初稿：演示反链（backlinks）与系列导航' },
+  ],
   ast: ast2,
 };
 

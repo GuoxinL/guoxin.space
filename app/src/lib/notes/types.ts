@@ -92,6 +92,8 @@ export interface ArticleDoc {
   headings: HeadingMeta[];
   references: Reference[];
   backlinks?: Backlink[];
+  /** 更新历史（N-T23）。demo 由 sample 直接提供；生产接 git log（见 N-T06 数仓管线）。 */
+  history?: { date: string; message: string }[];
   ast: MdNode; // 已剥离 position 的纯数据根节点
 }
 

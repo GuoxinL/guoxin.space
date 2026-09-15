@@ -2807,12 +2807,6 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-tag-count { font-size: .72rem; opacity: .7; }
 .notes-view-toggle { display: inline-flex; border: 1px solid var(--slate-5); border-radius: 8px; overflow: hidden; }
 .notes-toolbar-right { display: inline-flex; align-items: center; gap: .6rem; }
-.notes-rss {
-  display: inline-flex; align-items: center; padding: .3rem .7rem;
-  border: 1px solid var(--slate-5); border-radius: 8px; color: var(--slate-65);
-  font-size: .82rem; text-decoration: none; transition: border-color .15s, color .15s;
-}
-.notes-rss:hover { border-color: var(--violet-65); color: var(--violet-65); }
 .notes-view-btn {
   padding: .3rem .8rem; border: 0; background: transparent; color: var(--slate-65);
   cursor: pointer; font-size: .85rem;
@@ -2848,6 +2842,58 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-archive-item:hover { border-color: var(--violet-65); background: var(--violet-0); }
 .notes-archive-item-title { font-weight: 500; }
 .notes-archive-item-date { font-size: .8rem; color: var(--slate-50); white-space: nowrap; }
+
+/* N-T21 相关文章 */
+.notes-related { margin-top: 2rem; }
+.notes-related-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.notes-related-link {
+  display: flex; flex-direction: column; gap: .2rem; padding: .6rem .8rem;
+  border: 1px solid var(--slate-5); border-radius: 10px; text-decoration: none; color: inherit;
+  transition: border-color .15s, background .15s;
+}
+.notes-related-link:hover { border-color: var(--violet-65); background: var(--violet-0); }
+.notes-related-title { font-weight: 600; color: var(--slate-95); }
+.notes-related-desc { font-size: .85rem; color: var(--slate-65); }
+.notes-related-reason { font-size: .75rem; color: var(--slate-50); }
+
+/* N-T23 更新历史 */
+.notes-history { margin-top: 2rem; }
+.notes-history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.notes-history-item { display: flex; gap: .6rem; align-items: baseline; font-size: .85rem; }
+.notes-history-date { color: var(--violet-65); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.notes-history-msg { color: var(--slate-65); }
+
+/* N-T22 写作统计 + 热力图 */
+.notes-stats { margin: 1.5rem 0 1rem; border: 1px solid var(--slate-5); border-radius: 12px; padding: .8rem 1rem; background: transparent; }
+.notes-stats-summary { cursor: pointer; font-weight: 600; color: var(--slate-80); }
+.notes-stats-grid { display: flex; gap: 1.8rem; margin: .9rem 0; }
+.notes-stat { display: flex; flex-direction: column; }
+.notes-stat-num { font-size: 1.4rem; font-weight: 700; color: var(--violet-65); line-height: 1.1; }
+.notes-stat-label { font-size: .75rem; color: var(--slate-50); }
+.notes-stats-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+.notes-stat-tag { font-size: .8rem; padding: .15rem .55rem; border: 1px solid var(--slate-5); border-radius: 999px; color: var(--slate-65); }
+.notes-stat-tag b { color: var(--slate-95); }
+.notes-heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: .4rem; }
+.notes-heatmap-week { display: grid; grid-template-rows: repeat(7, 12px); gap: 3px; }
+.notes-heatmap-cell { width: 12px; height: 12px; border-radius: 2px; background: var(--slate-5); }
+.notes-heatmap-cell.lv-0 { background: var(--slate-5); }
+.notes-heatmap-cell.lv-1 { background: rgba(160, 83, 254, .25); }
+.notes-heatmap-cell.lv-2 { background: rgba(160, 83, 254, .45); }
+.notes-heatmap-cell.lv-3 { background: rgba(160, 83, 254, .7); }
+.notes-heatmap-cell.lv-4 { background: rgba(160, 83, 254, 1); }
+
+/* N-T24 笔记嵌入卡片（![[笔记]]） */
+.md-embed-note {
+  display: flex; flex-direction: column; gap: .25rem; margin: 1rem 0; padding: .7rem .9rem;
+  border: 1px solid var(--slate-5); border-left: 3px solid var(--violet-65); border-radius: 10px;
+  text-decoration: none; color: inherit; background: var(--violet-0); transition: border-color .15s;
+}
+.md-embed-note:hover { border-color: var(--violet-65); }
+.md-embed-note__badge { font-size: .7rem; color: var(--violet-65); font-weight: 600; }
+.md-embed-note__title { font-weight: 600; color: var(--slate-95); }
+.md-embed-note__desc { font-size: .85rem; color: var(--slate-65); }
+.md-embed-note__tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .2rem; }
+.md-embed-note__tag { font-size: .7rem; padding: .1rem .45rem; border: 1px solid var(--slate-5); border-radius: 999px; color: var(--slate-50); }
 
 .notes-series {
   margin: 1rem 0 1.5rem; padding: .75rem .9rem; border: 1px solid var(--slate-5);

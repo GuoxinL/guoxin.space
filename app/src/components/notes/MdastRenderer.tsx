@@ -8,6 +8,7 @@ import { component$, useSignal, useVisibleTask$, $ } from '@builder.io/qwik';
 import type { MdNode } from '../../lib/notes/types';
 import { slugifyHeading } from '../../lib/notes/slugify';
 import { getKnownSlugs } from '../../lib/notes/source';
+import { notePathFor } from '../../lib/notes/slug';
 import { applyPrism } from '../../lib/notes/highlight';
 import { renderMath } from '../../lib/notes/math';
 
@@ -117,6 +118,30 @@ const WikiEmbed = component$<{ node: MdNode }>(({ node }) => {
   const alt = node.data?.alt as string | undefined;
   if (embed === 'image' && src) {
     return <img class="md-img md-embed" src={src} alt={alt ?? ''} loading="lazy" />;
+  }
+  // N-T24：笔记嵌入卡片（![[笔记标题]]）—— 渲染目标笔记预览 + 跳转
+  if (embed === 'note') {
+    const target = (node.data?.target as string) ?? '';
+    const title = (node.data?.title as string) ?? target;
+    const desc = (node.data?.description as string | undefined) ?? '';
+    const tags = (node.data?.tags as string[] | undefined) ?? [];
+    const href = notePathFor(target);
+    return (
+      <a class="md-embed-note" href={href} data-testid="md-embed-note" title={`打开：${title}`}>
+        <span class="md-embed-note__badge">笔记</span>
+        <span class="md-embed-note__title">{title}</span>
+        {desc && <span class="md-embed-note__desc">{desc}</span>}
+        {tags.length > 0 && (
+          <span class="md-embed-note__tags">
+            {tags.map((t, i) => (
+              <span key={`t-${i}`} class="md-embed-note__tag">
+                {t}
+              </span>
+            ))}
+          </span>
+        )}
+      </a>
+    );
   }
   return (
     <span class="md-unsupported" title="不支持的嵌入类型">
