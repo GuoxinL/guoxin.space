@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "a9ef50e0",
+  "slug": "Qwik 与 SSR 笔记",
+  "title": "Qwik 与 SSR 笔记",
+  "date": "2026-09-14",
+  "updated": "2026-09-14",
+  "description": "一篇演示反链（backlinks）的短示例文章。",
+  "tags": [
+    "qwik",
+    "ssr",
+    "demo"
+  ],
+  "status": "evergreen",
+  "series": {
+    "name": "Markdown 实战",
+    "order": 2,
+    "total": 2,
+    "prev": {
+      "slug": "Markdown 全功能示例",
+      "title": "Markdown 全功能示例"
+    }
+  },
+  "readingTime": {
+    "minutes": 1,
+    "words": 34
+  },
+  "headings": [
+    {
+      "depth": 2,
+      "text": "概述",
+      "slug": "概述"
+    },
+    {
+      "depth": 2,
+      "text": "小结",
+      "slug": "小结"
+    }
+  ],
+  "references": [
+    {
+      "kind": "internal",
+      "label": "Markdown 全功能示例",
+      "target": "Markdown 全功能示例",
+      "href": "/notes/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B/",
+      "exists": true
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-09-14",
+      "message": "chore: 初始化 nodes 骨架（含 Qwik 与 SSR 笔记）"
+    }
+  ],
+  "ast": {
+    "type": "root",
+    "children": [
+      {
+        "type": "heading",
+        "depth": 2,
+        "children": [
+          {
+            "type": "text",
+            "value": "概述"
+          }
+        ],
+        "data": {
+          "headingId": "概述"
+        }
+      },
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "type": "text",
+            "value": "本文引用了 "
+          },
+          {
+            "type": "wikiLink",
+            "value": "Markdown 全功能示例",
+            "data": {
+              "target": "Markdown 全功能示例",
+              "exists": true,
+              "permalink": "/notes/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B/"
+            }
+          },
+          {
+            "type": "text",
+            "value": " 一文，作为反链演示。"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "depth": 2,
+        "children": [
+          {
+            "type": "text",
+            "value": "小结"
+          }
+        ],
+        "data": {
+          "headingId": "小结"
+        }
+      },
+      {
+        "type": "paragraph",
+        "children": [
+          {
+            "type": "text",
+            "value": "Qwik 的 resumability 是其 SSR 性能的核心。"
+          }
+        ]
+      }
+    ]
+  },
+  "backlinks": [
+    {
+      "slug": "Markdown 全功能示例",
+      "title": "Markdown 全功能示例",
+      "context": "这是一段包含 加粗、斜体、删除线 与 行内代码 的文字。"
+    }
+  ]
+}

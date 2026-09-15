@@ -4,13 +4,14 @@
  * 纯 CSR：仅在浏览器执行，无 routeLoader$、无 q-data.json 依赖。
  * 模块级 Map 做 SPA 生命周期内缓存，避免来回导航重复请求。
  *
- * demo 阶段：数据源尚未创建，直接返回本地 `sample` 数据；
- * 日后切换真实数据仓只需把 `SAMPLE_INDEX / SAMPLE_ARTICLES` 换成 fetch（见 notesBaseUrl）。
+ * 数据源：GitHub 公开仓 `GuoxinL/nodes` 的 build/ 产物（posts.json / posts/<id>.json / all.json），
+ * 经 raw.githubusercontent.com 拉取（可经 NotesCfg.source 切 jsDelivr / 自定义镜像）。
+ * 取数失败（网络/404）回退本地 SAMPLE 兜底，避免白屏（plan R-3）。
  */
 import type { ArticleDoc, NotesCfg, PostsIndex } from './types';
 import { SAMPLE_ARTICLES, SAMPLE_INDEX } from './sample';
 
-export const NOTES_DFLT_REPO = 'GuoxinL/notes';
+export const NOTES_DFLT_REPO = 'GuoxinL/nodes';
 export const NOTES_DFLT_BRANCH = 'main';
 export const NOTES_DFLT_SOURCE: NotesCfg['source'] = 'raw';
 
@@ -34,19 +35,39 @@ export function notesBaseUrl(cfg: NotesCfg): string {
 let indexCache: PostsIndex | null = null;
 const articleCache = new Map<string, ArticleDoc | null>();
 
-/** 列表页取数：返回 posts.json。 */
-export async function loadNotesIndex(_cfg: NotesCfg = defaultNotesCfg()): Promise<PostsIndex> {
-  if (!indexCache) indexCache = SAMPLE_INDEX;
+/** 取数封装：失败（网络/404）返回 null，由调用方回退 SAMPLE 兜底。 */
+async function fetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { headers: { accept: 'application/json' } });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** 列表页取数：posts.json；未就绪则回退 SAMPLE_INDEX。 */
+export async function loadNotesIndex(cfg: NotesCfg = defaultNotesCfg()): Promise<PostsIndex> {
+  if (!indexCache) {
+    const idx = await fetchJson<PostsIndex>(`${notesBaseUrl(cfg)}/posts.json`);
+    indexCache = idx ?? SAMPLE_INDEX;
+  }
   return indexCache;
 }
 
-/** 文章页取数：index → slugToId → posts/<id>.json。 */
+/** 文章页取数：index → slugToId → posts/<id>.json。无 id 或拉取失败回退 SAMPLE_ARTICLES[slug]。 */
 export async function loadArticle(
   slug: string,
-  _cfg: NotesCfg = defaultNotesCfg()
+  cfg: NotesCfg = defaultNotesCfg()
 ): Promise<ArticleDoc | null> {
   if (articleCache.has(slug)) return articleCache.get(slug) ?? null;
-  const doc = SAMPLE_ARTICLES[slug] ?? null;
+  const index = await loadNotesIndex(cfg);
+  const id = index.slugToId?.[slug];
+  let doc: ArticleDoc | null = null;
+  if (id) {
+    doc = await fetchJson<ArticleDoc>(`${notesBaseUrl(cfg)}/posts/${id}.json`);
+  }
+  if (!doc) doc = SAMPLE_ARTICLES[slug] ?? null;
   articleCache.set(slug, doc);
   return doc;
 }
@@ -58,8 +79,10 @@ export function getKnownSlugs(): Set<string> {
   return s;
 }
 
-/** 全部文章取数（供搜索建索引用）。demo 返回本地样本全集；生产接入数仓后改为拉取 search-index.json。 */
-export async function loadAllArticles(_cfg: NotesCfg = defaultNotesCfg()): Promise<ArticleDoc[]> {
-  await loadNotesIndex(_cfg); // 确保 index 已缓存
+/** 全部文章取数（供搜索建索引 / 双链图谱）。优先拉取 all.json；失败回退 SAMPLE 全集。 */
+export async function loadAllArticles(cfg: NotesCfg = defaultNotesCfg()): Promise<ArticleDoc[]> {
+  await loadNotesIndex(cfg); // 确保 index 已缓存
+  const all = await fetchJson<ArticleDoc[]>(`${notesBaseUrl(cfg)}/all.json`);
+  if (all && all.length) return all;
   return Object.values(SAMPLE_ARTICLES);
 }

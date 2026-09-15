@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-15T13:38:50.233Z",
+  "sourceRef": "GuoxinL/nodes",
+  "toolchain": {
+    "node": "22.22.2",
+    "builder": "nodes-build"
+  },
+  "posts": [
+    {
+      "id": "39fb46bd",
+      "slug": "Markdown 全功能示例",
+      "title": "Markdown 全功能示例",
+      "date": "2026-09-15",
+      "updated": "2026-09-15",
+      "description": "一篇覆盖写作模块计划支持的全部 Markdown 功能的示例文章。",
+      "tags": [
+        "markdown",
+        "demo",
+        "notes"
+      ],
+      "status": "evergreen",
+      "series": {
+        "name": "Markdown 实战",
+        "order": 1
+      },
+      "readingTime": {
+        "minutes": 1,
+        "words": 438
+      }
+    },
+    {
+      "id": "a9ef50e0",
+      "slug": "Qwik 与 SSR 笔记",
+      "title": "Qwik 与 SSR 笔记",
+      "date": "2026-09-14",
+      "updated": "2026-09-14",
+      "description": "一篇演示反链（backlinks）的短示例文章。",
+      "tags": [
+        "qwik",
+        "ssr",
+        "demo"
+      ],
+      "status": "evergreen",
+      "series": {
+        "name": "Markdown 实战",
+        "order": 2
+      },
+      "readingTime": {
+        "minutes": 1,
+        "words": 34
+      }
+    }
+  ],
+  "slugToId": {
+    "Markdown 全功能示例": "39fb46bd",
+    "Qwik 与 SSR 笔记": "a9ef50e0"
+  }
+}

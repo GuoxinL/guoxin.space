@@ -1,0 +1,1141 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "39fb46bd",
+    "slug": "Markdown 全功能示例",
+    "title": "Markdown 全功能示例",
+    "date": "2026-09-15",
+    "updated": "2026-09-15",
+    "description": "一篇覆盖写作模块计划支持的全部 Markdown 功能的示例文章。",
+    "tags": [
+      "markdown",
+      "demo",
+      "notes"
+    ],
+    "status": "evergreen",
+    "series": {
+      "name": "Markdown 实战",
+      "order": 1,
+      "total": 2,
+      "next": {
+        "slug": "Qwik 与 SSR 笔记",
+        "title": "Qwik 与 SSR 笔记"
+      }
+    },
+    "readingTime": {
+      "minutes": 1,
+      "words": 438
+    },
+    "headings": [
+      {
+        "depth": 2,
+        "text": "基础文本样式",
+        "slug": "基础文本样式"
+      },
+      {
+        "depth": 2,
+        "text": "代码块",
+        "slug": "代码块"
+      },
+      {
+        "depth": 2,
+        "text": "数学公式",
+        "slug": "数学公式"
+      },
+      {
+        "depth": 2,
+        "text": "列表",
+        "slug": "列表"
+      },
+      {
+        "depth": 3,
+        "text": "无序列表",
+        "slug": "无序列表"
+      },
+      {
+        "depth": 3,
+        "text": "有序列表",
+        "slug": "有序列表"
+      },
+      {
+        "depth": 3,
+        "text": "任务列表",
+        "slug": "任务列表"
+      },
+      {
+        "depth": 2,
+        "text": "引用与 Callout",
+        "slug": "引用与-callout"
+      },
+      {
+        "depth": 2,
+        "text": "表格",
+        "slug": "表格"
+      },
+      {
+        "depth": 2,
+        "text": "图片与嵌入",
+        "slug": "图片与嵌入"
+      },
+      {
+        "depth": 2,
+        "text": "脚注",
+        "slug": "脚注"
+      },
+      {
+        "depth": 2,
+        "text": "流程图（Mermaid）",
+        "slug": "流程图mermaid"
+      }
+    ],
+    "references": [
+      {
+        "kind": "external",
+        "label": "Qwik 官网",
+        "href": "https://qwik.dev"
+      },
+      {
+        "kind": "internal",
+        "label": "本文自身（存在）",
+        "target": "Markdown 全功能示例",
+        "href": "/notes/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B/",
+        "exists": true
+      },
+      {
+        "kind": "internal",
+        "label": "缺失双链（虚线样式）",
+        "target": "尚未创建的笔记",
+        "href": "/notes/%E5%B0%9A%E6%9C%AA%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%94%E8%AE%B0/",
+        "exists": false
+      },
+      {
+        "kind": "footnote",
+        "label": "1",
+        "footnoteId": "fn-1"
+      }
+    ],
+    "history": [
+      {
+        "date": "2026-09-15",
+        "message": "补充笔记嵌入卡片（![[笔记]]）与相关文章区块"
+      },
+      {
+        "date": "2026-09-14",
+        "message": "初稿：覆盖全部 Markdown 功能节点"
+      }
+    ],
+    "ast": {
+      "type": "root",
+      "children": [
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "基础文本样式"
+            }
+          ],
+          "data": {
+            "headingId": "基础文本样式"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "这是一段包含 "
+            },
+            {
+              "type": "strong",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "加粗"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "value": "、"
+            },
+            {
+              "type": "emphasis",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "斜体"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "value": "、"
+            },
+            {
+              "type": "delete",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "删除线"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "value": " 与 "
+            },
+            {
+              "type": "inlineCode",
+              "value": "行内代码"
+            },
+            {
+              "type": "text",
+              "value": " 的文字。"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "外部链接："
+            },
+            {
+              "type": "link",
+              "title": null,
+              "url": "https://qwik.dev",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "Qwik 官网"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "value": "；内部双链指向 "
+            },
+            {
+              "type": "wikiLink",
+              "value": "本文自身（存在）",
+              "data": {
+                "target": "Markdown 全功能示例",
+                "alias": "本文自身（存在）",
+                "exists": true,
+                "permalink": "/notes/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B/"
+              }
+            },
+            {
+              "type": "text",
+              "value": "，以及一条 "
+            },
+            {
+              "type": "wikiLink",
+              "value": "缺失双链（虚线样式）",
+              "data": {
+                "target": "尚未创建的笔记",
+                "alias": "缺失双链（虚线样式）",
+                "exists": false,
+                "permalink": "/notes/%E5%B0%9A%E6%9C%AA%E5%88%9B%E5%BB%BA%E7%9A%84%E7%AC%94%E8%AE%B0/"
+              }
+            },
+            {
+              "type": "text",
+              "value": "。行内公式："
+            },
+            {
+              "type": "inlineMath",
+              "value": "E = mc^2",
+              "data": {
+                "hName": "code",
+                "hProperties": {
+                  "className": [
+                    "language-math",
+                    "math-inline"
+                  ]
+                },
+                "hChildren": [
+                  {
+                    "type": "text",
+                    "value": "E = mc^2"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "value": "。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "代码块"
+            }
+          ],
+          "data": {
+            "headingId": "代码块"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "TypeScript（含文件名栏与第 2–3 行高亮）："
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "lang": "ts",
+          "meta": "filename=\"hello.ts\" {2-3}",
+          "value": "function greet(name: string): string {\n  const msg = `Hello, ${name}!`;\n  return msg;\n}\n\nconsole.log(greet('World'));"
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "Bash："
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "lang": "bash",
+          "meta": null,
+          "value": "pnpm install\npnpm build\npnpm test"
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "数学公式"
+            }
+          ],
+          "data": {
+            "headingId": "数学公式"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "行内："
+            },
+            {
+              "type": "inlineMath",
+              "value": "a^2 + b^2 = c^2",
+              "data": {
+                "hName": "code",
+                "hProperties": {
+                  "className": [
+                    "language-math",
+                    "math-inline"
+                  ]
+                },
+                "hChildren": [
+                  {
+                    "type": "text",
+                    "value": "a^2 + b^2 = c^2"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "value": "；独立成块："
+            }
+          ]
+        },
+        {
+          "type": "math",
+          "meta": null,
+          "value": "\\int_{0}^{\\infty} e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}",
+          "data": {
+            "hName": "pre",
+            "hChildren": [
+              {
+                "type": "element",
+                "tagName": "code",
+                "properties": {
+                  "className": [
+                    "language-math",
+                    "math-display"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\\int_{0}^{\\infty} e^{-x^2}\\,dx = \\frac{\\sqrt{\\pi}}{2}"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "列表"
+            }
+          ],
+          "data": {
+            "headingId": "列表"
+          }
+        },
+        {
+          "type": "heading",
+          "depth": 3,
+          "children": [
+            {
+              "type": "text",
+              "value": "无序列表"
+            }
+          ],
+          "data": {
+            "headingId": "无序列表"
+          }
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "start": null,
+          "spread": false,
+          "children": [
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": null,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "苹果"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": null,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "香蕉"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": null,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "橙子"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 3,
+          "children": [
+            {
+              "type": "text",
+              "value": "有序列表"
+            }
+          ],
+          "data": {
+            "headingId": "有序列表"
+          }
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "start": 1,
+          "spread": false,
+          "children": [
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": null,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "第一步"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": null,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "第二步"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": null,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "第三步"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 3,
+          "children": [
+            {
+              "type": "text",
+              "value": "任务列表"
+            }
+          ],
+          "data": {
+            "headingId": "任务列表"
+          }
+        },
+        {
+          "type": "list",
+          "ordered": false,
+          "start": null,
+          "spread": false,
+          "children": [
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": true,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "已完成的任务"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "spread": false,
+              "checked": false,
+              "children": [
+                {
+                  "type": "paragraph",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "未完成的任务"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "引用与 Callout"
+            }
+          ],
+          "data": {
+            "headingId": "引用与-callout"
+          }
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "这是一句普通的引用。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "提示：这是一条 tip 类型的 Callout，左侧有彩色竖线。"
+                }
+              ]
+            }
+          ],
+          "data": {
+            "callout": "tip"
+          }
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "说明：note 类型，用于补充说明。"
+                }
+              ]
+            }
+          ],
+          "data": {
+            "callout": "note"
+          }
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "信息：info 类型，用于背景知识。"
+                }
+              ]
+            }
+          ],
+          "data": {
+            "callout": "info"
+          }
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "警告：warning 类型，需要注意。"
+                }
+              ]
+            }
+          ],
+          "data": {
+            "callout": "warning"
+          }
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "危险：danger 类型，严禁操作。"
+                }
+              ]
+            }
+          ],
+          "data": {
+            "callout": "danger"
+          }
+        },
+        {
+          "type": "blockquote",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "引用：quote 类型，常用于引述他人观点。"
+                }
+              ]
+            }
+          ],
+          "data": {
+            "callout": "quote"
+          }
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "表格"
+            }
+          ],
+          "data": {
+            "headingId": "表格"
+          }
+        },
+        {
+          "type": "table",
+          "align": [
+            null,
+            null,
+            null
+          ],
+          "children": [
+            {
+              "type": "tableRow",
+              "children": [
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "语言"
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "类型"
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "用途"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "children": [
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "Go"
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "静态"
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "后端 / 合约"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableRow",
+              "children": [
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "TypeScript"
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "动态"
+                    }
+                  ]
+                },
+                {
+                  "type": "tableCell",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "前端 / 工具"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "图片与嵌入"
+            }
+          ],
+          "data": {
+            "headingId": "图片与嵌入"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "普通图片（图）："
+            },
+            {
+              "type": "image",
+              "title": null,
+              "url": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Crect width='320' height='180' fill='%23A053FE'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='18' text-anchor='middle' dominant-baseline='middle'%3ESample%3C/text%3E%3C/svg%3E",
+              "alt": "示例图片"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "笔记嵌入卡片（语法 "
+            },
+            {
+              "type": "inlineCode",
+              "value": "![[笔记标题]]"
+            },
+            {
+              "type": "text",
+              "value": "）："
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "wikiEmbed",
+              "data": {
+                "embedType": "note",
+                "target": "Qwik 与 SSR 笔记",
+                "title": "Qwik 与 SSR 笔记",
+                "description": "一篇演示反链（backlinks）的短示例文章。",
+                "tags": [
+                  "qwik",
+                  "ssr",
+                  "demo"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "交互式代码示例（StackBlitz 嵌入）："
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "wikiEmbed",
+              "data": {
+                "embedType": "stackblitz",
+                "src": "https://stackblitz.com/edit/qwik-starter?embed=1&file=src%2Froot.tsx"
+              }
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "脚注"
+            }
+          ],
+          "data": {
+            "headingId": "脚注"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "这句话带一个脚注"
+            },
+            {
+              "type": "footnoteReference",
+              "identifier": "1",
+              "label": "1"
+            },
+            {
+              "type": "text",
+              "value": "，用于演示脚注上下标跳转。"
+            }
+          ]
+        },
+        {
+          "type": "footnoteDefinition",
+          "identifier": "1",
+          "label": "1",
+          "children": [
+            {
+              "type": "paragraph",
+              "children": [
+                {
+                  "type": "text",
+                  "value": "脚注内容：这里是补充说明文字。"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "流程图（Mermaid）"
+            }
+          ],
+          "data": {
+            "headingId": "流程图mermaid"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "下面用 Mermaid 语法画一个笔记关系流程图（运行时懒加载渲染）："
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "lang": "mermaid",
+          "meta": null,
+          "value": "graph TD\n  A[笔记] --> B(双链)\n  B --> C{关系}\n  C -->|引用| D[相关文章]\n  C -->|反链| E[双链图谱]\n  C -->|嵌入| F[笔记嵌入卡片]"
+        },
+        {
+          "type": "thematicBreak"
+        },
+        {
+          "type": "html",
+          "value": "<p class=\"md-note\">这是一段内嵌 HTML（已清洗），用于演示原始 HTML 节点。</p>"
+        }
+      ]
+    },
+    "backlinks": [
+      {
+        "slug": "Qwik 与 SSR 笔记",
+        "title": "Qwik 与 SSR 笔记",
+        "context": "本文引用了 Markdown 全功能示例 一文，作为反链演示。"
+      }
+    ]
+  },
+  {
+    "schemaVersion": 1,
+    "id": "a9ef50e0",
+    "slug": "Qwik 与 SSR 笔记",
+    "title": "Qwik 与 SSR 笔记",
+    "date": "2026-09-14",
+    "updated": "2026-09-14",
+    "description": "一篇演示反链（backlinks）的短示例文章。",
+    "tags": [
+      "qwik",
+      "ssr",
+      "demo"
+    ],
+    "status": "evergreen",
+    "series": {
+      "name": "Markdown 实战",
+      "order": 2,
+      "total": 2,
+      "prev": {
+        "slug": "Markdown 全功能示例",
+        "title": "Markdown 全功能示例"
+      }
+    },
+    "readingTime": {
+      "minutes": 1,
+      "words": 34
+    },
+    "headings": [
+      {
+        "depth": 2,
+        "text": "概述",
+        "slug": "概述"
+      },
+      {
+        "depth": 2,
+        "text": "小结",
+        "slug": "小结"
+      }
+    ],
+    "references": [
+      {
+        "kind": "internal",
+        "label": "Markdown 全功能示例",
+        "target": "Markdown 全功能示例",
+        "href": "/notes/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B/",
+        "exists": true
+      }
+    ],
+    "history": [
+      {
+        "date": "2026-09-14",
+        "message": "chore: 初始化 nodes 骨架（含 Qwik 与 SSR 笔记）"
+      }
+    ],
+    "ast": {
+      "type": "root",
+      "children": [
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "概述"
+            }
+          ],
+          "data": {
+            "headingId": "概述"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "本文引用了 "
+            },
+            {
+              "type": "wikiLink",
+              "value": "Markdown 全功能示例",
+              "data": {
+                "target": "Markdown 全功能示例",
+                "exists": true,
+                "permalink": "/notes/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B/"
+              }
+            },
+            {
+              "type": "text",
+              "value": " 一文，作为反链演示。"
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "depth": 2,
+          "children": [
+            {
+              "type": "text",
+              "value": "小结"
+            }
+          ],
+          "data": {
+            "headingId": "小结"
+          }
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "Qwik 的 resumability 是其 SSR 性能的核心。"
+            }
+          ]
+        }
+      ]
+    },
+    "backlinks": [
+      {
+        "slug": "Markdown 全功能示例",
+        "title": "Markdown 全功能示例",
+        "context": "这是一段包含 加粗、斜体、删除线 与 行内代码 的文字。"
+      }
+    ]
+  }
+]
