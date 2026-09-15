@@ -2820,6 +2820,23 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-view-btn + .notes-view-btn { border-left: 1px solid var(--slate-5); }
 .notes-view-btn.is-active { background: var(--violet-0); color: var(--violet-65); font-weight: 600; }
 
+/* N-T20：全文搜索框 */
+.notes-search-wrap { display: flex; align-items: center; gap: .6rem; margin: .25rem 0 1rem; }
+.notes-search {
+  flex: 1 1 auto; min-width: 0; padding: .5rem .8rem; font-size: .9rem;
+  border: 1px solid var(--slate-5); border-radius: 10px; background: transparent;
+  color: var(--slate-95); outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.notes-search::placeholder { color: var(--slate-50); }
+.notes-search:focus { border-color: var(--violet-65); box-shadow: 0 0 0 3px var(--violet-0); }
+.notes-search-clear {
+  flex: 0 0 auto; width: 1.7rem; height: 1.7rem; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--slate-5); background: transparent; color: var(--slate-65);
+  font-size: 1rem; line-height: 1; transition: border-color .15s, color .15s;
+}
+.notes-search-clear:hover { border-color: var(--violet-65); color: var(--violet-65); }
+.notes-search-status { flex: 0 0 auto; font-size: .8rem; color: var(--slate-50); white-space: nowrap; }
+
 .notes-archive-year-title { font-size: 1.1rem; color: var(--slate-80); margin: .5rem 0 .8rem; }
 .notes-archive-month-title { font-size: .9rem; color: var(--slate-65); margin: .6rem 0 .3rem; }
 .notes-archive-list { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-direction: column; gap: .35rem; }

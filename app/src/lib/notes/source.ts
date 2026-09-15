@@ -57,3 +57,9 @@ export function getKnownSlugs(): Set<string> {
   if (indexCache) indexCache.posts.forEach((p) => s.add(p.slug));
   return s;
 }
+
+/** 全部文章取数（供搜索建索引用）。demo 返回本地样本全集；生产接入数仓后改为拉取 search-index.json。 */
+export async function loadAllArticles(_cfg: NotesCfg = defaultNotesCfg()): Promise<ArticleDoc[]> {
+  await loadNotesIndex(_cfg); // 确保 index 已缓存
+  return Object.values(SAMPLE_ARTICLES);
+}

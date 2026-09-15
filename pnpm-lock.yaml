@@ -14,6 +14,9 @@ importers:
       fast-xml-parser:
         specifier: ^5.11.1
         version: 5.11.1
+      flexsearch:
+        specifier: ^0.8.212
+        version: 0.8.212
       js-yaml:
         specifier: ^5.4.1
         version: 5.4.1
@@ -1304,6 +1307,9 @@ packages:
 
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
+
+  flexsearch@0.8.212:
+    resolution: {integrity: sha512-wSyJr1GUWoOOIISRu+X2IXiOcVfg9qqBRyCPRUdLMIGJqPzMo+jMRlvE83t14v1j0dRMEaBbER/adQjp6Du2pw==}
 
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
@@ -3856,6 +3862,8 @@ snapshots:
       rimraf: 3.0.2
 
   flatted@3.4.4: {}
+
+  flexsearch@0.8.212: {}
 
   for-each@0.3.5:
     dependencies:

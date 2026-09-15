@@ -1,9 +1,17 @@
 import { component$, useSignal, useStore, useVisibleTask$, $, type QRL } from '@builder.io/qwik';
 import type { ArticleDoc, ArticleSummary, PostsIndex } from '../../lib/notes/types';
-import { loadArticle, loadNotesIndex } from '../../lib/notes/source';
+import { loadArticle, loadNotesIndex, loadAllArticles } from '../../lib/notes/source';
+import { buildIndex, search, type NoteSearch } from '../../lib/notes/search';
 import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
 import { readPendingRedirect } from '../../lib/spa-redirect';
 import { MdastRenderer } from './MdastRenderer';
+
+/**
+ * N-T20：全文搜索索引（模块级缓存）。
+ * 用对象持有、仅修改其属性，避免 Qwik optimizer 把模块级 `let` 当作 QRL 闭包的导入绑定而禁止重赋值；
+ * 且索引实例不放入 store/signal，避免参与 SSR 序列化。仅在浏览器运行时懒构建，配合 `searchReady` 触发重渲染。
+ */
+const searchCache: { idx: NoteSearch | null } = { idx: null };
 
 /**
  * Notes 模块外壳（纯 CSR，对齐 plan §5.3）。
@@ -286,6 +294,26 @@ export const NotesShell = component$(() => {
   const tagFilter = useSignal('');
   const viewMode = useSignal<'list' | 'archive'>('list');
 
+  // N-T20：全文搜索（FlexSearch 懒加载 2-gram）。索引构建在浏览器运行时，配合 searchReady 触发重渲染。
+  const searchQuery = useSignal('');
+  const searchReady = useSignal(false);
+  const searchBuilding = useSignal(false);
+  const ensureSearchIndex = $(async () => {
+    if (searchCache.idx) {
+      if (!searchReady.value) searchReady.value = true;
+      return;
+    }
+    if (searchBuilding.value) return;
+    searchBuilding.value = true;
+    try {
+      const docs = await loadAllArticles();
+      searchCache.idx = await buildIndex(docs);
+      searchReady.value = true;
+    } finally {
+      searchBuilding.value = false;
+    }
+  });
+
   const loadArticleBySlug = $(async (slug: string) => {
     state.loading = true;
     state.err = '';
@@ -352,7 +380,13 @@ export const NotesShell = component$(() => {
   const tagCounts = new Map<string, number>();
   allPosts.forEach((p) => p.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)));
   const tags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const visiblePosts = tagFilter.value ? allPosts.filter((p) => p.tags.includes(tagFilter.value)) : allPosts;
+
+  // N-T20：搜索命中 → 在标签筛选基础上再收窄。索引未就绪时（query 已输入但仍在构建）暂不过滤，避免误清空。
+  const searchQ = searchQuery.value.trim();
+  const searchHits = searchQ && searchCache.idx ? search(searchCache.idx, searchQ) : null;
+  const hitSet = searchHits ? new Set(searchHits) : null;
+  const basePosts = tagFilter.value ? allPosts.filter((p) => p.tags.includes(tagFilter.value)) : allPosts;
+  const visiblePosts = hitSet ? basePosts.filter((p) => hitSet.has(p.slug)) : basePosts;
 
   const isList = !state.slug;
 
@@ -365,6 +399,38 @@ export const NotesShell = component$(() => {
             <p class="notes-muted">加载中…</p>
           ) : allPosts.length ? (
             <>
+              <div class="notes-search-wrap">
+                <input
+                  type="search"
+                  class="notes-search"
+                  placeholder="搜索标题、正文、标签…"
+                  data-testid="notes-search"
+                  value={searchQuery.value}
+                  onFocus$={() => ensureSearchIndex()}
+                  onInput$={(_, el) => {
+                    searchQuery.value = (el as HTMLInputElement).value;
+                    void ensureSearchIndex();
+                  }}
+                />
+                {searchQ && (
+                  <button
+                    type="button"
+                    class="notes-search-clear"
+                    data-testid="notes-search-clear"
+                    onClick$={() => (searchQuery.value = '')}
+                    aria-label="清除搜索"
+                  >
+                    ×
+                  </button>
+                )}
+                {searchQ && (
+                  <span class="notes-search-status" data-testid="notes-search-status">
+                    {searchBuilding.value && !searchReady.value
+                      ? '索引构建中…'
+                      : `命中 ${visiblePosts.length} 篇`}
+                  </span>
+                )}
+              </div>
               <div class="notes-toolbar">
                 <div class="notes-tags" data-testid="notes-tags">
                   <button
@@ -443,6 +509,10 @@ export const NotesShell = component$(() => {
                     </section>
                   ))}
                 </div>
+              ) : searchQ && visiblePosts.length === 0 ? (
+                <p class="notes-muted" data-testid="notes-search-empty">
+                  未找到与「{searchQ}」匹配的笔记。
+                </p>
               ) : (
                 <ul class="notes-cards">
                   {visiblePosts.map((p) => (

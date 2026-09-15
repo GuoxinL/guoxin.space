@@ -180,3 +180,34 @@ test('页脚展示数据版本（来源 + 生成时间）', async ({ page }) => 
   await expect(dv).toContainText('demo-local');
   await expect(dv).toContainText('生成于');
 });
+
+test('全文搜索：输入关键词过滤列表并命中正确篇目（N-T20）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  const search = page.getByTestId('notes-search');
+  await expect(search).toBeVisible();
+
+  // 命中 SAMPLE2（唯一含 resumability），其余应被过滤
+  await search.fill('resumability');
+  await expect(page.getByTestId('notes-search-status')).toContainText('命中 1 篇');
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  await expect(page.getByTestId('notes-item').first()).toContainText('Qwik 与 SSR 笔记');
+
+  // 命中 SAMPLE1（唯一含“基础文本样式”）
+  await search.fill('基础文本样式');
+  await expect(page.getByTestId('notes-search-status')).toContainText('命中 1 篇');
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  await expect(page.getByTestId('notes-item').first()).toContainText('Markdown 全功能示例');
+
+  // 清空恢复全部
+  await page.getByTestId('notes-search-clear').click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(2);
+});
+
+test('全文搜索：无匹配时显示空状态（N-T20）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  await page.getByTestId('notes-search').fill('绝对不存在的关键词xyz');
+  await expect(page.getByTestId('notes-search-empty')).toBeVisible();
+  await expect(page.getByTestId('notes-item')).toHaveCount(0);
+});
