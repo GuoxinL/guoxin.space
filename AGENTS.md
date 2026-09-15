@@ -76,7 +76,7 @@ personal-homepage/
   - **`main` 分支 = 用户文档分支**（站点取数源）：`content/` 放正式文章，`scripts/build.mjs` 构建出 `build/{posts.json,posts/<id>.json,all.json,search-index.json}` 并**提交进仓**，`npm run validate` 校验契约
   - **`example` 分支 = 完整基线分支**（含完整脚本 + 示例文档 + `build/` 数据产物），用于新环境起步 / AI 写作参考 / 站点 `e2e/fixtures/notes/build/` 对照
   - ⚠️ **`scripts/` 或示例文档变化必须同步到 `example` 分支**（红线 13 / CONSTRAINTS `C-54`）
-  - 文章语法、写作流程与示例模板见 skill **`notes-writing`**
+  - 文章语法、写作流程与示例模板见 skill **`notes-writing`**（**随数据仓分发**：`notes` 仓的 `.workbuddy/skills/notes-writing/`，`example` 分支同步一份）
 
 > 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI / Giscus 评论）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
 
