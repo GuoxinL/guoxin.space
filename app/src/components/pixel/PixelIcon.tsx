@@ -73,7 +73,7 @@ const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
     { d: 'M8 12h3v2H8z' },
     { d: 'M11 3h2v6h-2z', o: 0.35 },
   ],
-  // 书本：笔记
+  // 书本：Notes
   note: [
     { d: 'M3 2h8v12H3z', o: 0.4 },
     { d: 'M4 2h6v12H4z' },

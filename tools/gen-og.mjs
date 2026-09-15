@@ -28,7 +28,7 @@ function svg(a) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="#0F0F1A"/>
   <rect x="0" y="0" width="14" height="630" fill="#A053FE"/>
-  <text x="80" y="170" font-family="-apple-system, system-ui, sans-serif" font-size="32" fill="#9AA0B5">guoxin.space · 笔记</text>
+  <text x="80" y="170" font-family="-apple-system, system-ui, sans-serif" font-size="32" fill="#9AA0B5">guoxin.space · Notes</text>
   <text x="80" y="300" font-family="-apple-system, system-ui, sans-serif" font-size="74" font-weight="700" fill="#FFFFFF">${esc(a.title)}</text>
   <text x="80" y="400" font-family="-apple-system, system-ui, sans-serif" font-size="34" fill="#C8CBD8">${esc(desc)}</text>
   <text x="80" y="560" font-family="-apple-system, system-ui, sans-serif" font-size="28" fill="#A053FE">guoxin.space</text>

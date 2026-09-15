@@ -101,7 +101,7 @@ const ReferencesBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
 });
 
 /**
- * 反链区块（N-T15）：渲染 doc.backlinks（被其他笔记引用的来源）。
+ * 反链区块（N-T15）：渲染 doc.backlinks（被其他文章引用的来源）。
  * demo 阶段由 sample 数据提供；真实数据源由数仓 graph.json 聚合后注入。
  */
 const BacklinksBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
@@ -109,7 +109,7 @@ const BacklinksBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
   if (!links.length) return null;
   return (
     <section class="notes-backlinks" data-testid="notes-backlinks" aria-label="反链">
-      <h2 class="notes-section-title">被以下笔记引用</h2>
+      <h2 class="notes-section-title">被以下文章引用</h2>
       <ul class="notes-backlink-list">
         {links.map((b, i) => (
           <li key={`b-${i}`} class="notes-backlink-item">
@@ -152,7 +152,7 @@ const HistoryBlock = component$<{ doc: ArticleDoc }>(({ doc }) => {
 
 /**
  * 相关文章（N-T21）：渲染 computeRelated 计算出的候选列表（共同引用 + 标签 Jaccard 综合分）。
- * 每个条目为可跳转卡片（href 指向笔记深链，全量重载进入详情；与现有 content 内链一致）。
+ * 每个条目为可跳转卡片（href 指向文章深链，全量重载进入详情；与现有 content 内链一致）。
  */
 const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
   if (!items.length) return null;
@@ -264,7 +264,7 @@ const NotesStatsPanel = component$<{ posts: ArticleSummary[] }>(({ posts }) => {
   );
 });
 
-/** 双链图谱（N-T25）：d3-force 计算力导向布局，渲染笔记节点 + 引用/反链边。 */
+/** 双链图谱（N-T25）：d3-force 计算力导向布局，渲染文章节点 + 引用/反链边。 */
 const NotesGraph = component$(() => {
   const graph = useSignal<{
     nodes: { id: string; title: string; x: number; y: number }[];
@@ -562,7 +562,7 @@ export const NotesShell = component$(() => {
     try {
       const doc = await loadArticle(slug);
       state.doc = doc;
-      if (!doc) state.err = '未找到该笔记';
+      if (!doc) state.err = '未找到该文章';
     } catch (e) {
       state.err = '加载失败：' + (e instanceof Error ? e.message : String(e));
     } finally {
@@ -636,7 +636,7 @@ export const NotesShell = component$(() => {
     <section data-testid="notes-shell" class="notes-shell mc-container">
       {isList ? (
         <div data-testid="notes-list">
-          <h1 class="notes-page-title">笔记</h1>
+          <h1 class="notes-page-title">Notes</h1>
           {state.indexLoading ? (
             <p class="notes-muted">加载中…</p>
           ) : allPosts.length ? (
@@ -743,7 +743,7 @@ export const NotesShell = component$(() => {
                 </div>
               ) : searchQ && visiblePosts.length === 0 ? (
                 <p class="notes-muted" data-testid="notes-search-empty">
-                  未找到与「{searchQ}」匹配的笔记。
+                  未找到与「{searchQ}」匹配的文章。
                 </p>
               ) : (
                 <ul class="notes-cards">
@@ -777,7 +777,7 @@ export const NotesShell = component$(() => {
               </button>
             </div>
           ) : (
-            <p class="notes-muted">暂无笔记。</p>
+            <p class="notes-muted">暂无文章。</p>
           )}
         </div>
       ) : state.loading ? (
@@ -787,7 +787,7 @@ export const NotesShell = component$(() => {
       ) : (
         <div data-testid="notes-notfound" class="notes-notfound">
           <h1>{state.err || '未找到'}</h1>
-          <p>不存在标题为「{state.slug}」的笔记。</p>
+          <p>不存在标题为「{state.slug}」的文章。</p>
           <button type="button" class="btn" onClick$={backToList}>
             返回列表
           </button>

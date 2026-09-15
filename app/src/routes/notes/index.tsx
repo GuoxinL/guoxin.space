@@ -10,5 +10,5 @@ export default component$(() => {
 
 export const head: DocumentHead = {
   title: 'Notes — guoxin.space',
-  meta: [{ name: 'description', content: '笔记列表（N-T00 spike）。' }],
+  meta: [{ name: 'description', content: 'Notes 文章列表（N-T00 spike）。' }],
 };

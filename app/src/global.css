@@ -2882,7 +2882,7 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-heatmap-cell.lv-3 { background: rgba(160, 83, 254, .7); }
 .notes-heatmap-cell.lv-4 { background: rgba(160, 83, 254, 1); }
 
-/* N-T24 笔记嵌入卡片（![[笔记]]） */
+/* N-T24 Notes 嵌入卡片（![[笔记]]） */
 .md-embed-note {
   display: flex; flex-direction: column; gap: .25rem; margin: 1rem 0; padding: .7rem .9rem;
   border: 1px solid var(--slate-5); border-left: 3px solid var(--violet-65); border-radius: 10px;

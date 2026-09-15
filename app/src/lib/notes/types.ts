@@ -44,7 +44,7 @@ export interface HeadingMeta {
   slug: string;
 }
 
-/** 反链（被其他笔记引用的来源，N-T15）。context 为引用处上下文片段。 */
+/** 反链（被其他文章引用的来源，N-T15）。context 为引用处上下文片段。 */
 export interface Backlink {
   slug: string;
   title: string;

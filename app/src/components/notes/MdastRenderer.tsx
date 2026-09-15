@@ -119,7 +119,7 @@ const WikiEmbed = component$<{ node: MdNode }>(({ node }) => {
   if (embed === 'image' && src) {
     return <img class="md-img md-embed" src={src} alt={alt ?? ''} loading="lazy" />;
   }
-  // N-T24：笔记嵌入卡片（![[笔记标题]]）—— 渲染目标笔记预览 + 跳转
+  // N-T24：Notes 嵌入卡片（![[笔记标题]]）—— 渲染目标文章预览 + 跳转
   if (embed === 'note') {
     const target = (node.data?.target as string) ?? '';
     const title = (node.data?.title as string) ?? target;
@@ -128,7 +128,7 @@ const WikiEmbed = component$<{ node: MdNode }>(({ node }) => {
     const href = notePathFor(target);
     return (
       <a class="md-embed-note" href={href} data-testid="md-embed-note" title={`打开：${title}`}>
-        <span class="md-embed-note__badge">笔记</span>
+        <span class="md-embed-note__badge">Notes</span>
         <span class="md-embed-note__title">{title}</span>
         {desc && <span class="md-embed-note__desc">{desc}</span>}
         {tags.length > 0 && (
