@@ -150,6 +150,25 @@ const SeriesNav = component$<{ doc: ArticleDoc; onNav: QRL<(slug: string) => voi
 });
 
 /**
+ * 数据版本页脚（N-T19）：展示数据来源（sourceRef）与生成时间（generatedAt）。
+ * 与列表/详情共用，置于 NotesShell 底部，data 来自 PostsIndex。
+ */
+const NotesDataVersion = component$<{ index: PostsIndex | null }>(({ index }) => {
+  if (!index) return null;
+  const dt = new Date(index.generatedAt);
+  const fmt = isNaN(dt.getTime())
+    ? index.generatedAt
+    : dt.toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-');
+  return (
+    <footer class="notes-dataver" data-testid="notes-dataver">
+      <span>数据来源：{index.sourceRef}</span>
+      <span aria-hidden="true">·</span>
+      <span>生成于 {fmt}</span>
+    </footer>
+  );
+});
+
+/**
  * 详情视图（N-T13 TOC 悬浮目录 + 滚动高亮；N-T14 阅读进度条）。
  * - TOC 由 doc.headings 生成，锚点 slug 与 MdastRenderer 的 heading id 完全一致（数据层注入 headingId）。
  * - IntersectionObserver 跟踪当前可见区块高亮对应目录项；scroll 监听计算进度条宽度。
@@ -470,6 +489,7 @@ export const NotesShell = component$(() => {
           </button>
         </div>
       )}
+      <NotesDataVersion index={state.index} />
     </section>
   );
 });

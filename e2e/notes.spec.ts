@@ -172,3 +172,11 @@ test('RSS 入口指向 feed.xml 且可访问', async ({ page }) => {
   expect(body).toContain('<rss');
   expect(body).toContain('Markdown 全功能示例');
 });
+
+test('页脚展示数据版本（来源 + 生成时间）', async ({ page }) => {
+  await page.goto('/notes/');
+  const dv = page.getByTestId('notes-dataver');
+  await expect(dv).toBeVisible();
+  await expect(dv).toContainText('demo-local');
+  await expect(dv).toContainText('生成于');
+});

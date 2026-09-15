@@ -2846,3 +2846,9 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 }
 .notes-series-link:hover { text-decoration: underline; }
 .notes-series-link--disabled { color: var(--slate-50); cursor: default; }
+
+/* 数据版本页脚（N-T19） */
+.notes-dataver {
+  margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--slate-5);
+  font-size: .8rem; color: var(--slate-50); display: flex; gap: .5rem; flex-wrap: wrap;
+}
