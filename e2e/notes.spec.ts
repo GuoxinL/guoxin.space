@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-// 本地 fixtures（来自 GuoxinL/nodes build/），内联 import 避免依赖 node 内置模块
+// 本地 fixtures（来自 GuoxinL/notes build/），内联 import 避免依赖 node 内置模块
 import postsIndex from './fixtures/notes/build/posts.json';
 import allDocs from './fixtures/notes/build/all.json';
 import docMarkdown from './fixtures/notes/build/posts/39fb46bd.json';
@@ -7,9 +7,9 @@ import docQwik from './fixtures/notes/build/posts/a9ef50e0.json';
 
 /**
  * Notes 模块 E2E 冒烟（对齐 plan §9）。
- * 取数来自公开数据仓 GuoxinL/nodes 的 build/ 产物：用本地 fixtures 模拟 raw.githubusercontent.com，
+ * 取数来自公开数据仓 GuoxinL/notes 的 build/ 产物：用本地 fixtures 模拟 raw.githubusercontent.com，
  * 使用例离线确定（同时验证 lib/notes/source.ts 的真实 fetch 管线：posts.json / posts/<id>.json / all.json）。
- * fixtures 由 nodes/build/ 复制（改数据源后需重新 `cp` 同步）。
+ * fixtures 由 notes/build/ 复制（改数据源后需重新 `cp` 同步）。
  * 验证：① 列表卡片 > 0 ② 点击卡片 SPA 导航到中文 URL 且 H1 正确
  * ③ 直接 goto 中文深链（忽略 404 状态码）H1 仍渲染 ④ 缺失笔记显示未找到
  * ⑤ 示例文章覆盖的 md 功能节点均渲染（图/双链/代码/公式/表格/列表/脚注/Callout/任务列表）。
@@ -17,9 +17,9 @@ import docQwik from './fixtures/notes/build/posts/a9ef50e0.json';
  */
 const SAMPLE = 'Markdown 全功能示例';
 
-// 模拟 raw.githubusercontent.com/GuoxinL/nodes/main/build/** → 本地 fixtures（离线确定）
+// 模拟 raw.githubusercontent.com/GuoxinL/notes/main/build/** → 本地 fixtures（离线确定）
 test.beforeEach(async ({ page }) => {
-  await page.route('https://raw.githubusercontent.com/GuoxinL/nodes/main/build/**', (route) => {
+  await page.route('https://raw.githubusercontent.com/GuoxinL/notes/main/build/**', (route) => {
     const p = route.request().url();
     let body: unknown;
     if (p.endsWith('/posts.json')) body = postsIndex;
@@ -186,7 +186,7 @@ test('页脚展示数据版本（来源 + 生成时间）', async ({ page }) => 
   await page.goto('/notes/');
   const dv = page.getByTestId('notes-dataver');
   await expect(dv).toBeVisible();
-  await expect(dv).toContainText('GuoxinL/nodes');
+  await expect(dv).toContainText('GuoxinL/notes');
   await expect(dv).toContainText('生成于');
 });
 

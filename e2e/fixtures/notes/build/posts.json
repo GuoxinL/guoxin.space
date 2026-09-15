@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-09-15T13:38:50.233Z",
-  "sourceRef": "GuoxinL/nodes",
+  "sourceRef": "GuoxinL/notes",
   "toolchain": {
     "node": "22.22.2",
     "builder": "nodes-build"

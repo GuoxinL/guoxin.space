@@ -4,14 +4,14 @@
  * 纯 CSR：仅在浏览器执行，无 routeLoader$、无 q-data.json 依赖。
  * 模块级 Map 做 SPA 生命周期内缓存，避免来回导航重复请求。
  *
- * 数据源：GitHub 公开仓 `GuoxinL/nodes` 的 build/ 产物（posts.json / posts/<id>.json / all.json），
+ * 数据源：GitHub 公开仓 `GuoxinL/notes` 的 build/ 产物（posts.json / posts/<id>.json / all.json），
  * 经 raw.githubusercontent.com 拉取（可经 NotesCfg.source 切 jsDelivr / 自定义镜像）。
  * 取数失败（网络/404）回退本地 SAMPLE 兜底，避免白屏（plan R-3）。
  */
 import type { ArticleDoc, NotesCfg, PostsIndex } from './types';
 import { SAMPLE_ARTICLES, SAMPLE_INDEX } from './sample';
 
-export const NOTES_DFLT_REPO = 'GuoxinL/nodes';
+export const NOTES_DFLT_REPO = 'GuoxinL/notes';
 export const NOTES_DFLT_BRANCH = 'main';
 export const NOTES_DFLT_SOURCE: NotesCfg['source'] = 'raw';
 
