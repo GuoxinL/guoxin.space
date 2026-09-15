@@ -72,7 +72,13 @@ personal-homepage/
   - 获取/刷新行者凭据步骤见 `running-private` 仓库 `docs/GET-XINGZHE-CREDENTIALS.md`（或全局 skill `xz-credentials`）
   - **改 Running 数据链路时，改 `running-private` 仓库而非本仓库；原公开仓库 `GuoxinL/running` 已废弃，不再承担数据生产。**
 
-> 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
+- 文章模块（Notes）数据来自**公开数据仓 `GuoxinL/notes`**，站点**纯运行时**取数（`app/src/lib/notes/source.ts`，默认 `raw.githubusercontent.com/GuoxinL/notes/main/build/**`），取数失败回退内置 `SAMPLE_*` 兜底：
+  - **`main` 分支 = 用户文档分支**（站点取数源）：`content/` 放正式文章，`scripts/build.mjs` 构建出 `build/{posts.json,posts/<id>.json,all.json,search-index.json}` 并**提交进仓**，`npm run validate` 校验契约
+  - **`example` 分支 = 完整基线分支**（含完整脚本 + 示例文档 + `build/` 数据产物），用于新环境起步 / AI 写作参考 / 站点 `e2e/fixtures/notes/build/` 对照
+  - ⚠️ **`scripts/` 或示例文档变化必须同步到 `example` 分支**（红线 13 / CONSTRAINTS `C-54`）
+  - 文章语法、写作流程与示例模板见 skill **`notes-writing`**
+
+> 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI / Giscus 评论）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
 
 ## 构建与验证
 
@@ -283,3 +289,4 @@ gh run list --workflow=deploy.yml --limit 5
 | 10 | **改 Running 数据链路改 `running-private` 仓库，非本仓库**；原公开 `GuoxinL/running` 已废弃。 | 数据生产链路错位 |
 | 11 | **文章模块（Notes）红线**：`/notes` 列表页预渲染、**详情外壳不预渲染正文**（纯 CSR）；文章数据**只走运行时取数**（可经「通道设置」切 raw / jsDelivr / 自定义）；mdast 渲染用 `lib/notes/map.ts` **白名单映射表**；数仓 vault `.md` 文件名**全局唯一**（slug ≡ basename）。详情见 CONSTRAINTS `C-03` / `C-4y` / `C-4z` / `C-4w`。 | 破坏纯 CSR 决策 / 静默丢内容 / slug 碰撞 |
 | 12 | **`404.html` 必须是 SPA 引导页**：由 `npm run build` 末尾的 `tools/make-404-fallback.mjs` 生成（暂存原始路径 → 跳同一路由入口页 → 应用 `replaceState` 修正 URL）。**禁止**保留 Qwik City 默认的静态占位页，也不要用 `cp index.html 404.html` 代替（resumability 会恢复首页状态，不按当前 URL 重路由）。**应用侧读回统一走 `app/src/lib/spa-redirect.ts`**，`/skills/<dir>` 与 `/notes/<中文标题>` 行为必须一致（URL 还原 + 未知目标显示「未找到」，禁止静默退回列表）。详情见 CONSTRAINTS `C-52` / `C-53`。 | 深链全面失效：`/notes/<中文标题>`、`/skills/<dir>` 直接访问只看到静态 404 页；或深链静默降级为列表页 |
+| 13 | **Notes 数据仓双分支**：`main` = 用户文档分支（站点取数走 `raw.githubusercontent.com/GuoxinL/notes/main/build/**`）；`example` = 完整基线分支（`scripts/` 构建脚本 + 示例文档 + `build/` 数据产物）。**`scripts/` 或示例文档发生变化时必须同步到 `example` 分支**（cherry-pick，或确认不含用户文章后 merge），禁止让基线停留旧版。详情见 CONSTRAINTS `C-54`。 | 基线漂移：新环境克隆到过期脚本、AI 照旧示例写作、站点 `e2e/fixtures/notes/` 与真实产物不一致 |

@@ -1,6 +1,6 @@
 # 约束总纲（CONSTRAINTS · SOP 绝对权威）
 
-> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html + C-53 CSR 深链统一口径 / C-10 用例基线更新）
+> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html + C-53 CSR 深链统一口径 + **C-54 Notes 数仓双分支基线同步** / C-10 用例基线更新）
 > **适用范围**：guoxin.space（Qwik + Qwik City SSG 静态站，GitHub Pages 托管）
 
 ---
@@ -128,6 +128,7 @@
 | C-4y | 文章数据**只走运行时取数**，绝不进网站仓构建期、不提交进网站仓；数据源经「通道设置」可切换（raw.githubusercontent / jsDelivr / 自定义） | 破坏「网站仓只做运行时」+ 重新引入跨仓触发链路 | Implement / Review | writing-module-plan-refined.md §5/§6 |
 | C-4z | mdast 渲染采用**白名单映射表**（`lib/notes/map.ts` 唯一登记处）：未登记节点类型 → 可见「不支持」标记 + 解析期告警；**禁止**在渲染器散落 `switch(node.type)` 分支 | 静默丢内容 / 维护失控 | Implement / UT | writing-module-plan-refined.md §7 |
 | C-4w | 数仓 vault **所有 `.md` 文件名（basename，去扩展名）全局唯一**（slug ≡ basename = URL）；解析期强制校验，重复即中止构建 | 中文 slug 碰撞 / 跨目录文章互相覆盖 | Implement (notes-build) / UT | writing-module-plan-refined.md §4.5 |
+| C-54 | **Notes 数据仓（`GuoxinL/notes`）双分支基线必须同步**：① `main` = **用户文档分支**（站点取数源：`raw.githubusercontent.com/GuoxinL/notes/main/build/**`）；② `example` = **完整基线分支**，必须包含完整的 `scripts/` 构建脚本 + 示例文档 + `build/` 数据产物，用于新环境起步 / AI 写作参考 / 站点 `e2e/fixtures/notes/build/` 对照；③ **`scripts/` 构建脚本或示例文档发生变化时，必须同步到 `example` 分支**（`git checkout example && git cherry-pick <commit>`；或确认改动不含用户文章时 `git merge main`），**禁止**让 `example` 长期停留在旧版脚本/旧示例 | 基线漂移：新环境克隆到过期脚本、AI 照旧示例写作、站点 fixture 与真实产物不一致 | Implement / Docs / Review | 用户 2026-09-15 拍板（main=用户文档 / example=完整基线） |
 
 ---
 
@@ -139,12 +140,12 @@
 |---------|------------------|
 | 01 Clarify | C-01, C-42（范围是否触后端/running-private） |
 | 02 Plan | C-01, C-02, C-04, C-29, C-42, C-43（影响范围/调用链终点=静态产物或 Worker） |
-| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-53, C-4y, C-4z, C-4w |
+| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-53, **C-54**（动到 notes 数仓脚本/示例文档 → 同步 `example` 分支）, C-4y, C-4z, C-4w |
 | 04 UT | C-10, C-15 |
 | 05 Deploy | C-05, C-06, C-07, C-09, C-16, C-17, C-18, C-19, C-44, C-45, C-46, C-47, C-48, C-4y, C-52 |
 | 06 IT | C-11, C-12, C-13, C-14 |
-| 07 Docs | C-01（文档与代码一致） |
-| 08 Review | C-20~C-53（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
+| 07 Docs | C-01（文档与代码一致）, **C-54**（数仓脚本/示例文档类改动 → 同步 `example` 分支 + 更新数据仓 README 分支表） |
+| 08 Review | C-20~C-54（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
 
 ---
 
