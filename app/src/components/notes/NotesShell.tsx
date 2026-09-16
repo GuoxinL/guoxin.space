@@ -176,11 +176,14 @@ const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
 
 /**
  * 评论（N-T27）：Giscus 配置驱动。
- * 有 NotesCfg.giscus → 注入 Giscus 脚本（需目标仓库开启 GitHub Discussions）；
+ * 有 NotesCfg.giscus → 注入 Giscus 脚本（需目标仓库开启 GitHub Discussions 且安装 Giscus App）；
  * 无配置 → 显示占位说明，避免静默失效。
+ * Giscus 加载失败时（仓库未装 App / 未开 Discussions / 配置错误）以 postMessage 通知父页，
+ * 收到即隐藏原始 iframe、改显示诚实说明，避免裸露「giscus is not installed…」报错。
  */
 const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
   const ref = useSignal<HTMLDivElement>();
+  const failed = useSignal(false);
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     if (!cfg.giscus || !ref.value) return;
@@ -206,6 +209,14 @@ const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
     s.setAttribute('data-lang', 'zh-CN');
     host.appendChild(s);
 
+    // Giscus 失败时以 postMessage 通知父页，收到即切到诚实说明（隐藏原始 iframe 报错）
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== 'https://giscus.app') return;
+      const d = e.data as { giscus?: { error?: string } } | undefined;
+      if (d?.giscus?.error) failed.value = true;
+    };
+    window.addEventListener('message', onMsg);
+
     // 主题跟随：站点明暗切换后通知已加载的 giscus iframe 换主题（否则评论框停在进入时的主题）
     const postTheme = () => {
       const frame = host.querySelector('iframe.giscus-frame') as HTMLIFrameElement | null;
@@ -218,6 +229,7 @@ const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
     mo.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
 
     cleanup(() => {
+      window.removeEventListener('message', onMsg);
       mo.disconnect();
       s.remove();
     });
@@ -234,7 +246,16 @@ const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
   return (
     <section class="notes-comments" data-testid="notes-comments" aria-label="评论">
       <h2 class="notes-section-title">评论</h2>
-      <div ref={ref} class="notes-giscus" />
+      {failed.value ? (
+        <div class="notes-giscus notes-giscus--error">
+          <p class="notes-muted">
+            评论（Giscus）暂时不可用：目标仓库未安装 Giscus 应用或未开启 Discussions。
+            启用步骤见站点文档 <code>docs/third-party/giscus.md</code>。
+          </p>
+        </div>
+      ) : (
+        <div ref={ref} class="notes-giscus" />
+      )}
     </section>
   );
 });

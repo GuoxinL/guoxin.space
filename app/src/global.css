@@ -2912,6 +2912,8 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-comments { margin-top: 2rem; }
 .notes-comments--off .notes-muted { font-size: .85rem; color: var(--slate-50); }
 .notes-giscus { min-height: 120px; }
+/* Giscus 加载失败时的诚实说明态：去掉空高度占位，避免大片留白 */
+.notes-giscus--error { min-height: 0; }
 
 /* N-T29 StackBlitz 嵌入 */
 .md-embed-stackblitz { width: 100%; height: 420px; border: 1px solid var(--slate-5); border-radius: 10px; margin: 1rem 0; }
