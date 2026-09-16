@@ -119,4 +119,13 @@ describe('resolveInitialSlug（404 引导页深链恢复）', () => {
     expect(r.slug).toBe('测试笔记');
     expect(r.hash).toBe('sec');
   });
+
+  it('引导暂存带百分号编码锚点 → hash 解码为标题文本（生产真实场景）', () => {
+    // sessionStorage 暂存的是浏览器原始 location.hash（百分号编码），
+    // 必须解码后才能在 DOM 中定位到 MdastRenderer 生成的标题 id。
+    const encoded = '/notes/' + encodeURIComponent('Markdown 全功能示例') + '/#' + encodeURIComponent('图片与嵌入');
+    const r = resolveInitialSlug('/notes/', encoded);
+    expect(r.slug).toBe('Markdown 全功能示例');
+    expect(r.hash).toBe('图片与嵌入');
+  });
 });

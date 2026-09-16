@@ -59,6 +59,9 @@ export function resolveInitialSlug(pathname: string, pending: string | null): Re
   const source = pending ?? pathname;
   const slug = noteSlugFromPath(source);
   const hashMatch = /#(.+)$/.exec(source);
-  const hash = hashMatch ? hashMatch[1] : null;
+  // 深链经 404 引导页时，`pending` 存的是 `location.pathname+search+hash`，
+  // 其中 hash 为浏览器原始百分号编码（如 `%E5%9B%BE…`）；而 MdastRenderer 生成的标题
+  // `id` 是解码后的文本，故此处必须解码，否则 `getElementById` 与文本兜底均命中失败。
+  const hash = hashMatch ? safeDecode(hashMatch[1]) : null;
   return { slug, restoreUrl: slug ? notePathFor(slug) : null, hash };
 }

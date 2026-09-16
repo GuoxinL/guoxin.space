@@ -681,6 +681,7 @@ export const NotesShell = component$(() => {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return true;
       }
+      // 兜底：标题 id 缺失（如生成规则不一致）时按标题文本定位
       const heads = Array.from(
         document.querySelectorAll('.md-body h2[id], .md-body h3[id], .md-body h4[id]')
       ) as HTMLElement[];
@@ -691,9 +692,10 @@ export const NotesShell = component$(() => {
       }
       return false;
     };
+    // 文章 DOM 可能尚未绘制（同一帧内 doc 先置位、Markdown 渲染稍后），最多重试若干帧。
     let tries = 0;
     const tick = () => {
-      if (scrollTo() || tries++ >= 12) return;
+      if (scrollTo() || tries++ >= 24) return;
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
