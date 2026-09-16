@@ -441,8 +441,7 @@ const ArticleView = component$<{
   doc: ArticleDoc;
   onBack: QRL<() => void>;
   onNav: QRL<(slug: string) => void>;
-  initialHash: string | null;
-}>(({ doc, onBack, onNav, initialHash }) => {
+}>(({ doc, onBack, onNav }) => {
   const toc = doc.headings.filter((h) => h.depth >= 2 && h.depth <= 3);
   const activeSlug = useSignal(toc[0]?.slug ?? '');
   const progress = useSignal(0);
@@ -502,37 +501,6 @@ const ArticleView = component$<{
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     cleanup(() => window.removeEventListener('scroll', onScroll));
-  });
-
-  // N-T29：深链带页内锚点（#heading）时，文章挂载后滚动到对应小节。
-  // 锚点 id 与 MdastRenderer 标题 id 一致；先按 id 定位，缺则按标题文本兜底。
-  // 文章 DOM 可能尚未绘制，最多重试若干帧。
-  // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(() => {
-    if (!initialHash) return;
-    const h = initialHash;
-    const scrollTo = (): boolean => {
-      const el = document.getElementById(h) as HTMLElement | null;
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return true;
-      }
-      const heads = Array.from(
-        document.querySelectorAll('.md-body h2[id], .md-body h3[id], .md-body h4[id]')
-      ) as HTMLElement[];
-      const byText = heads.find((e) => (e.textContent ?? '').trim() === h);
-      if (byText) {
-        byText.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return true;
-      }
-      return false;
-    };
-    let tries = 0;
-    const tick = () => {
-      if (scrollTo() || tries++ >= 12) return;
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
   });
 
   return (
@@ -697,6 +665,38 @@ export const NotesShell = component$(() => {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  });
+
+  // N-T29：深链带页内锚点（#heading）时，文章加载后滚动到对应小节。
+  // 锚点 id 与 MdastRenderer 标题 id 一致；先按 id 定位，缺则按标题文本兜底。
+  // 文章 DOM 可能尚未绘制，最多重试若干帧。
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track }) => {
+    track(() => state.doc);
+    const h = state.initialHash;
+    if (!state.doc || !h) return;
+    const scrollTo = (): boolean => {
+      const el = document.getElementById(h) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      const heads = Array.from(
+        document.querySelectorAll('.md-body h2[id], .md-body h3[id], .md-body h4[id]')
+      ) as HTMLElement[];
+      const byText = heads.find((e) => (e.textContent ?? '').trim() === h);
+      if (byText) {
+        byText.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    };
+    let tries = 0;
+    const tick = () => {
+      if (scrollTo() || tries++ >= 12) return;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   });
 
   const allPosts = state.index?.posts ?? [];
