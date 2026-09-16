@@ -309,3 +309,18 @@ test('详情页注入 og:image meta（N-T28）', async ({ page }) => {
   expect(content).toContain('.svg');
 });
 
+test('详情页渲染方案A 相对路径图片（被重写为 raw 绝对 URL）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  // 段落图片（方案A）= .md-img 且非双链嵌入卡（md-embed）
+  const img = page.locator('.md-img:not(.md-embed)').first();
+  await expect(img).toBeVisible();
+  await expect(img).toHaveAttribute(
+    'src',
+    /^https:\/\/raw\.githubusercontent\.com\/GuoxinL\/notes\/main\/content\//
+  );
+  // 第二张（svg）同样重写
+  const svg = page.locator('.md-img:not(.md-embed)').nth(1);
+  await expect(svg).toHaveAttribute('src', /\.svg$/);
+});
+

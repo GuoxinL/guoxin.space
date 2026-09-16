@@ -23,8 +23,8 @@
       }
     },
     "readingTime": {
-      "minutes": 1,
-      "words": 438
+      "minutes": 2,
+      "words": 515
     },
     "headings": [
       {
@@ -855,12 +855,57 @@
           "children": [
             {
               "type": "text",
-              "value": "普通图片（图）："
-            },
+              "value": "普通图片（方案 A：相对路径，构建期重写为 raw 绝对 URL，站点零配置显示）："
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
             {
               "type": "image",
               "title": null,
-              "url": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Crect width='320' height='180' fill='%23A053FE'/%3E%3Ctext x='50%25' y='50%25' fill='white' font-size='18' text-anchor='middle' dominant-baseline='middle'%3ESample%3C/text%3E%3C/svg%3E",
+              "url": "https://raw.githubusercontent.com/GuoxinL/notes/main/content/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B.assets/arch-flow.webp",
+              "alt": "架构图"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "矢量图（同目录 svg，验证 SVG 渲染；尖括号包裹是推荐写法，路径含空格/特殊字符时必用）："
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "image",
+              "title": null,
+              "url": "https://raw.githubusercontent.com/GuoxinL/notes/main/content/Markdown%20%E5%85%A8%E5%8A%9F%E8%83%BD%E7%A4%BA%E4%BE%8B.assets/demo.svg",
+              "alt": "示意图"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "text",
+              "value": "内联 data URI（不重写、不校验，作为对照）："
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "children": [
+            {
+              "type": "image",
+              "title": null,
+              "url": "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='320'%20height='180'%3E%3Crect%20width='320'%20height='180'%20fill='%23A053FE'/%3E%3Ctext%20x='50%25'%20y='50%25'%20fill='white'%20font-size='18'%20text-anchor='middle'%20dominant-baseline='middle'%3ESample%3C/text%3E%3C/svg%3E",
               "alt": "示例图片"
             }
           ]
