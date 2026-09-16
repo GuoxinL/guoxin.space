@@ -71,7 +71,7 @@ export const CalendarPanel = component$(() => {
 
   return (
     <div class="cal-page">
-      <h1 class="cal-h1">日历</h1>
+      <h1 class="cal-h1">Calendar</h1>
       <p class="cal-intro">
         农历 · 法定节假日与调休 · 节气。纯前端本地计算，无数据上传。
       </p>

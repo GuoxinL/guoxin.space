@@ -7,7 +7,7 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: '/', label: '首页', icon: 'home' },
   { href: '/skills', label: 'Skills', icon: 'chest' },
   { href: '/toolbox/json', label: 'Toolbox', icon: 'scroll' },
-  { href: '/toolbox/calendar', label: '日历', icon: 'calendar' },
+  { href: '/toolbox/calendar', label: 'Calendar', icon: 'calendar' },
   { href: '/running', label: 'Running', icon: 'boot' },
   { href: '/notes', label: 'Notes', icon: 'note' },
 ];

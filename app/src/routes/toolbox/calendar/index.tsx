@@ -8,7 +8,7 @@ export default component$(() => {
 });
 
 export const head: DocumentHead = {
-  title: '日历 — guoxin.space',
+  title: 'Calendar — guoxin.space',
   meta: [
     {
       name: 'description',

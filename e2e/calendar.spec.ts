@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Toolbox · 日历 /toolbox/calendar 页面级自动化（Playwright）
+ * Toolbox · Calendar /toolbox/calendar 页面级自动化（Playwright）
  * 断言：导航项、月视图网格、切月、点击看黄历、今日高亮。
  */
-test.describe('Toolbox · 日历 /toolbox/calendar', () => {
-  test('导航出现「日历」项且进入页面标题正确', async ({ page }) => {
+test.describe('Toolbox · Calendar /toolbox/calendar', () => {
+  test('导航出现「Calendar」项且进入页面标题正确', async ({ page }) => {
     await page.goto('/toolbox/calendar');
-    await expect(page).toHaveTitle(/日历/);
-    const nav = page.locator('.mc-nav-item', { hasText: '日历' });
+    await expect(page).toHaveTitle(/Calendar/);
+    const nav = page.locator('.mc-nav-item', { hasText: 'Calendar' });
     await expect(nav).toBeVisible();
     await expect(nav).toHaveAttribute('aria-current', 'page');
   });
