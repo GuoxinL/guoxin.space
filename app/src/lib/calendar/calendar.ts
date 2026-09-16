@@ -1,5 +1,5 @@
 /**
- * 月视图网格、日期底部标签、吉日查询等纯计算逻辑。
+ * 月视图网格、日期底部标签等纯计算逻辑（农历/黄历由 lunar.ts 提供）。
  * 所有函数均为确定性纯函数，便于 SSR 预渲染与单元测试。
  */
 import { getHoliday, type HolidayInfo } from './holidays';
@@ -74,35 +74,4 @@ export function dayLabel(
   if (cell.lunar.solarTerm) return { text: cell.lunar.solarTerm, kind: 'term' };
   if (cell.lunar.festivals.length > 0) return { text: cell.lunar.festivals[0], kind: 'fest' };
   return { text: cell.lunar.lunarText, kind: 'lunar' };
-}
-
-/** 常见黄道吉日查询事项（值与 lunar-typescript 的 getDayYi 输出严格一致）。 */
-export const AUSPICIOUS_MATTERS = [
-  '嫁娶', '出行', '祭祀', '祈福', '求嗣', '开市', '交易', '立券',
-  '纳财', '入宅', '移徙', '安床', '安门', '修造', '动土', '上梁',
-  '竖柱', '开光', '订盟', '纳采', '会亲友', '沐浴', '解除', '栽种',
-  '牧养', '安葬', '破土', '谢土', '赴任',
-] as const;
-
-export type AuspiciousMatter = (typeof AUSPICIOUS_MATTERS)[number];
-
-export interface AuspiciousDay extends DayRef {
-  lunar: LunarInfo;
-  weekday: number;
-}
-
-/**
- * 查询某月「宜」含指定事项的吉日（仅含当月内的日期）。
- * 结果与 lunar-typescript 的 getDayYi 一致性由单测保证。
- */
-export function queryAuspicious(viewY: number, viewM: number, matter: string): AuspiciousDay[] {
-  const daysInMonth = new Date(viewY, viewM, 0).getDate();
-  const out: AuspiciousDay[] = [];
-  for (let d = 1; d <= daysInMonth; d++) {
-    const lunar = getLunarInfo(viewY, viewM, d);
-    if (lunar.yi.includes(matter)) {
-      out.push({ y: viewY, m: viewM, d, lunar, weekday: new Date(viewY, viewM - 1, d).getDay() });
-    }
-  }
-  return out;
 }

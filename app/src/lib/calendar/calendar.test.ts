@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getHoliday, HOLIDAYS } from './holidays';
 import { getLunarInfo } from './lunar';
-import { buildMonthGrid, dayLabel, queryAuspicious } from './calendar';
+import { buildMonthGrid, dayLabel } from './calendar';
 
 describe('holidays · 2026 法定节假日与调休', () => {
   it('元旦放假且 1/4 调休补班', () => {
@@ -64,6 +64,12 @@ describe('lunar · 农历 / 黄历封装', () => {
     expect(info.ji).toContain('嫁娶');
     expect(info.ji).toContain('入宅');
   });
+
+  it('冲煞与喜神方位可计算', () => {
+    const info = getLunarInfo(2026, 9, 16);
+    expect(info.chongSha).toBe('冲猪煞东');
+    expect(info.xiPosition).toBe('喜神东南');
+  });
 });
 
 describe('calendar · 月视图网格', () => {
@@ -96,24 +102,5 @@ describe('calendar · 月视图网格', () => {
     // 立春（无 name，纯节气）显示为「立春」
     const feb4 = buildMonthGrid(2026, 2, null).find((c) => c.m === 2 && c.d === 4)!;
     expect(dayLabel(feb4)).toEqual({ text: '立春', kind: 'term' });
-  });
-});
-
-describe('calendar · 吉日查询', () => {
-  it('返回结果均为「宜」含该事项之日', () => {
-    const days = queryAuspicious(2026, 2, '祭祀');
-    expect(days.length).toBeGreaterThan(0);
-    expect(days.every((d) => d.lunar.yi.includes('祭祀'))).toBe(true);
-  });
-
-  it('嫁娶吉日不含当日「忌嫁娶」的正月初一', () => {
-    const days = queryAuspicious(2026, 2, '嫁娶');
-    expect(days.every((d) => d.lunar.yi.includes('嫁娶'))).toBe(true);
-    expect(days.some((d) => d.d === 17)).toBe(false);
-  });
-
-  it('仅在当月范围内', () => {
-    const days = queryAuspicious(2026, 2, '祭祀');
-    expect(days.every((d) => d.m === 2 && d.y === 2026)).toBe(true);
   });
 });

@@ -7,11 +7,9 @@ import {
 } from '@builder.io/qwik';
 
 import {
-  AUSPICIOUS_MATTERS,
   buildMonthGrid,
   dayLabel,
   getLunarInfo,
-  queryAuspicious,
   WEEKDAYS,
   type CalendarCell,
   type DayRef,
@@ -24,9 +22,8 @@ function weekdayText(w: number): string {
 function cellClass(c: CalendarCell): string {
   const cls = ['cal-cell'];
   if (!c.inMonth) cls.push('cal-out');
-  else if (c.holiday.type === 'rest') {
-    /* 法定休/节日：数字走主色，不按周末置灰 */
-  } else if (c.weekday === 0 || c.weekday === 6) cls.push('cal-we');
+  else if (c.holiday.type === 'rest') cls.push('cal-rest-cell');
+  else if (c.weekday === 0 || c.weekday === 6) cls.push('cal-we');
   if (c.isToday) cls.push('cal-today');
   return cls.join(' ');
 }
@@ -43,7 +40,6 @@ export const CalendarPanel = component$(() => {
   const viewM = useSignal(9);
   const today = useSignal<DayRef | null>(null);
   const selected = useSignal<DayRef>({ y: 2026, m: 9, d: 1 });
-  const matter = useSignal<string>(AUSPICIOUS_MATTERS[0]);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
@@ -56,7 +52,6 @@ export const CalendarPanel = component$(() => {
   });
 
   const grid = useComputed$(() => buildMonthGrid(viewY.value, viewM.value, today.value));
-  const ausp = useComputed$(() => queryAuspicious(viewY.value, viewM.value, matter.value));
   const sel = useComputed$(() => {
     const s = selected.value;
     return {
@@ -99,7 +94,7 @@ export const CalendarPanel = component$(() => {
     <div class="cal-page">
       <h1 class="cal-h1">日历</h1>
       <p class="cal-intro">
-        农历 · 法定节假日与调休 · 节气 · 黄历宜忌 · 吉日查询。纯前端本地计算，无数据上传。
+        农历 · 法定节假日与调休 · 节气 · 黄历宜忌。纯前端本地计算，无数据上传。
       </p>
 
       <div class="cal-head">
@@ -190,6 +185,18 @@ export const CalendarPanel = component$(() => {
             <b class="cal-row-k">忌</b>
             <span class="cal-ji">{sel.value.lunar.ji.join('、')}</span>
           </div>
+          {sel.value.lunar.chongSha ? (
+            <div class="cal-row">
+              <b class="cal-row-k">冲煞</b>
+              <span class="cal-chong">{sel.value.lunar.chongSha}</span>
+            </div>
+          ) : null}
+          {sel.value.lunar.xiPosition ? (
+            <div class="cal-row">
+              <b class="cal-row-k">喜神</b>
+              <span class="cal-xi">{sel.value.lunar.xiPosition}</span>
+            </div>
+          ) : null}
           {sel.value.lunar.festivals.length > 0 ? (
             <div class="cal-row">
               <b class="cal-row-k">节日</b>
@@ -197,52 +204,10 @@ export const CalendarPanel = component$(() => {
             </div>
           ) : null}
         </section>
-
-        <section class="mc-panel cal-ausp">
-          <h3 class="cal-ausp-title">吉日查询</h3>
-          <label class="cal-ausp-label">
-            事项
-            <select
-              class="cal-select"
-              value={matter.value}
-              onChange$={(e, el) => {
-                matter.value = (el as HTMLSelectElement).value;
-              }}
-            >
-              {AUSPICIOUS_MATTERS.map((mt) => (
-                <option key={mt} value={mt}>
-                  {mt}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p class="cal-ausp-sub">
-            {viewY.value} 年 {viewM.value} 月「宜{matter.value}」共 {ausp.value.length} 天
-          </p>
-          {ausp.value.length === 0 ? (
-            <p class="cal-empty">本月无「宜{matter.value}」之日</p>
-          ) : (
-            <ul class="cal-ausp-list">
-              {ausp.value.map((day) => (
-                <li key={`${day.y}-${day.m}-${day.d}`}>
-                  <button
-                    type="button"
-                    class="cal-ausp-item"
-                    onClick$={() => pickDay(day.y, day.m, day.d)}
-                  >
-                    <span class="cal-ausp-d">{day.d} 日</span>
-                    <span class="cal-ausp-l">{day.lunar.lunarText}</span>
-                    <span class="cal-ausp-w">周{weekdayText(day.weekday)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
 
       <p class="cal-disclaimer">
-        黄历宜忌、吉日为传统历法参考，不构成任何决策依据。
+        黄历宜忌为传统历法参考，不构成任何决策依据。
       </p>
     </div>
   );

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Toolbox · 日历 /toolbox/calendar 页面级自动化（Playwright）
- * 断言：导航项、月视图网格、切月、点击看黄历、吉日查询、今日高亮。
+ * 断言：导航项、月视图网格、切月、点击看黄历、今日高亮。
  */
 test.describe('Toolbox · 日历 /toolbox/calendar', () => {
   test('导航出现「日历」项且进入页面标题正确', async ({ page }) => {
@@ -40,18 +40,8 @@ test.describe('Toolbox · 日历 /toolbox/calendar', () => {
     await expect(almanac).toContainText('15 日');
     await expect(almanac).toContainText('宜');
     await expect(almanac).toContainText('忌');
-  });
-
-  test('吉日查询：切换事项后结果区更新', async ({ page }) => {
-    await page.goto('/toolbox/calendar');
-    const sub = page.locator('.cal-ausp-sub');
-    await expect(sub).toContainText('宜');
-    await page.locator('.cal-select').selectOption('出行');
-    await expect(sub).toContainText('宜出行');
-    // 结果区要么列出吉日，要么显示「本月无」
-    const hasList = (await page.locator('.cal-ausp-list .cal-ausp-item').count()) > 0;
-    const hasEmpty = await page.locator('.cal-empty').isVisible().catch(() => false);
-    expect(hasList || hasEmpty).toBe(true);
+    await expect(almanac).toContainText('煞');
+    await expect(almanac).toContainText('喜神');
   });
 
   test('今日高亮存在（客户端挂载后）', async ({ page }) => {

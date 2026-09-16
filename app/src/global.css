@@ -2994,7 +2994,7 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .cal-cell:focus-visible { background: var(--violet-0); outline: none; }
 
 .cal-num { font-size: 15px; font-weight: 600; line-height: 1.2; }
-.cal-num-fest { color: var(--violet-80); }
+.cal-num-fest { color: var(--violet-80); font-weight: 700; }
 .cal-out { color: var(--slate-25); cursor: default; }
 .cal-out .cal-num { color: var(--slate-25); }
 .cal-out:hover { background: transparent; }
@@ -3006,18 +3006,33 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 }
 .cal-today .cal-num { color: var(--violet-80); }
 
+/* 法定休日单元格常驻浅紫晕染，使假期在月视图中明显成片 */
+.cal-rest-cell { background: var(--violet-0); }
+
 .cal-badge {
   font-size: 10px;
   line-height: 1;
-  padding: 1px 4px;
+  padding: 1px 5px;
+  border-radius: 6px;
   align-self: flex-start;
+  font-weight: 600;
 }
-.cal-work { color: var(--slate-65); border: 1px solid var(--slate-25); }
-.cal-rest { color: var(--violet-80); border: 1px solid var(--violet-15); }
+/* 调休补班：中性灰蓝实心，与「休」形成明确对比 */
+.cal-work { color: #fff; background: var(--slate-65); border: 1px solid var(--slate-65); }
+/* 法定假/节日：主紫实心，醒目 */
+.cal-rest { color: #fff; background: var(--violet-65); border: 1px solid var(--violet-65); }
 
 .cal-sub { font-size: 11px; line-height: 1.3; color: var(--slate-50); margin-top: 2px; }
-.cal-fest { color: var(--violet-80); }
-.cal-term { color: var(--sky-75); }
+/* 节日名做成紫色 chip，明显区别于普通农历小字 */
+.cal-fest {
+  color: var(--violet-80);
+  font-weight: 700;
+  background: var(--violet-15);
+  border-radius: 10px;
+  padding: 1px 6px;
+  align-self: flex-start;
+}
+.cal-term { color: var(--sky-75); font-weight: 600; }
 .cal-lunar { color: var(--slate-50); }
 
 .cal-cols {
@@ -3040,41 +3055,6 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .cal-row-k { flex: 0 0 28px; color: var(--slate-50); font-weight: 600; font-size: 13px; }
 .cal-yi { color: var(--slate-80); }
 .cal-ji { color: var(--slate-50); }
-
-.cal-ausp-title { font-family: var(--font-heading); font-size: 16px; color: var(--slate-95); margin: 0 0 12px; }
-.cal-ausp-label { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--slate-80); }
-.cal-select {
-  font: inherit;
-  font-size: 13px;
-  padding: 5px 8px;
-  color: var(--slate-95);
-  background: var(--white);
-  border: 1px solid var(--slate-25);
-  border-radius: 10px;
-}
-.cal-ausp-sub { color: var(--slate-50); font-size: 13px; margin: 10px 0; }
-.cal-ausp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.cal-ausp-item {
-  width: 100%;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  border-top: 1px solid var(--slate-5);
-  padding: 8px 4px;
-  cursor: pointer;
-  font: inherit;
-  color: var(--slate-95);
-  transition: background-color 140ms ease-out;
-}
-.cal-ausp-item:hover,
-.cal-ausp-item:focus-visible { background: var(--violet-0); outline: none; }
-.cal-ausp-d { font-weight: 600; }
-.cal-ausp-l { color: var(--violet-80); font-size: 13px; }
-.cal-ausp-w { color: var(--slate-50); font-size: 12px; margin-left: auto; }
-.cal-empty { color: var(--slate-50); font-size: 13px; padding: 8px 4px; }
 
 .cal-disclaimer {
   color: var(--slate-50);

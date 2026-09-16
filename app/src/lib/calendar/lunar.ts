@@ -29,7 +29,22 @@ export interface LunarInfo {
   ji: string[];
   /** 节日（农历 + 公历，合并去重） */
   festivals: string[];
+  /** 冲煞，如「冲猪煞东」（getDayChong 地支 + getDaySha 方位） */
+  chongSha: string;
+  /** 喜神方位，如「喜神东南」（getDayPositionXi 八卦 → 方位） */
+  xiPosition: string;
 }
+
+/** 地支 → 生肖 */
+const BRANCH_TO_ANIMAL: Record<string, string> = {
+  子: '鼠', 丑: '牛', 寅: '虎', 卯: '兔', 辰: '龙', 巳: '蛇',
+  午: '马', 未: '羊', 申: '猴', 酉: '鸡', 戌: '狗', 亥: '猪',
+};
+/** 八卦方位 →  compass 方位 */
+const BAGUA_TO_DIR: Record<string, string> = {
+  坎: '北', 离: '南', 震: '东', 兑: '西',
+  巽: '东南', 乾: '西北', 艮: '东北', 坤: '西南',
+};
 
 function getSolarFestivals(solar: Solar): string[] {
   const fn = (solar as unknown as { getFestivals?: () => string[] }).getFestivals;
@@ -48,6 +63,11 @@ export function getLunarInfo(y: number, m: number, d: number): LunarInfo {
   const solarFest = getSolarFestivals(solar);
   const festivals = Array.from(new Set([...lunarFest, ...solarFest]));
 
+  const chong = BRANCH_TO_ANIMAL[lunar.getDayChong()] ?? lunar.getDayChong();
+  const sha = lunar.getDaySha();
+  const xiBranch = lunar.getDayPositionXi();
+  const xiDir = BAGUA_TO_DIR[xiBranch] ?? xiBranch;
+
   return {
     monthCn,
     dayCn,
@@ -60,5 +80,7 @@ export function getLunarInfo(y: number, m: number, d: number): LunarInfo {
     yi: lunar.getDayYi(),
     ji: lunar.getDayJi(),
     festivals,
+    chongSha: chong && sha ? `冲${chong}煞${sha}` : '',
+    xiPosition: xiDir ? `喜神${xiDir}` : '',
   };
 }
