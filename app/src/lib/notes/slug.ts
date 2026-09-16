@@ -44,6 +44,8 @@ export interface ResolvedSlug {
   slug: string;
   /** 需要 `replaceState` 修正回的目标 URL；`null` 表示无需修正。 */
   restoreUrl: string | null;
+  /** 深链 URL 中的页内锚点（不含 `#`）；用于文章挂载后滚动定位，无则 null。 */
+  hash: string | null;
 }
 
 /**
@@ -54,9 +56,9 @@ export interface ResolvedSlug {
  * `pending` 为 `null` 表示普通访问，按当前 pathname 解析即可。
  */
 export function resolveInitialSlug(pathname: string, pending: string | null): ResolvedSlug {
-  if (pending) {
-    const slug = noteSlugFromPath(pending);
-    if (slug) return { slug, restoreUrl: notePathFor(slug) };
-  }
-  return { slug: noteSlugFromPath(pathname), restoreUrl: null };
+  const source = pending ?? pathname;
+  const slug = noteSlugFromPath(source);
+  const hashMatch = /#(.+)$/.exec(source);
+  const hash = hashMatch ? hashMatch[1] : null;
+  return { slug, restoreUrl: slug ? notePathFor(slug) : null, hash };
 }

@@ -74,27 +74,49 @@ describe('resolveInitialSlug（404 引导页深链恢复）', () => {
     expect(resolveInitialSlug('/notes/', '/notes/' + encodeURIComponent('测试笔记') + '/')).toEqual({
       slug: '测试笔记',
       restoreUrl: notePathFor('测试笔记'),
+      hash: null,
     });
   });
 
   it('无暂存（普通访问）→ 按当前 pathname 解析，不修正 URL', () => {
-    expect(resolveInitialSlug('/notes/', null)).toEqual({ slug: '', restoreUrl: null });
-    expect(
-      resolveInitialSlug('/notes/' + encodeURIComponent('测试笔记') + '/', null)
-    ).toEqual({ slug: '测试笔记', restoreUrl: null });
+    expect(resolveInitialSlug('/notes/', null)).toEqual({ slug: '', restoreUrl: null, hash: null });
+    expect(resolveInitialSlug('/notes/' + encodeURIComponent('测试笔记') + '/', null)).toEqual({
+      slug: '测试笔记',
+      restoreUrl: notePathFor('测试笔记'),
+      hash: null,
+    });
   });
 
   it('暂存值本身无 slug → 回退到列表', () => {
-    expect(resolveInitialSlug('/notes/', '/notes/')).toEqual({ slug: '', restoreUrl: null });
+    expect(resolveInitialSlug('/notes/', '/notes/')).toEqual({ slug: '', restoreUrl: null, hash: null });
   });
 
   it('暂存值非 notes 路径 → 回退到当前 pathname', () => {
-    expect(resolveInitialSlug('/notes/', '/skills/foo')).toEqual({ slug: '', restoreUrl: null });
+    expect(resolveInitialSlug('/notes/', '/skills/foo')).toEqual({ slug: '', restoreUrl: null, hash: null });
   });
 
   it('未知 slug 同样修正 URL（由 UI 显示「未找到」）', () => {
     const r = resolveInitialSlug('/notes/', '/notes/' + encodeURIComponent('不存在的笔记') + '/');
     expect(r.slug).toBe('不存在的笔记');
     expect(r.restoreUrl).toBe(notePathFor('不存在的笔记'));
+    expect(r.hash).toBeNull();
+  });
+
+  it('引导暂存带页内锚点 → 提取 hash 且不污染 slug', () => {
+    const r = resolveInitialSlug(
+      '/notes/',
+      '/notes/' + encodeURIComponent('Markdown 全功能示例') + '/#图片与嵌入'
+    );
+    expect(r).toEqual({
+      slug: 'Markdown 全功能示例',
+      restoreUrl: notePathFor('Markdown 全功能示例'),
+      hash: '图片与嵌入',
+    });
+  });
+
+  it('引导暂存带查询串 + 锚点 → hash 取片段', () => {
+    const r = resolveInitialSlug('/notes/', '/notes/测试笔记/?x=1#sec');
+    expect(r.slug).toBe('测试笔记');
+    expect(r.hash).toBe('sec');
   });
 });

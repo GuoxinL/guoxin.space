@@ -437,8 +437,12 @@ const NotesDataVersion = component$<{ index: PostsIndex | null }>(({ index }) =>
  * - IntersectionObserver 跟踪当前可见区块高亮对应目录项；scroll 监听计算进度条宽度。
  * - 切换文章时用 key={doc.id} 强制重挂载，observer/listener 随卸载清理（C-33）。
  */
-const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav: QRL<(slug: string) => void> }>(
-  ({ doc, onBack, onNav }) => {
+const ArticleView = component$<{
+  doc: ArticleDoc;
+  onBack: QRL<() => void>;
+  onNav: QRL<(slug: string) => void>;
+  initialHash: string | null;
+}>(({ doc, onBack, onNav, initialHash }) => {
   const toc = doc.headings.filter((h) => h.depth >= 2 && h.depth <= 3);
   const activeSlug = useSignal(toc[0]?.slug ?? '');
   const progress = useSignal(0);
@@ -498,6 +502,37 @@ const ArticleView = component$<{ doc: ArticleDoc; onBack: QRL<() => void>; onNav
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     cleanup(() => window.removeEventListener('scroll', onScroll));
+  });
+
+  // N-T29：深链带页内锚点（#heading）时，文章挂载后滚动到对应小节。
+  // 锚点 id 与 MdastRenderer 标题 id 一致；先按 id 定位，缺则按标题文本兜底。
+  // 文章 DOM 可能尚未绘制，最多重试若干帧。
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(() => {
+    if (!initialHash) return;
+    const h = initialHash;
+    const scrollTo = (): boolean => {
+      const el = document.getElementById(h) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      const heads = Array.from(
+        document.querySelectorAll('.md-body h2[id], .md-body h3[id], .md-body h4[id]')
+      ) as HTMLElement[];
+      const byText = heads.find((e) => (e.textContent ?? '').trim() === h);
+      if (byText) {
+        byText.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    };
+    let tries = 0;
+    const tick = () => {
+      if (scrollTo() || tries++ >= 12) return;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   });
 
   return (
@@ -572,7 +607,8 @@ export const NotesShell = component$(() => {
     err: string;
     index: PostsIndex | null;
     indexLoading: boolean;
-  }>({ slug: '', doc: null, loading: false, err: '', index: null, indexLoading: true });
+    initialHash: string | null;
+  }>({ slug: '', doc: null, loading: false, err: '', index: null, indexLoading: true, initialHash: null });
 
   // N-T17：列表筛选（标签）与视图（列表/归档）状态
   const tagFilter = useSignal('');
@@ -628,11 +664,13 @@ export const NotesShell = component$(() => {
   });
 
   const openNote = $((slug: string) => {
+    state.initialHash = null; // 应用内导航不再按深链锚点滚动
     history.pushState({ noteSlug: slug }, '', notePathFor(slug));
     void navigate(slug);
   });
 
   const backToList = $(() => {
+    state.initialHash = null;
     if (history.state && history.state.noteSlug) history.back();
     else {
       history.pushState(null, '', notePathFor(''));
@@ -648,8 +686,9 @@ export const NotesShell = component$(() => {
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async () => {
     const pending = readPendingRedirect();
-    const { slug, restoreUrl } = resolveInitialSlug(location.pathname, pending);
+    const { slug, restoreUrl, hash } = resolveInitialSlug(location.pathname, pending);
     if (restoreUrl) history.replaceState({ noteSlug: slug }, '', restoreUrl);
+    state.initialHash = hash;
     await loadIndex();
     await navigate(slug);
 
