@@ -9,6 +9,7 @@ import {
   skInstallCmd,
   skSlug,
   skSlugId,
+  parseSourceRepo,
 } from './skills';
 import type { SkCfg } from '../types/skills';
 
@@ -201,5 +202,28 @@ describe('skSlug / skSlugId', () => {
   });
   it('keeps CJK characters', () => {
     expect(skSlug('中文标题')).toBe('中文标题');
+  });
+});
+
+describe('parseSourceRepo（proxy 回源坐标）', () => {
+  it('parses tree url with subpath', () => {
+    const r = parseSourceRepo('https://github.com/jnMetaCode/superpowers-zh/tree/main/skills/brainstorming');
+    expect(r).toEqual({ owner: 'jnMetaCode', repo: 'superpowers-zh', branch: 'main', sub: 'skills/brainstorming' });
+  });
+  it('parses repo root (no tree segment) → sub 空', () => {
+    expect(parseSourceRepo('https://github.com/foo/bar')).toEqual({ owner: 'foo', repo: 'bar', branch: 'main', sub: '' });
+  });
+  it('handles .git suffix and blob url with subpath', () => {
+    expect(parseSourceRepo('https://github.com/foo/bar.git/blob/dev/x/y.md')).toEqual({
+      owner: 'foo',
+      repo: 'bar',
+      branch: 'dev',
+      sub: 'x/y.md',
+    });
+  });
+  it('returns null for non-github or invalid', () => {
+    expect(parseSourceRepo('https://gitlab.com/a/b')).toBeNull();
+    expect(parseSourceRepo('')).toBeNull();
+    expect(parseSourceRepo('not a url')).toBeNull();
   });
 });

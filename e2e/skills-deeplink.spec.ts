@@ -13,35 +13,58 @@ const MOCK_TREE = [
   { path: 'README.md', type: 'blob' },
 ];
 
-const MOCK_SKILL_MD = [
+// 收藏仓库内 brainstorming 的 SKILL.md：proxy 模式占位符（含 source 指向原仓库）
+const COLLECTION_SKILL_MD = [
   '---',
   'name: 示例技能',
   'description: 用于 IT 的示例简介',
+  'metadata:',
+  '  source: https://github.com/Other/skills-repo/tree/main/skills/brainstorming',
+  '  mode: proxy',
+  '  sourceOwner: Other',
   '---',
   '',
-  '# 示例正文',
+  '（占位：代理条目，详情应回源原仓库）',
 ].join('\n');
 
+// 原仓库内 brainstorming 的真实 SKILL.md 正文（proxy 应回源到此）
+const SOURCE_SKILL_MD = [
+  '---',
+  'name: 真实技能名',
+  'description: 来自原仓库',
+  '---',
+  '',
+  '# 原始技能正文',
+  '这是代理条目的真实内容，不应显示占位符。',
+].join('\n');
+
+const SOURCE_TREE = [
+  { path: 'skills/brainstorming/SKILL.md', type: 'blob' },
+  { path: 'skills/brainstorming/references.md', type: 'blob' },
+];
+
+/** 区分收藏仓库与原仓库的双源 mock：
+ *  - 收藏仓库（GuoxinL/skill-collection）的 SKILL.md 返回 proxy 占位符；
+ *  - 原仓库（Other/skills-repo）的 SKILL.md 返回真实正文、文件树只含子路径文件。 */
 async function mockGitHub(page: Page): Promise<void> {
   await page.route('https://api.github.com/**', async (route) => {
-    const url = route.request().url();
-    if (url.includes('/git/trees/')) {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ tree: MOCK_TREE }),
-      });
+    const lc = route.request().url().toLowerCase();
+    if (lc.includes('/git/trees/')) {
+      // 原仓库树 → 仅子路径文件；收藏仓库树 → MOCK_TREE（注意默认仓库 owner 为小写 guoxinl）
+      if (lc.includes('guoxinl/skill-collection')) {
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tree: MOCK_TREE }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tree: SOURCE_TREE }) });
     }
     // commits（排序用）：返回空数组即可，fetchCommitsOrder 会降级为字典序
     return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
-  await page.route('https://raw.githubusercontent.com/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'text/plain; charset=utf-8',
-      body: MOCK_SKILL_MD,
-    }),
-  );
+  await page.route('https://raw.githubusercontent.com/**', (route) => {
+    const lc = route.request().url().toLowerCase();
+    // 收藏仓库 → proxy 占位符；原仓库 → 真实正文（SKILL.md 与 references.md 共用，够断言）
+    const body = lc.includes('guoxinl/skill-collection') ? COLLECTION_SKILL_MD : SOURCE_SKILL_MD;
+    return route.fulfill({ status: 200, contentType: 'text/plain; charset=utf-8', body });
+  });
 }
 
 test.describe('Skills · 深链还原（与 Notes 对齐）', () => {
@@ -80,5 +103,17 @@ test.describe('Skills · 深链还原（与 Notes 对齐）', () => {
     await first.click();
     await expect(page.locator('.sk-detail')).toBeVisible({ timeout: 20000 });
     expect(new URL(page.url()).pathname).toMatch(/^\/skills\/.+/);
+  });
+
+  test('5 · proxy 模式详情回源原仓库（非占位符）+ 文件树含原仓库子路径', async ({ page }) => {
+    await page.goto('/skills/brainstorming/');
+    await expect(page.locator('.sk-detail')).toBeVisible({ timeout: 20000 });
+    // 正文应为原仓库真实内容，而非收藏仓库占位符
+    await expect(page.locator('.sk-md')).toContainText('原始技能正文');
+    await expect(page.locator('.sk-md')).not.toContainText('占位：代理条目');
+    // 文件树应展示原仓库子路径下的文件
+    await expect(page.locator('.file-tree')).toContainText('references.md');
+    // 来源行标注（引用代理）
+    await expect(page.locator('.sk-d-src')).toContainText('引用代理');
   });
 });

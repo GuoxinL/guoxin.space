@@ -7,6 +7,7 @@ import {
   fetchMeta,
   fetchTree,
   fetchFile,
+  parseSourceRepo,
   removeSkill,
   syncSkill,
 } from '../../lib/skills';
@@ -23,6 +24,10 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
   const meta = useSignal<SkillMeta | null>(null);
   const tree = useSignal<GitTreeEntry[]>([]);
   const openFileSig = useSignal(''); // 当前打开的文件中相对路径，'' = SKILL.md
+  // 详情正文/文件树的有效取数坐标：proxy=原仓库（parseSourceRepo 解析 meta.source），其余=收藏仓库
+  const contentCoords = useSignal<{ owner: string; repo: string; branch: string; base: string } | null>(
+    null,
+  );
   const content = useSignal<{
     text: string;
     isImage: boolean;
@@ -38,9 +43,18 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
   const openFile = $(async (path: string) => {
     openFileSig.value = path;
     const cfg = loadSkCfg();
+    const full = skRepoFull(cfg);
+    const [cOwner, cRepo] = full.split('/');
+    const cBranch = cfg.branch.trim() || 'main';
+    // 优先用详情坐标（proxy 回源原仓库）；未设置时回退收藏仓库
+    const c = contentCoords.value;
+    const owner = c ? c.owner : cOwner;
+    const repo = c ? c.repo : cRepo;
+    const branch = c ? c.branch : cBranch;
+    const base = c ? c.base : dir;
     const target = path || 'SKILL.md';
     try {
-      const fc = await fetchFile(cfg, dir, target);
+      const fc = await fetchFile(owner, repo, branch, base, target);
       content.value = { text: fc.text, isImage: fc.isImage, isMd: fc.isMd, truncated: fc.truncated };
       mdMode.value = fc.isImage ? 'code' : fc.isMd ? 'preview' : 'code';
     } catch (e: any) {
@@ -65,8 +79,15 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
     const branch = cfg.branch.trim() || 'main';
     const [owner, repo] = full.split('/');
     try {
-      const [m, t] = await Promise.all([fetchMeta(owner, repo, branch, dir), fetchTree(cfg, branch)]);
+      const m = await fetchMeta(owner, repo, branch, dir);
+      // proxy 模式：正文与文件树回源 meta.source 指向的原仓库；mirror/默认走收藏仓库
+      const src = m.mode === 'proxy' ? parseSourceRepo(m.source || '') : null;
+      const coords = src
+        ? { owner: src.owner, repo: src.repo, branch: src.branch, base: src.sub }
+        : { owner, repo, branch, base: dir };
+      contentCoords.value = coords;
       meta.value = m;
+      const t = await fetchTree(coords.owner, coords.repo, coords.branch);
       tree.value = t;
       await openFile('');
       status.value = { kind: 'ok', msg: m.name };
@@ -181,7 +202,7 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
               <div class="sk-d-src">
                 {meta.value
                   ? meta.value.source
-                    ? '来自 ' + meta.value.source.replace(/^https:\/\//, '')
+                    ? '来自 ' + meta.value.source.replace(/^https:\/\//, '') + (meta.value.mode === 'proxy' ? '（引用代理）' : '')
                     : dir
                   : ''}
               </div>
@@ -238,7 +259,7 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
 
         <aside class="sk-detail-side">
           <div class="sk-side-head">文件树</div>
-          <FileTree dir={dir} tree={tree.value} openFile={openFileSig.value} onSelect$={openFile} />
+          <FileTree dir={contentCoords.value?.base || dir} tree={tree.value} openFile={openFileSig.value} onSelect$={openFile} />
         </aside>
       </div>
 

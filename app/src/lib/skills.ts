@@ -76,6 +76,31 @@ export function skWorkerUrl(cfg: SkCfg): string {
   return String(cfg.worker || '').trim().replace(/\/+$/, '');
 }
 
+/* ================= 收藏源仓库解析（proxy 回源用） ================= */
+export interface SourceRepo {
+  owner: string;
+  repo: string;
+  branch: string;
+  /** 原仓库内技能子路径（可能为空，表示仓库根） */
+  sub: string;
+}
+
+/** 从 metadata.source（GitHub tree/blob URL）解析原仓库坐标，供 proxy 模式回源取正文/文件树/图标。
+ *  支持：https://github.com/<o>/<r>[.git][/tree|<blob>/<branch>/<sub...>]。
+ *  解析失败（非 github.com、残缺）返回 null，调用方据此回退收藏仓库。 */
+export function parseSourceRepo(source: string): SourceRepo | null {
+  const m = /^https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/(?:tree|blob)\/([\w.-]+)(?:\/(.*))?)?\/?$/.exec(
+    String(source || ''),
+  );
+  if (!m) return null;
+  return {
+    owner: m[1],
+    repo: m[2],
+    branch: m[3] || 'main',
+    sub: (m[4] || '').replace(/^\/+|\/+$/g, ''),
+  };
+}
+
 /* ================= frontmatter 解析（与 Worker 一致） ================= */
 export interface ParsedFrontmatter {
   name: string;
@@ -483,18 +508,34 @@ export async function fetchMeta(
     }
   }
   if (!meta.sourceOwner) meta.sourceOwner = skSourceOwner(meta.source, '');
+  // proxy 模式：图标回源 meta.source 指向的原仓库（与详情正文/文件树一致）
+  let iconOwner = owner;
+  let iconRepo = repo;
+  let iconBranch = branch;
+  let iconBase = dir;
+  if (meta.mode === 'proxy' && meta.source) {
+    const s = parseSourceRepo(meta.source);
+    if (s) {
+      iconOwner = s.owner;
+      iconRepo = s.repo;
+      iconBranch = s.branch;
+      iconBase = s.sub;
+    }
+  }
   const cands = ['_icon.png', 'icon.svg', 'icon.png', 'logo.png', 'logo.svg'];
   try {
     const probes = await Promise.all(
       cands.map((c) =>
-        fetch(skRaw(owner, repo, branch, dir + '/' + c), { method: 'HEAD' })
+        fetch(skRaw(iconOwner, iconRepo, iconBranch, iconBase ? iconBase + '/' + c : c), {
+          method: 'HEAD',
+        })
           .then((res) => (res.ok ? c : null))
           .catch(() => null),
       ),
     );
     for (const p of probes) {
       if (p) {
-        meta.icon = skRaw(owner, repo, branch, dir + '/' + p);
+        meta.icon = skRaw(iconOwner, iconRepo, iconBranch, iconBase ? iconBase + '/' + p : p);
         break;
       }
     }
@@ -536,10 +577,13 @@ export async function fetchSkills(cfg: SkCfg): Promise<FetchSkillsResult> {
   return { rows, tree, repo: full, branch };
 }
 
-export async function fetchTree(cfg: SkCfg, branch?: string): Promise<GitTreeEntry[]> {
-  const full = skRepoFull(cfg);
-  const br = branch || cfg.branch.trim() || 'main';
-  if (!full) return [];
+export async function fetchTree(
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<GitTreeEntry[]> {
+  const full = owner + '/' + repo;
+  const br = branch || 'main';
   try {
     const d = await ghJson(skApi(full, `/git/trees/${encodeURIComponent(br)}?recursive=1`));
     return (d.tree || []).map((t: any) => ({ path: t.path, type: t.type }));
@@ -556,12 +600,16 @@ export interface FileContent {
   url: string;
 }
 
-export async function fetchFile(cfg: SkCfg, dir: string, path: string): Promise<FileContent> {
-  const full = skRepoFull(cfg);
-  const [owner, repo] = full.split('/');
-  const branch = cfg.branch.trim() || 'main';
+export async function fetchFile(
+  owner: string,
+  repo: string,
+  branch: string,
+  base: string,
+  path: string = 'SKILL.md',
+): Promise<FileContent> {
   const target = path || 'SKILL.md';
-  const url = skRaw(owner, repo, branch, dir + '/' + target);
+  const rel = base ? base + '/' + target : target;
+  const url = skRaw(owner, repo, branch, rel);
   const isImage = /\.(png|jpe?g|gif|webp|ico|svg)$/i.test(target);
   const isMd = isMdName(target);
   if (isImage) {
