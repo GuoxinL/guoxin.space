@@ -33,7 +33,7 @@ export const AuthButton = component$(() => {
       onClick$={() => (st.isAdmin ? authLogout() : authLogin())}
     >
       <PixelIcon name="user" size={14} />
-      <span>{st.isAdmin ? st.login : '登录 GitHub'}</span>
+      <span class="hidden sm:inline">{st.isAdmin ? st.login : '登录 GitHub'}</span>
     </button>
   );
 });

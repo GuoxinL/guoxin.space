@@ -2375,6 +2375,33 @@ h3,
   box-shadow: 2px 2px 0 var(--shadow-violet);
 }
 
+/* 移动端下拉菜单（汉堡展开；<640px 由 sm:hidden 控制显隐，桌面端永不出现） */
+.mc-nav-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border-bottom: 1.6px solid var(--slate-25);
+  box-shadow: 0 10px 24px rgba(1, 11, 26, 0.1);
+  z-index: 49;
+  padding: 8px 0 14px;
+}
+body[data-theme='dark'] .mc-nav-menu {
+  background: var(--surface);
+}
+.mc-nav-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mc-nav-menu .mc-nav-item {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
 /* ---------- 终端命令框（官网同款窗口装饰） ---------- */
 /* V2：终端框保留深色「窗口」语义，但去掉描边与偏移阴影 */
 .mc-term {
@@ -2557,6 +2584,27 @@ select:focus-visible {
   .mc-hero-deco {
     display: none;
     animation: none;
+  }
+}
+
+/* 手机端：收窄容器内边距，提升窄屏内容可用宽度；顶栏按钮收成方形图标避免横向溢出 */
+@media (max-width: 639px) {
+  :root {
+    --container-pad: 16px;
+  }
+  .mc-nav .btn {
+    padding: 0;
+    min-width: 34px;
+    width: 34px;
+    min-height: 34px;
+  }
+  .mc-logo {
+    font-size: 12px;
+    gap: 7px;
+  }
+  .mc-logo-block {
+    width: 20px;
+    height: 20px;
   }
 }
 
