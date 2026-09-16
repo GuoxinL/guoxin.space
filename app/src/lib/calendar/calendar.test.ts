@@ -64,12 +64,6 @@ describe('lunar · 农历 / 黄历封装', () => {
     expect(info.ji).toContain('嫁娶');
     expect(info.ji).toContain('入宅');
   });
-
-  it('冲煞与喜神方位可计算', () => {
-    const info = getLunarInfo(2026, 9, 16);
-    expect(info.chongSha).toBe('冲猪煞东');
-    expect(info.xiPosition).toBe('喜神东南');
-  });
 });
 
 describe('calendar · 月视图网格', () => {

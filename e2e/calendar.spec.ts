@@ -29,19 +29,17 @@ test.describe('Toolbox · 日历 /toolbox/calendar', () => {
     await expect(title).toHaveText(before);
   });
 
-  test('点击某日，黄历卡片显示该日与宜忌', async ({ page }) => {
+  test('法定假期明显标记（休/班 徽标 + 节日高亮）', async ({ page }) => {
     await page.goto('/toolbox/calendar');
-    const num = page
-      .locator('.cal-body .cal-cell:not(.cal-out) .cal-num', { hasText: '15' })
-      .first();
-    await num.click();
-    const almanac = page.locator('.cal-almanac');
-    await expect(almanac).toBeVisible();
-    await expect(almanac).toContainText('15 日');
-    await expect(almanac).toContainText('宜');
-    await expect(almanac).toContainText('忌');
-    await expect(almanac).toContainText('煞');
-    await expect(almanac).toContainText('喜神');
+    // 切到 10 月（国庆 7 天连休）
+    await page.locator('button.btn', { hasText: '下月' }).click();
+    await expect(page.locator('.cal-title')).toContainText('10 月');
+    // 至少存在一个休息日高亮单元
+    await expect(page.locator('.cal-body .cal-rest-cell').first()).toBeVisible();
+    // 节日数字使用高亮样式
+    await expect(page.locator('.cal-body .cal-num-fest').first()).toBeVisible();
+    // 存在「休」徽标
+    await expect(page.locator('.cal-body .cal-badge.cal-rest').first()).toHaveText('休');
   });
 
   test('今日高亮存在（客户端挂载后）', async ({ page }) => {

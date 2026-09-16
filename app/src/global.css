@@ -3037,26 +3037,7 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .cal-term { color: var(--sky-75); font-weight: 600; }
 .cal-lunar { color: var(--slate-50); }
 
-.cal-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 22px;
-}
-.cal-almanac-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-.cal-almanac-date { font-family: var(--font-heading); font-size: 16px; color: var(--slate-95); }
-.cal-almanac-lunar { font-size: 13px; color: var(--slate-80); }
-.cal-almanac-animal { color: var(--slate-50); font-size: 12px; }
-.cal-row {
-  display: flex;
-  gap: 12px;
-  padding: 7px 0;
-  border-top: 1px solid var(--slate-5);
-  align-items: baseline;
-}
-.cal-row-k { flex: 0 0 28px; color: var(--slate-50); font-weight: 600; font-size: 13px; }
-.cal-yi { color: var(--slate-80); }
-.cal-ji { color: var(--slate-50); }
+/* 宜忌黄历卡片已删除（2026-09-15）：cal-cols / cal-almanac-* / cal-row / cal-yi / cal-ji 样式一并移除 */
 
 .cal-disclaimer {
   color: var(--slate-50);
@@ -3067,6 +3048,5 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 }
 
 @media (max-width: 720px) {
-  .cal-cols { grid-template-columns: 1fr; }
   .cal-cell { min-height: 64px; }
 }
