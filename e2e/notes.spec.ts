@@ -283,12 +283,14 @@ test('列表页渲染双链图谱（N-T25 force-graph）', async ({ page }) => {
   await expect(graph.locator('line')).toHaveCount(1);
 });
 
-test('详情页评论区在未配置 Giscus 时显示占位（N-T27）', async ({ page }) => {
+test('详情页评论区已启用 Giscus（注入容器存在，不再显示未启用占位）', async ({ page }) => {
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
   const c = page.getByTestId('notes-comments');
   await expect(c).toBeVisible();
-  await expect(c).toContainText('GitHub Discussions');
+  await expect(c).toContainText('评论');
+  await expect(c).not.toContainText('当前站点未启用'); // 占位消失 = 已启用
+  await expect(c.locator('.notes-giscus')).toBeVisible(); // giscus 脚本注入容器存在
 });
 
 test('正文渲染 StackBlitz 交互示例嵌入（N-T29）', async ({ page }) => {

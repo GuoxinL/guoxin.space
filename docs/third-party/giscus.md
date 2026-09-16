@@ -2,8 +2,8 @@
 
 > 用途：Notes 详情页底部评论区（N-T27）。Giscus 把 GitHub Discussions 当评论后端——访客用 GitHub 账号登录后即可在文章下留言，评论数据存在你自己的仓库里，无独立数据库。
 > 代码位置：`app/src/components/notes/NotesShell.tsx` 的 `Comments` 组件（脚本注入 + 主题跟随）；配置常量 `NOTES_GISCUS` 在 `app/src/lib/notes/source.ts`；类型 `NotesGiscus` 在 `app/src/lib/notes/types.ts`。
-> 现状（2026-09-15）：**站点侧配置位已就位，但 `NOTES_GISCUS` 仍为 `null`**，故详情页显示占位文案「评论功能需在 NotesCfg 中配置 GitHub Discussions（Giscus）。当前站点未启用。」
-> 最后核验：2026-09-15。
+> 现状（2026-09-16）：**已启用**——`NOTES_GISCUS` 已填入四元组（`GuoxinL/notes` / `Announcements`），详情页底部评论区注入 giscus 脚本。改四元组只需编辑 `app/src/lib/notes/source.ts` 并重新部署。
+> 最后核验：2026-09-16。
 
 ---
 

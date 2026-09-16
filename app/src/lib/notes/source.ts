@@ -24,7 +24,13 @@ export const NOTES_DFLT_SOURCE: NotesCfg['source'] = 'raw';
  * 四个值会出现在公开 HTML 中，**不属于机密**（与 CARTO key 同性质），可直接写在此处；
  * 换仓库/换分类时改这里并重新部署即可。
  */
-export const NOTES_GISCUS: NotesGiscus | null = null;
+export const NOTES_GISCUS: NotesGiscus | null = {
+  repo: 'GuoxinL/notes',
+  repoId: 'R_kgDOUbx1Ow',
+  category: 'Announcements',
+  categoryId: 'DIC_kwDOUbx1O84DFqqt',
+  mapping: 'pathname', // 本站详情页是纯 CSR，必须用 pathname，否则所有文章共用一个讨论串
+};
 
 /** 通道设置（与 Skills/Running 现有模式一致，可切 raw / jsDelivr / 自定义镜像）。 */
 export function defaultNotesCfg(): NotesCfg {
