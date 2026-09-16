@@ -7,6 +7,7 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: '/', label: '首页', icon: 'home' },
   { href: '/skills', label: 'Skills', icon: 'chest' },
   { href: '/toolbox/json', label: 'Toolbox', icon: 'scroll' },
+  { href: '/toolbox/calendar', label: '日历', icon: 'calendar' },
   { href: '/running', label: 'Running', icon: 'boot' },
   { href: '/notes', label: 'Notes', icon: 'note' },
 ];
@@ -36,7 +37,8 @@ export const Header = component$(() => {
         <div class="flex items-center gap-1.5">
           <ul class="flex items-center gap-1 overflow-x-auto">
             {NAV.map((item) => {
-              const active = loc.url.pathname === item.href;
+              const norm = (p: string) => p.replace(/\/+$/, '') || '/';
+              const active = norm(loc.url.pathname) === norm(item.href);
               return (
                 <li key={item.href}>
                   <Link

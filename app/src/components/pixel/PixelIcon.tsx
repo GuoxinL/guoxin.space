@@ -4,7 +4,7 @@ import { component$ } from '@builder.io/qwik';
  * 像素图标：16x16 网格，全部由 1x1 对齐的矩形拼成，无曲线、无描边圆角。
  * 明暗层次用 opacity（0.45 = 暗部），保证单色下也能读形状。
  */
-export type PixelIconName = 'home' | 'chest' | 'scroll' | 'boot' | 'pickaxe' | 'user' | 'sun' | 'moon' | 'note';
+export type PixelIconName = 'home' | 'chest' | 'scroll' | 'boot' | 'pickaxe' | 'user' | 'sun' | 'moon' | 'note' | 'calendar';
 
 const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
   // 草方块：绿顶 + 棕色土身
@@ -80,6 +80,17 @@ const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
     { d: 'M4 5h6v1H4z', o: 0.6 },
     { d: 'M4 8h4v1H4z', o: 0.6 },
     { d: 'M11 3h2v11h-2z', o: 0.3 },
+  ],
+  // 日历：Toolbox · 日历
+  calendar: [
+    { d: 'M4 1h2v2H4z' },
+    { d: 'M10 1h2v2H10z' },
+    { d: 'M1 3h14v2H1z' },
+    { d: 'M1 5h14v9H1z', o: 0.35 },
+    { d: 'M3 8h3v3H3z', o: 0.6 },
+    { d: 'M8 8h3v3H8z', o: 0.6 },
+    { d: 'M3 12h3v2H3z', o: 0.6 },
+    { d: 'M8 12h3v2H8z', o: 0.6 },
   ],
 };
 
