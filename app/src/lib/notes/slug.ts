@@ -22,11 +22,17 @@ function safeDecode(raw: string): string {
   }
 }
 
-/** 从 pathname 提取 slug；非 `/notes/` 下、或无 slug 时返回 `''`（表示列表页）。 */
+/** 从 pathname 提取 slug；非 `/notes/` 下、或无 slug 时返回 `''`（表示列表页）。
+ *
+ * 必须剥离片段（#anchor）与查询（?x）：深链经 404 引导页时，`sessionStorage` 暂存的是
+ * `pathname + search + hash`（`tools/make-404-fallback.mjs`），其中 `#…` 是页内锚点，
+ * 若一并吃进 slug 会让 `Markdown 全功能示例/#图片与嵌入` 查不到文章。
+ */
 export function noteSlugFromPath(pathname: string): string {
   const m = /^\/notes\/(.+)$/.exec(pathname || '');
   if (!m) return '';
-  return safeDecode(m[1].replace(/\/+$/, ''));
+  const raw = m[1].split('#')[0].split('?')[0].replace(/\/+$/, '');
+  return safeDecode(raw);
 }
 
 /** 生成 `pushState` 目标路径（slug 已编码，带尾斜杠）；空 slug → 列表页。 */

@@ -36,6 +36,19 @@ describe('noteSlugFromPath（pushState 透传 · 中文 slug）', () => {
   it('多余尾斜杠被剥离', () => {
     expect(noteSlugFromPath('/notes/测试笔记//')).toBe('测试笔记');
   });
+
+  it('深链带页内锚点（#heading）时锚点不污染 slug', () => {
+    // 复现线上 bug：/notes/Markdown 全功能示例/#图片与嵌入 被误判为「未找到」
+    expect(noteSlugFromPath('/notes/' + encodeURIComponent('Markdown 全功能示例') + '/#图片与嵌入')).toBe(
+      'Markdown 全功能示例'
+    );
+    expect(noteSlugFromPath('/notes/测试笔记/#锚点')).toBe('测试笔记');
+  });
+
+  it('带查询串（?x=1）也不污染 slug', () => {
+    expect(noteSlugFromPath('/notes/测试笔记/?x=1')).toBe('测试笔记');
+    expect(noteSlugFromPath('/notes/测试笔记/?x=1#sec')).toBe('测试笔记');
+  });
 });
 
 describe('notePathFor（pushState 目标路径）', () => {
