@@ -10,8 +10,8 @@ test.describe('Toolbox · Calendar /toolbox/calendar', () => {
     await expect(page).toHaveTitle(/Calendar/);
     // 顶部主导航不再含独立 Calendar 项（已并入 Toolbox 子菜单，标签为「日历」）
     await expect(page.locator('.mc-nav-item', { hasText: 'Calendar' })).toHaveCount(0);
-    // 子导航含 7 个工具 tab（JSON/日历/Base64/URL/时间戳/JWT/CSV）
-    await expect(page.locator('.tb-tab')).toHaveCount(7);
+    // 子导航含 8 个工具 tab（JSON/日历/Base64/URL/时间戳/JWT/CSV/TODO）
+    await expect(page.locator('.tb-tab')).toHaveCount(8);
     // 当前页 日历 tab 高亮、JSON tab 可见可跳转
     await expect(page.locator('.tb-tab', { hasText: '日历' })).toHaveAttribute(
       'aria-current',
