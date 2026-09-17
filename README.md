@@ -17,10 +17,11 @@
 | `/toolbox/csv` | 小工具 · CSV 与 JSON 互转 |
 | `/running` | 骑行 · 跑步运动数据：年度热力图、活动列表、地图轨迹与回放 |
 | `/notes`（含 `/notes/<中文标题>`） | 文章（Notes）：知识库文章列表与阅读，详情纯 CSR 运行时取数 |
+| `/todo` | TODO 列表：子任务 / 标签 / 双层进度 / 周报（GitHub OAuth 登录门禁，数据存独立仓经 Worker 代理） |
 
 ## 架构一句话
 
-- **静态站**：构建期把 6 个顶层页面预渲染为纯静态 HTML（`app/dist/`），运行时 Qwik resumability 按需激活，无后端、无数据库。
+- **静态站**：构建期把 12 个页面预渲染为纯静态 HTML（`app/dist/`），运行时 Qwik resumability 按需激活，无后端、无数据库。
 - **数据链路**：Skills / Running 的私有数据全部经 **Cloudflare Worker**（[`worker.js`](./worker.js)）代理 GitHub OAuth 鉴权与私有仓库 `GuoxinL/running-private`，页面零凭证；数据生产（行者 OpenAPI 每小时同步 → 预览产物）在独立私有仓库完成。
 - **设计系统**：`DESIGN.md` 为唯一视觉真源（QWIK-INSPIRED v2，现代 SaaS 骨架 + 街机像素基因），同步到 `app/src/global.css`。
 
@@ -30,10 +31,10 @@
 ├── AGENTS.md           # AI 操作指南 + 8 步 SOP 入口（CLAUDE.md / CODEBUDDY.md 为其符号链接）
 ├── DESIGN.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
 ├── app/                # Qwik 应用源码（唯一改动区）
-│   ├── src/            # routes / components / lib（单测 16 文件 / 265 用例）
+│   ├── src/            # routes / components / lib（单测 21 文件 / 308 用例）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   └── dist/           # 构建产物（gitignore，CI 生成）
-├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Skills 写通道 + Running 轨迹代理
+├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Skills 写通道 + Running 轨迹代理 + TODO 数据代理（`/api/todo/*`）
 ├── e2e/                # Playwright 页面自动化（强制门禁）
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染、提交校验、实机校验等）
 └── .harness/           # SOP 真源：8 步开发流程模板 + 现行工程规范文档
@@ -66,6 +67,7 @@ npm run lint / fmt / type-check
 - **2026-09-10 ~ 11**：设计系统 QWIK-INSPIRED v2（去容器化 / 发丝线 / 偏移实心阴影），Hero 主图保真路线。
 - **2026-09-12**：Playwright e2e 双门禁接入 CI（vitest + e2e 任一失败阻断部署）；SOP 精简为 8 步（提交并入 Deploy），硬约束收敛到 `.harness/docs/CONSTRAINTS.md` 单一真相源。
 - **2026-09-17**：Toolbox 扩展——① 日历从主导航并入 Toolbox 子导航（新增 `/toolbox/calendar`：农历 / 法定节假日与调休 / 二十四节气 / 年视图 / 距下一假期倒计时）；② 页头 Toolbox 悬浮子菜单（hover / focus-within 展开，含 JSON · 日历 · 5 个小工具），5 个小工具升级为独立静态路由 `/toolbox/{base64,url,timestamp,jwt,csv}`（URL 可分享、可深链），JSON 页移除「小工具」弹窗按钮；③ JSON 工具增强（Schema 推断 / 小工具集 / 语义 diff / 大文件限流）；静态预渲染页增至 11 个，单测 16 文件 / 265 用例，e2e 新增 Toolbox 子菜单导航用例。
+- **2026-09-17（下午）**：TODO 模块上线——GitHub OAuth 保护、独立数据仓 `GuoxinL/todo-data`（经 Worker `/api/todo/*` 代理，env `TODO_REPO`/`TODO_PATH`/`TODO_BRANCH`）、子任务 / 标签 / 双层进度 / 周报 / 日历融合进度线条；单测增至 21 文件 / 308 用例，新增 `e2e/todo.spec.ts`（9 例，mock Worker）。
 
 ## 文档
 

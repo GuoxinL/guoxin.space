@@ -1,6 +1,6 @@
 # AGENTS.md — 仓库操作指南（供 AI Agent 阅读）
 
-个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（11 页静态预渲染：`/`、`/skills`、`/running`、`/notes` 列表页、`/toolbox/json`、`/toolbox/calendar`、以及 5 个小工具独立路由 `/toolbox/{base64,url,timestamp,jwt,csv}`；`/skills/<dir>` 与 `/notes/<中文标题>` 详情为纯 CSR 运行时取数），推送 `main` 即 GitHub Actions 自动构建并上线。
+个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（12 页静态预渲染：`/`、`/skills`、`/running`、`/notes` 列表页、`/toolbox/json`、`/toolbox/calendar`、`/todo`（纯 CSR，GitHub OAuth 登录门禁）、以及 5 个小工具独立路由 `/toolbox/{base64,url,timestamp,jwt,csv}`；`/skills/<dir>`、`/notes/<中文标题>` 与 `/todo` 详情/模块为纯 CSR 运行时取数，TODO 数据经 Worker `/api/todo/*` 代理独立仓 `GuoxinL/todo-data`），推送 `main` 即 GitHub Actions 自动构建并上线。
 
 > 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：AI 开发动作一律走 `.harness/plans/_template/` 的 8 步 SOP；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若本文档（操作指南 / 上下文）与 CONSTRAINTS.md / 对应 SOP 步骤冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文档定位 = AI 操作入口与项目上下文（目录 / 数据流 / 红线速览），非硬约束真源。
 
@@ -14,11 +14,11 @@ personal-homepage/
 ├── package.json        # Qwik 项目；packageManager: pnpm@9.15.0（禁用 npm / yarn，禁止提交 package-lock.json）
 ├── vite.config.ts / tsconfig*.json
 ├── app/                # Qwik 应用源码（唯一改动区）
-│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 16 文件 / 265 用例，CI 实测）
+│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 21 文件 / 308 用例（含 todo 逻辑层 43 绿），CI 实测）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
 │   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
-├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理（push 改动即由 deploy-worker.yml 自动部署；无独立单测）
+├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Running 数据代理 + TODO 数据代理（`/api/todo/*` → 独立仓 GuoxinL/todo-data，env TODO_REPO/TODO_PATH/TODO_BRANCH；push 改动即由 deploy-worker.yml 自动部署；无独立单测）
 ├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、技能卡省略号实机校验 tools/verify-skname-ellipsis.mjs、提交校验 scripts/ 等）
 ├── .harness/           # SOP 真源（AI 开发流程）
@@ -114,7 +114,7 @@ gh run list --workflow=deploy.yml --limit 5
 > **不要**用 `gh api repos/GuoxinL/guoxin.space/pages/builds/latest` 判断上线——workflow 模式下该接口停留在旧 branch-deploy 记录，不更新（见红线 6 / CONSTRAINTS C-19）。
 > 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`，模拟 GitHub Pages 语义 —— 含 404 fallback，深链用例才可验证）。
 
-线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/toolbox/base64`、`/toolbox/url`、`/toolbox/timestamp`、`/toolbox/jwt`、`/toolbox/csv`（5 个小工具独立页，经页头 Toolbox 悬浮子菜单进入）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情）。
+线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/toolbox/base64`、`/toolbox/url`、`/toolbox/timestamp`、`/toolbox/jwt`、`/toolbox/csv`（5 个小工具独立页，经页头 Toolbox 悬浮子菜单进入）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情）、`/todo`（TODO 模块，GitHub OAuth 登录门禁，数据存独立仓经 Worker 代理）。
 
 ## 易错点备忘
 

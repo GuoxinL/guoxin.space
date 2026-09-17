@@ -27,6 +27,11 @@ git push origin main
 ```bash
 gh run list --workflow=deploy.yml --limit 5
 ```
+- 实跑 run：第一次 `35196767416` **失败**（e2e 门禁：`calendar.spec.ts:14` 断言 `.tb-tab`==7，新增 TODO tab 后变 8）；
+  补 `fix(e2e)` commit `4e13b87` 后重跑 `35197647383` **success**（构建/单测/e2e/CNAME/deploy 全绿）。
+- 边界点 A 代码 commit：`177b7ca feat(todo): GitHub OAuth TODO 模块 + 日历融合`
+- e2e 修复 commit：`4e13b87 fix(e2e): align toolbox .tb-tab count to 8`
+- ⚠️ 功能可用前置（外部，需站长操作）：Cloudflare Worker 设 `TODO_REPO=GuoxinL/todo-data`/`TODO_PATH=todo`/`TODO_BRANCH=main`；并建 `GuoxinL/todo-data` 仓库。
 
 ## 5. IT 失败修复循环 / 6. 回滚（见模板）
 

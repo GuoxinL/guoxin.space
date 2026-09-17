@@ -12,7 +12,7 @@
 | 任务目录 | `2026-09-17_todo-feature`（即本目录名） |
 | Issue | 无 |
 | 摘要 | 个人主页新增 TODO 列表模块：子任务/标签/双层进度/周报/日历融合；GitHub OAuth 保护，数据存独立仓库经 Worker 代理 |
-| 状态 | 🔵 进行中 |
+| 状态 | 🟢 已完成（SOP 8 步；待用户线上验收 + Cloudflare TODO_REPO secret） |
 | 创建日期 | 2026-09-17 |
 | 负责人 | guoxin + WorkBuddy |
 | 预期完成 | 2026-09-17 |
@@ -29,18 +29,18 @@
 - [x] 02. Plan       → [02-plan.md](./02-plan.md)（方案已设计）
 - [x] 03. Implement  → [03-implement.md](./03-implement.md)（逻辑层+Worker+前端 UI/日历融合/CSS 全部完成，lint/type/test 绿）
 - [x] 04. UT         → [04-ut.md](./04-ut.md)（api/store 补测，全量 308 绿）
-- [ ] 05. Deploy     → [05-deploy.md](./05-deploy.md)（代码 commit + push main；Worker secret TODO_REPO 需先配）
-- [ ] 06. IT         → [06-it.md](./06-it.md)（Playwright 页面自动化待跑）
-- [ ] 07. Docs       → [07-docs.md](./07-docs.md)（AGENTS.md/README 路由与计数同步）
-- [ ] 08. Review     → [08-review.md](./08-review.md)（收尾 commit，边界点 B）
+- [x] 05. Deploy     → [05-deploy.md](./05-deploy.md)（commit 177b7ca+4e13b87 push main；run 35197647383 success；数据仓 GuoxinL/todo-data 已建）
+- [x] 06. IT         → [06-it.md](./06-it.md)（e2e/todo.spec.ts 9 例落地，CI 门禁 e2e 61 绿；本地缺 chromium 未跑）
+- [x] 07. Docs       → [07-docs.md](./07-docs.md)（AGENTS.md/README 路由与计数同步完成）
+- [x] 08. Review     → [08-review.md](./08-review.md)（收尾 commit，边界点 B；#1 URL 筛选态不回读为已知缺口）
 
 ---
 
 ## 当前步骤
 
-- **步骤**：⏳ 03. Implement
-- **文件**：[03-implement.md](./03-implement.md)
-- **上次更新**：2026-09-17 14:16:03
+- **步骤**：✅ 08. Review（SOP 8 步已完成；待用户线上验收 + Cloudflare TODO_REPO secret）
+- **文件**：[08-review.md](./08-review.md)
+- **上次更新**：2026-09-17 16:50:00
 
 ---
 
@@ -50,12 +50,12 @@
 |---|------|---------|---------|------|------|
 | 01 | Clarify    | 2026-09-17 14:16:03 | 2026-09-17 14:16:03 | 0s | 跳过：用户预置（需求文档 v2.0 终稿已定） |
 | 02 | Plan       | 2026-09-17 14:16:03 | 2026-09-17 14:23:00 | 7m | 方案设计（本目录 02-plan.md） |
-| 03 | Implement  | 2026-09-17 14:23:00 | | | 进行中：逻辑层+单测+Worker 已完成，前端 UI/日历融合待做 |
-| 04 | UT         | | | | 待执行 |
-| 05 | Deploy     | | | | 待执行（前置：Cloudflare 设 TODO_REPO / 建 GuoxinL/todo-data 仓） |
-| 06 | IT         | | | | 待执行 |
-| 07 | Docs       | | | | 待执行 |
-| 08 | Review     | | | | 待执行 |
+| 03 | Implement  | 2026-09-17 14:23:00 | 2026-09-17 15:10:00 | 47m | 逻辑层+Worker+前端 UI/日历融合/CSS 全部完成，lint/type/test 绿 |
+| 04 | UT         | 2026-09-17 15:10:00 | 2026-09-17 15:35:00 | 25m | api/store 补测，全量 308 绿（todo 43） |
+| 05 | Deploy     | 2026-09-17 15:35:00 | 2026-09-17 15:58:00 | 23m | commit 177b7ca+4e13b87 push main；run 35197647383 success；数据仓已建 |
+| 06 | IT         | 2026-09-17 15:58:00 | 2026-09-17 16:15:00 | 17m | e2e/todo.spec.ts 9 例落地；本地缺 chromium 未跑，靠 CI 验证 |
+| 07 | Docs       | 2026-09-17 16:15:00 | 2026-09-17 16:35:00 | 20m | AGENTS.md/README 路由与计数同步完成 |
+| 08 | Review     | 2026-09-17 16:35:00 | 2026-09-17 16:50:00 | 15m | 收尾 commit（边界点 B）；#1 URL 筛选态不回读🟡 |
 
 ---
 
