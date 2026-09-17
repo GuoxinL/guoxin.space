@@ -58,8 +58,12 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
       content.value = { text: fc.text, isImage: fc.isImage, isMd: fc.isMd, truncated: fc.truncated };
       mdMode.value = fc.isImage ? 'code' : fc.isMd ? 'preview' : 'code';
     } catch (e: any) {
+      // proxy 模式正文/文件树回源原仓库，源失效时给明确文案而非通用「HTTP 404」
+      const proxyFail = meta.value?.mode === 'proxy';
       content.value = {
-        text: '（读取失败：' + (e?.message || e) + '）',
+        text: proxyFail
+          ? '（引用代理源不可达：原仓库「' + (meta.value?.source || '?') + '」可能已改名或删除）'
+          : '（读取失败：' + (e?.message || e) + '）',
         isImage: false,
         isMd: false,
         truncated: false,
@@ -87,8 +91,20 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
         : { owner, repo, branch, base: dir };
       contentCoords.value = coords;
       meta.value = m;
-      const t = await fetchTree(coords.owner, coords.repo, coords.branch);
-      tree.value = t;
+      try {
+        const t = await fetchTree(coords.owner, coords.repo, coords.branch);
+        tree.value = t;
+      } catch (e: any) {
+        // proxy 源仓库改名/删除 → 文件树拉取失败，给明确降级提示（仍展示收藏入口占位信息）
+        if (m.mode === 'proxy') {
+          status.value = {
+            kind: 'err',
+            msg: '引用代理源不可达：原仓库「' + (m.source || '?') + '」可能已改名或删除',
+          };
+          return;
+        }
+        throw e;
+      }
       await openFile('');
       status.value = { kind: 'ok', msg: m.name };
     } catch (e: any) {
@@ -226,6 +242,11 @@ export const SkillDetail = component$<{ dir: string; onBack$: QRL<() => void> }>
           </div>
 
           <div class="sk-file-label">{openFileSig.value || 'SKILL.md'}</div>
+          {!admin.value && (
+            <div class="sk-guest-note">
+              游客视图 · 「同步 / 删除」需登录 GitHub（站长功能）
+            </div>
+          )}
           {content.value && content.value.isImage ? (
             <img class="sk-img" src={content.value.text} alt={openFileSig.value} />
           ) : (

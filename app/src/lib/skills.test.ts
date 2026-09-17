@@ -10,6 +10,8 @@ import {
   skSlug,
   skSlugId,
   parseSourceRepo,
+  skFilterSkills,
+  skPlaceholderIcon,
 } from './skills';
 import type { SkCfg } from '../types/skills';
 
@@ -225,5 +227,75 @@ describe('parseSourceRepo（proxy 回源坐标）', () => {
     expect(parseSourceRepo('https://gitlab.com/a/b')).toBeNull();
     expect(parseSourceRepo('')).toBeNull();
     expect(parseSourceRepo('not a url')).toBeNull();
+  });
+});
+
+describe('skFilterSkills（P1-1 列表搜索/过滤/排序）', () => {
+  const rows = [
+    { dir: 'a', name: 'Alpha', description: 'first skill', mode: 'proxy', source: 'https://github.com/x/y', sourceOwner: 'x', icon: null, skillMd: null },
+    { dir: 'b', name: 'Beta', description: '镜像技能', mode: 'mirror', source: '', sourceOwner: '', icon: null, skillMd: null },
+    { dir: 'c', name: 'Gamma', description: '原始收藏条目', mode: null, source: '', sourceOwner: '', icon: null, skillMd: null },
+  ] as any;
+
+  it('all + 空查询原样返回', () => {
+    expect(skFilterSkills(rows, { query: '', modeFilter: 'all', sortBy: 'default' })).toHaveLength(3);
+  });
+  it('按模式过滤 proxy / mirror', () => {
+    expect(skFilterSkills(rows, { query: '', modeFilter: 'proxy', sortBy: 'default' })).toHaveLength(1);
+    expect(skFilterSkills(rows, { query: '', modeFilter: 'mirror', sortBy: 'default' })[0].dir).toBe('b');
+  });
+  it('关键词命中 name / description / dir / source', () => {
+    expect(skFilterSkills(rows, { query: '镜像', modeFilter: 'all', sortBy: 'default' })[0].dir).toBe('b');
+    expect(skFilterSkills(rows, { query: 'github.com/x/y', modeFilter: 'all', sortBy: 'default' })[0].dir).toBe('a');
+    expect(skFilterSkills(rows, { query: 'Gamma', modeFilter: 'all', sortBy: 'default' })[0].dir).toBe('c');
+  });
+  it('按名称排序（忽略大小写/中文）', () => {
+    const sorted = skFilterSkills(rows, { query: '', modeFilter: 'all', sortBy: 'name' }).map((r) => r.dir);
+    expect(sorted).toEqual(['a', 'b', 'c']);
+  });
+  it('无匹配返回空（组件据此区分「无匹配」而非「空仓库」）', () => {
+    expect(skFilterSkills(rows, { query: 'zzz', modeFilter: 'all', sortBy: 'default' })).toHaveLength(0);
+  });
+});
+
+describe('skMdRender（P1-3 渲染对齐：嵌套列表 / 语言类）', () => {
+  it('嵌套无序列表渲染为嵌套 <ul>', () => {
+    const html = skMdRender('- 父\n  - 子\n  - 子2\n- 父2');
+    const ulCount = (html.match(/<ul>/g) || []).length;
+    expect(ulCount).toBeGreaterThanOrEqual(2);
+    expect(html).toContain('父');
+    expect(html).toContain('子');
+  });
+  it('嵌套有序列表渲染为嵌套 <ol>', () => {
+    const html = skMdRender('1. 一\n  2. 一之一\n  3. 一之二');
+    expect(html).toContain('<ol>');
+    expect(html).toContain('一之一');
+  });
+  it('围栏代码带语言类 language-xxx', () => {
+    const html = skMdRender('```ts\nconst a = 1;\n```');
+    expect(html).toContain('<pre><code class="language-ts">');
+    expect(html).toContain('const a = 1;');
+  });
+  it('无语言围栏不挂 class', () => {
+    const html = skMdRender('```\nplain\n```');
+    expect(html).toContain('<pre><code>');
+    expect(html).not.toContain('class="language-');
+  });
+  it('任务列表带 task-list 类', () => {
+    const html = skMdRender('- [ ] 待办');
+    expect(html).toContain('class="task-list"');
+  });
+});
+
+describe('skPlaceholderIcon（P1-5 图标回退占位）', () => {
+  it('返回确定性首字母 SVG data-URI', () => {
+    const a = skPlaceholderIcon('Alpha');
+    const b = skPlaceholderIcon('Alpha');
+    expect(a).toBe(b); // 确定性
+    expect(a.startsWith('data:image/svg+xml,')).toBe(true);
+    expect(decodeURIComponent(a)).toContain('>A<'); // 首字母大写
+  });
+  it('空名安全回退到 ?', () => {
+    expect(decodeURIComponent(skPlaceholderIcon(''))).toContain('>?<');
   });
 });

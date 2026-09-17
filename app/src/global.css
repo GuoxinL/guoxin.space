@@ -861,6 +861,52 @@ select.lang-sel {
   cursor: not-allowed;
 }
 
+/* 列表工具栏：搜索 / 模式过滤 / 排序 */
+.sk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sk-search {
+  flex: 1 1 240px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sk-search:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.sk-select {
+  height: 36px;
+  padding: 0 28px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.sk-select:focus {
+  border-color: var(--primary);
+}
+.sk-count {
+  font-size: 12px;
+  color: var(--text3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* 列表网格 */
 .sk-grid {
   display: grid;
@@ -1063,6 +1109,15 @@ select.lang-sel {
   color: var(--text2);
   margin-top: 6px;
   line-height: 1.6;
+}
+.sk-guest-note {
+  font-size: 11.5px;
+  color: var(--text3);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 10px;
 }
 .sk-detail-actions {
   display: flex;

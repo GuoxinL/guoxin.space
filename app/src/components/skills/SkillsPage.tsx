@@ -12,6 +12,7 @@ import {
   skRepoFull,
   skDirFromPath,
   resolveInitialSkillDir,
+  skFilterSkills,
 } from '../../lib/skills';
 import { readPendingRedirect } from '../../lib/spa-redirect';
 import { SkillDetail } from './SkillDetail';
@@ -28,6 +29,17 @@ export const SkillsPage = component$(() => {
   const cfg = useSignal<SkCfg | null>(null);
   const showCfg = useSignal(false);
   const showCollect = useSignal(false);
+  // 列表检索 / 过滤 / 排序（纯客户端）
+  const query = useSignal('');
+  const modeFilter = useSignal<'all' | 'proxy' | 'mirror'>('all');
+  const sortBy = useSignal<'default' | 'name'>('default');
+  const filtered = useComputed$(() =>
+    skFilterSkills(rows.value, {
+      query: query.value,
+      modeFilter: modeFilter.value,
+      sortBy: sortBy.value,
+    }),
+  );
   // 详情透传：不走 Qwik City 路由（GitHub Pages 对 /skills/<dir> 的 q-data 返回 404 会中止 SPA 导航），
   // 改为组件状态 + history.pushState 透传 URL；popstate/初始 pathname 负责后退与恢复。
   const selectedDir = useSignal(''); // SSG 阶段无 location，初始 ''；客户端在 useVisibleTask$ 从 pathname 恢复
@@ -140,7 +152,41 @@ export const SkillsPage = component$(() => {
             </div>
           </div>
 
-          <SkillGrid rows={rows.value} toast={toast} openDetail$={openDetail} />
+          {rows.value.length > 0 && (
+            <div class="sk-toolbar">
+              <input
+                class="sk-search"
+                type="search"
+                placeholder="搜索技能名 / 简介 / 来源…"
+                value={query.value}
+                onInput$={(e) => (query.value = (e.target as HTMLInputElement).value)}
+              />
+              <select
+                class="sk-select"
+                aria-label="按收藏模式过滤"
+                value={modeFilter.value}
+                onChange$={(e) => (modeFilter.value = (e.target as HTMLSelectElement).value as 'all' | 'proxy' | 'mirror')}
+              >
+                <option value="all">全部</option>
+                <option value="proxy">引用代理</option>
+                <option value="mirror">镜像</option>
+              </select>
+              <select
+                class="sk-select"
+                aria-label="排序方式"
+                value={sortBy.value}
+                onChange$={(e) => (sortBy.value = (e.target as HTMLSelectElement).value as 'default' | 'name')}
+              >
+                <option value="default">默认排序</option>
+                <option value="name">按名称</option>
+              </select>
+              <span class="sk-count">
+                {filtered.value.length} / {rows.value.length}
+              </span>
+            </div>
+          )}
+
+          <SkillGrid rows={filtered.value} total={rows.value.length} toast={toast} openDetail$={openDetail} />
 
           {showCfg.value && (
             <ChannelSettings

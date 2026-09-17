@@ -280,6 +280,54 @@ export function skMdRender(md: string): string {
   const isOl = (s: string): boolean => /^\s*\d+[.)]\s+/.test(s);
   const isQuote = (s: string): boolean => /^\s*>/.test(s);
   const isFence = (s: string): boolean => /^\s*(```|~~~)/.test(s);
+  const indentOf = (s: string): number => {
+    const m = /^( *)/.exec(s);
+    return m ? m[1].length : 0;
+  };
+  /** 递归渲染列表（支持嵌套缩进）；ordered=有序列表。任务项（`- [ ]`）渲染为禁用 checkbox。 */
+  const renderListBlock = (start: number, ordered: boolean): { html: string; next: number } => {
+    const items: string[] = [];
+    let i = start;
+    const baseM = (ordered ? /^(\s*)\d+[.)]\s+/ : /^(\s*)[-*+]\s+/).exec(lines[i]);
+    const baseIndent = baseM ? baseM[1].length : 0;
+    let anyTask = false;
+    while (i < N) {
+      const line = lines[i];
+      const mm = (ordered ? /^(\s*)(\d+[.)])\s+(.*)$/ : /^(\s*)([-*+])\s+(.*)$/).exec(line);
+      if (!mm) break;
+      const ind = mm[1].length;
+      if (ind < baseIndent) break; // 退缩 → 列表结束
+      if (ind > baseIndent) {
+        i++;
+        continue;
+      } // 不应出现，防御跳过
+      const content = mm[3];
+      const taskM = /^\s*\[([ xX])\]\s+(.*)$/.exec(content);
+      if (taskM) anyTask = true;
+      i++;
+      // 收集缩进更深的子列表（嵌套）
+      let child = '';
+      if (i < N) {
+        const nx = lines[i];
+        const nm = /^(\s*)[-*+]\s+|^(\s*)\d+[.)]\s+/.exec(nx);
+        if (nm && indentOf(nx) > baseIndent) {
+          const sub = renderListBlock(i, /^\s*\d+[.)]\s+/.test(nx));
+          child = sub.html;
+          i = sub.next;
+        }
+      }
+      if (taskM) {
+        items.push(
+          `<li><input type="checkbox" disabled${/^[xX]$/.test(taskM[1]) ? ' checked' : ''}> ${inline(taskM[2])}</li>`,
+        );
+      } else {
+        items.push('<li>' + inline(content) + child + '</li>');
+      }
+    }
+    const tag = ordered ? 'ol' : 'ul';
+    const cls = anyTask ? ' class="task-list"' : '';
+    return { html: `<${tag}${cls}>` + items.join('') + `</${tag}>`, next: i };
+  };
 
   while (i < N) {
     const t = lines[i].replace(/\s+$/, '');
@@ -287,10 +335,12 @@ export function skMdRender(md: string): string {
       i++;
       continue;
     }
-    const fm = /^\s*(```|~~~)\s*.*$/.exec(t);
+    const fm = /^\s*(```|~~~)\s*([\w+#.-]*)\s*$/.exec(t);
     if (fm) {
       const fence = fm[1];
-      out.push('<pre><code>');
+      const lang = fm[2] || '';
+      const langCls = lang ? ' class="language-' + escAttr(lang) + '"' : '';
+      out.push('<pre><code' + langCls + '>');
       i++;
       while (i < N) {
         const c = lines[i].replace(/\s+$/, '');
@@ -328,34 +378,10 @@ export function skMdRender(md: string): string {
       out.push('<blockquote><p>' + q.join('<br>') + '</p></blockquote>');
       continue;
     }
-    if (isTask(t)) {
-      const items: string[] = [];
-      while (i < N && isTask(lines[i])) {
-        const tm = /^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/.exec(lines[i])!;
-        items.push(
-          `<li><input type="checkbox" disabled${/^[xX]$/.test(tm[1]) ? ' checked' : ''}> ${inline(tm[2])}</li>`,
-        );
-        i++;
-      }
-      out.push('<ul class="task-list">' + items.join('') + '</ul>');
-      continue;
-    }
-    if (isUl(t)) {
-      const uls: string[] = [];
-      while (i < N && isUl(lines[i]) && !isTask(lines[i])) {
-        uls.push('<li>' + inline(lines[i].replace(/^\s*[-*+]\s+/, '')) + '</li>');
-        i++;
-      }
-      out.push('<ul>' + uls.join('') + '</ul>');
-      continue;
-    }
-    if (isOl(t)) {
-      const ols: string[] = [];
-      while (i < N && isOl(lines[i])) {
-        ols.push('<li>' + inline(lines[i].replace(/^\s*\d+[.)]\s+/, '')) + '</li>');
-        i++;
-      }
-      out.push('<ol>' + ols.join('') + '</ol>');
+    if (isUl(t) || isOl(t)) {
+      const res = renderListBlock(i, isOl(t));
+      out.push(res.html);
+      i = res.next;
       continue;
     }
     if (
@@ -422,15 +448,113 @@ export function skInstallCmd(dirOrAll: string): string {
   );
 }
 
+/* ================= 列表搜索 / 过滤 / 排序（纯函数，可单测） ================= */
+export interface SkFilterOpts {
+  query: string;
+  modeFilter: 'all' | 'proxy' | 'mirror';
+  sortBy: 'default' | 'name';
+}
+
+/** 对技能列表做纯客户端检索：关键词（名/简介/dir/来源）+ 模式过滤 + 可选按名排序。
+ *  无副作用、不触 DOM，供 SkillsPage 的 useComputed$ 与单测复用。 */
+export function skFilterSkills(rows: SkillMeta[], opts: SkFilterOpts): SkillMeta[] {
+  const q = opts.query.trim().toLowerCase();
+  let list = rows;
+  if (opts.modeFilter !== 'all') {
+    list = list.filter((r) => r.mode === opts.modeFilter);
+  }
+  if (q) {
+    list = list.filter(
+      (r) =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.dir || '').toLowerCase().includes(q) ||
+        (r.source || '').toLowerCase().includes(q),
+    );
+  }
+  if (opts.sortBy === 'name') {
+    list = list
+      .slice()
+      .sort((a, b) => (a.name || a.dir || '').localeCompare(b.name || b.dir || '', 'zh-Hans'));
+  }
+  return list;
+}
+
+/* ================= 图标占位（回退，避免外部头像 404 留白） ================= */
+/** 由名称首字符生成确定性配色的 data-URI SVG 占位图标（无外部请求、永不 404）。 */
+export function skPlaceholderIcon(name: string): string {
+  const ch = (String(name || '?').trim()[0] || '?').toUpperCase();
+  const hue = [...String(name || '?')].reduce((a, c) => (a + c.charCodeAt(0)) % 360, 0);
+  const bg = `hsl(${hue}, 58%, 55%)`;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">` +
+    `<rect width="48" height="48" rx="10" fill="${bg}"/>` +
+    `<text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="24" font-weight="700" fill="#ffffff">${esc(ch)}</text>` +
+    `</svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
 /* ================= 数据获取（GitHub 公开 API） ================= */
+const SK_API_CACHE_KEY = 'wb_home_sk_api_cache_v1';
+const SK_API_CACHE_TTL = 10 * 60 * 1000; // 10 分钟
+
+type ApiCacheEntry = { etag?: string; lastModified?: string; data: any; ts: number };
+
+function apiCacheGet(url: string): ApiCacheEntry | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const map = JSON.parse(localStorage.getItem(SK_API_CACHE_KEY) || '{}');
+    const e = map[url];
+    if (e && Date.now() - e.ts < SK_API_CACHE_TTL) return e;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+function apiCacheSet(url: string, e: ApiCacheEntry): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const map = JSON.parse(localStorage.getItem(SK_API_CACHE_KEY) || '{}');
+    map[url] = e;
+    const keys = Object.keys(map);
+    if (keys.length > 50) delete map[keys[0]]; // 限制条目，避免无限增长
+    localStorage.setItem(SK_API_CACHE_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
 async function ghJson(url: string): Promise<any> {
-  const r = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
+  // 登录后用 token 提额（未登录 60 req/hr/IP → 登录 5000/hr），降低限流概率
+  const tok = (typeof localStorage !== 'undefined' && localStorage.getItem('wb_home_auth_token')) || '';
+  if (tok) headers['Authorization'] = 'Bearer ' + tok;
+  // 条件请求：命中缓存且服务端返回 304 时复用，省一次额度
+  const cached = apiCacheGet(url);
+  if (cached && (cached.etag || cached.lastModified)) {
+    if (cached.etag) headers['If-None-Match'] = cached.etag;
+    if (cached.lastModified) headers['If-Modified-Since'] = cached.lastModified;
+  }
+  const r = await fetch(url, { headers });
+  if (r.status === 304 && cached) return cached.data;
   if (!r.ok) {
+    if (r.status === 403) {
+      const e: any = new Error(
+        'GitHub API 限流（每分钟请求过多）· 请稍后重试，或在「通道设置」登录 GitHub 提升额度',
+      );
+      e.status = 403;
+      e.rateLimited = true;
+      throw e;
+    }
     const e: any = new Error('GitHub HTTP ' + r.status);
     e.status = r.status;
     throw e;
   }
-  return r.json();
+  const data = await r.json();
+  const etag = r.headers.get('etag') || undefined;
+  const lastModified = r.headers.get('last-modified') || undefined;
+  if (etag || lastModified) apiCacheSet(url, { etag, lastModified, data, ts: Date.now() });
+  return data;
 }
 
 export async function fetchCommitsOrder(
@@ -542,7 +666,7 @@ export async function fetchMeta(
   } catch {
     /* ignore */
   }
-  if (!meta.icon) meta.icon = `https://github.com/${(meta.sourceOwner || owner)}.png`;
+  if (!meta.icon) meta.icon = skPlaceholderIcon(meta.name || dir);
   return meta;
 }
 
@@ -561,6 +685,7 @@ export async function fetchSkills(cfg: SkCfg): Promise<FetchSkillsResult> {
       return { rows: [], tree: [], repo: full, branch };
     }
     if (e.status === 404) throw new Error('仓库或分支不存在，请检查「通道设置」');
+    if (e.rateLimited) throw e; // 保留限流友好文案
     throw new Error('GitHub HTTP ' + (e.status || '?'));
   }
 
@@ -587,7 +712,8 @@ export async function fetchTree(
   try {
     const d = await ghJson(skApi(full, `/git/trees/${encodeURIComponent(br)}?recursive=1`));
     return (d.tree || []).map((t: any) => ({ path: t.path, type: t.type }));
-  } catch {
+  } catch (e: any) {
+    if (e && e.rateLimited) throw e; // 限流错误透传，由上层提示
     return [];
   }
 }
