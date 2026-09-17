@@ -1,5 +1,5 @@
 // ============================================================
-// skillboard-collect — Cloudflare Worker
+// guoxin-space — Cloudflare Worker
 // 个人主页的「鉴权 + 写通道 + 轨迹代理」：页面不接触任何凭证
 // ============================================================
 // 部署：push 改动本文件到 main → deploy-worker.yml 自动部署（推荐）；
@@ -199,7 +199,7 @@ async function gh(token, path, opts) {
   const headers = Object.assign({
     "Authorization": "Bearer " + token,
     "Accept": "application/vnd.github+json",
-    "User-Agent": "skillboard-collect",
+    "User-Agent": "guoxin-space",
     "X-GitHub-Api-Version": "2022-11-28",
   }, opts.headers || {});
   const res = await fetch(GH_API + path, Object.assign({}, opts, { headers }));
@@ -291,7 +291,7 @@ export async function ensureRepoReady(token, owner, repo, branch) {
   const r = await gh(token, "/repos/" + owner + "/" + repo);
   if (r.status !== 200 || !r.data) return { ok: false, reason: "仓库信息获取失败（GitHub " + r.status + "）" };
   if (r.data.size > 0) return { ok: true, initialized: false };
-  const readme = "# " + repo + "\n\n本仓库由 skillboard-collect 自动初始化，用于收藏 Skill（引用/镜像模式）。\n";
+  const readme = "# " + repo + "\n\n本仓库由 guoxin-space 自动初始化，用于收藏 Skill（引用/镜像模式）。\n";
   const blob = await gh(token, "/repos/" + owner + "/" + repo + "/git/blobs", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content: readme, encoding: "utf-8" }),
@@ -700,7 +700,7 @@ export async function verifyToken(token, env) {
 // 写操作审计：成功后 Server酱推微信（Key 未配置 / 无 ctx 时静默跳过；失败不影响主流程）
 function notifyAdmin(env, ctx, action, detail) {
   if (!ctx || !env.SERVERCHAN_SENDKEY) return;
-  const body = new URLSearchParams({ title: "skillboard-collect: " + action, desp: detail || "" }).toString();
+  const body = new URLSearchParams({ title: "guoxin-space: " + action, desp: detail || "" }).toString();
   ctx.waitUntil(fetch("https://sctapi.ftqq.com/" + env.SERVERCHAN_SENDKEY + ".send", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -795,7 +795,7 @@ async function authCallback(request, env, cors) {
       return json(cors, 400, { error: "换取 access_token 失败：" + (tok.error_description || tok.error || "unknown") });
     }
     const user = await fetch("https://api.github.com/user", {
-      headers: { "Authorization": "Bearer " + tok.access_token, "User-Agent": "skillboard-collect", "Accept": "application/vnd.github+json" },
+      headers: { "Authorization": "Bearer " + tok.access_token, "User-Agent": "guoxin-space", "Accept": "application/vnd.github+json" },
     }).then(r => r.json());
     if (!user || user.login !== env.ADMIN_LOGIN) {
       return new Response(null, { status: 302, headers: { Location: home + "/#auth=denied", "Access-Control-Allow-Origin": "*" } });

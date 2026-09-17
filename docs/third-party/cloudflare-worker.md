@@ -1,9 +1,9 @@
-# Cloudflare Worker 接入操作步骤（skillboard-collect）
+# Cloudflare Worker 接入操作步骤（guoxin-space）
 
 > 📁 本文档原位于 `docs/deploy/DEPLOY-WORKER.md`，2026-09-13 迁入 `docs/third-party/`（第三方接入文档集）。
 > 权限方案设计见 [`docs/deploy/AUTH-PERMISSION-DESIGN.md`](../deploy/AUTH-PERMISSION-DESIGN.md)。
 
-# skillboard-collect — Cloudflare Worker 部署指引
+# guoxin-space — Cloudflare Worker 部署指引
 
 个人主页的「鉴权 + Skills 写通道 + 轨迹代理」。核心设计：**页面零凭证**——收藏 / 删除 / 同步等写操作与完整轨迹全部转发到 Cloudflare Worker，由 Worker 持有 GitHub 细粒度 PAT 完成。
 
@@ -111,7 +111,7 @@ dashboard 粘贴 / 本地 wrangler 保留为兜底，见下方步骤。
 
 1. GitHub → Settings → **Developer settings** → **OAuth Apps** → **New OAuth App**。
 2. Homepage URL：`https://guoxin.space`。
-3. **Authorization callback URL：`https://skillboard-collect.<你的子域>.workers.dev/api/auth/callback`**（不能是 localhost）。
+3. **Authorization callback URL：`https://api.guoxin.space/api/auth/callback`**（不能是 localhost）。
 4. 记下 **Client ID** 与 **Client Secret**。
 
 ### 2. 创建 GitHub 细粒度 PAT（一次）
@@ -125,7 +125,7 @@ dashboard 粘贴 / 本地 wrangler 保留为兜底，见下方步骤。
 
 ### 3. 创建 Worker
 
-1. 打开 https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Create Worker** → 起名如 `skillboard-collect`。
+1. 打开 https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Create Worker** → 起名如 `guoxin-space`。
 2. 用编辑器打开本目录下 [`worker.js`](./worker.js)，**全选替换**默认模板代码 → **Deploy**。
 
 ### 3.5 wrangler CLI 部署（自动化，替代手动粘贴）
@@ -135,7 +135,7 @@ dashboard 粘贴 / 本地 wrangler 保留为兜底，见下方步骤。
 export CLOUDFLARE_API_TOKEN=<token>
 
 # 部署（务必带 --keep-vars 与 --compatibility-date）
-npx wrangler deploy worker.js --name skillboard-collect \
+npx wrangler deploy worker.js --name guoxin-space \
   --compatibility-date 2026-08-20 \
   --keep-vars \
   --var TRACKS_REPO:GuoxinL/running-private \
@@ -166,8 +166,8 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 
 ### 5. 确认 Worker 访问地址
 
-- 默认：`https://skillboard-collect.<你的子域>.workers.dev`。
-- 可选：**Settings → Domains & Routes** 绑定自定义域名（非必须，CORS 已通配）。
+- 主域名（自定义域，推荐）：`https://api.guoxin.space`（本仓库已绑，CORS 通配，页面默认走此）。
+- 兜底默认地址：`https://guoxin-space.<你的 Cloudflare 子域>.workers.dev`（wrangler 自动分配，仅作备用）。
 
 ### 6. 页面端接入
 
@@ -177,7 +177,7 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 |---|---|
 | 技能夹仓库 | `guoxin/skill-collection` |
 | 分支 | `main` |
-| Worker URL | `https://skillboard-collect.<你的子域>.workers.dev` |
+| Worker URL | `https://api.guoxin.space` |
 
 点 **测试连接**，出现绿色 `✓` 即打通。设置保存在浏览器 localStorage，不上传任何地方。
 
@@ -185,31 +185,31 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 
 ```bash
 # 1. 健康检查（无需任何凭证）
-curl "https://skillboard-collect.<你的子域>.workers.dev/api/health"
+curl "https://api.guoxin.space/api/health"
 
 # 2. 未登录调用写通道 → 401
-curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect" \
+curl -X POST "https://api.guoxin.space/api/collect" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://github.com/owner/skill","mode":"proxy"}'
 #   → {"error":"未授权：请先登录 GitHub（仅站长本人可用）"}
 
 # 3. 旧 x-collect-key 不再生效 → 401（无兼容）
-curl -X POST "https://skillboard-collect.<你的子域>.workers.dev/api/collect" \
+curl -X POST "https://api.guoxin.space/api/collect" \
   -H "Content-Type: application/json" -H "x-collect-key: anything" \
   -d '{"url":"https://github.com/owner/skill","mode":"proxy"}'
 #   → 401
 
 # 4. 游客读截断轨迹 → 200
-curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=preview.json"
+curl "https://api.guoxin.space/api/tracks/raw?f=preview.json"
 
 # 4b. 游客读双主题垫底图/缩略图 → 200 (image/png)
 curl -o /dev/null -w "%{http_code} %{content_type}\n" \
-  "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=previews%2Flight.png"
+  "https://api.guoxin.space/api/tracks/raw?f=previews%2Flight.png"
 curl -o /dev/null -w "%{http_code} %{content_type}\n" \
-  "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=thumb%2F218861077.light.png"
+  "https://api.guoxin.space/api/tracks/raw?f=thumb%2F218861077.light.png"
 
 # 5. 游客读完整轨迹 → 401
-curl "https://skillboard-collect.<你的子域>.workers.dev/api/tracks/raw?f=rides.full.json"
+curl "https://api.guoxin.space/api/tracks/raw?f=rides.full.json"
 #   → 401
 
 # 6. 浏览器登录后收藏 / 删除 / 同步（页面已自动带 Bearer header）

@@ -17,7 +17,7 @@ const KEY_PREFIX = 'wb_home_';
 export const KEY_SK_SET = KEY_PREFIX + 'sk_set';
 export const SK_DFLT_REPO = 'guoxinl/skill-collection';
 export const SK_DFLT_BRANCH = 'main';
-export const SK_DFLT_WORKER = 'https://skillboard-collect.lgx31.workers.dev';
+export const SK_DFLT_WORKER = 'https://api.guoxin.space';
 
 /* 「应用到 Agent」一键安装命令参数 */
 export const SK_APPLY_RAW =

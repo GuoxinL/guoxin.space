@@ -6,7 +6,7 @@
 ## 测试环境
 
 - **数据通道**：`loadSkCfg()` 在未配置 localStorage `wb_sk_cfg` 时回退默认 Worker
-  `SK_DFLT_WORKER = https://skillboard-collect.lgx31.workers.dev`，`tracksUrl()` 拼出
+  `SK_DFLT_WORKER = https://api.guoxin.space`，`tracksUrl()` 拼出
   `${worker}/api/tracks/raw?f=preview.json`。因此游客免配置即可加载预览（`setupHint` 分支仅在默认 Worker 被清空时触发，实际不可达）。
 - **数据集**：161 条记录，覆盖年份 2026/2025/2024/2023/2021/2020/2019（无 2022）。
 - **缩略图/瓦片主题**：`rkTheme()` 跟随 `body[data-theme]`，默认浅色。

@@ -30,7 +30,7 @@ jobs:
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: "deploy worker.js --name skillboard-collect --compatibility-date 2026-08-20 --keep-vars"
+          command: "deploy worker.js --name guoxin-space --compatibility-date 2026-08-20 --keep-vars"
 
   notify:
     needs: deploy-worker
