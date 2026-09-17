@@ -158,6 +158,22 @@ describe('relaxJson / repairJson', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.err.line).toBeGreaterThanOrEqual(1);
   });
+
+  it('非 JSON 语言：修复=解析后归一化（yaml → 规范缩进）', () => {
+    const r = repairJson('type: cycling\nkm: 42\n', 'yaml', 2);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.text).toBe('type: cycling\nkm: 42\n');
+  });
+
+  it('非 JSON 语言：非法输入给出明确错误而非静默通过', () => {
+    const r = repairJson('type: cycling\nkm: : :\n', 'yaml');
+    expect(r.ok).toBe(false);
+  });
+
+  it('向后兼容：省略 lang 默认按 JSON 处理', () => {
+    const r = repairJson("{a:1}");
+    expect(r.ok).toBe(true);
+  });
 });
 
 describe('history', () => {

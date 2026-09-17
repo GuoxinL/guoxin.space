@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getHoliday, HOLIDAYS, HOLIDAY_YEARS, isHolidayYearMaintained } from './holidays';
+import { getHoliday, HOLIDAYS, HOLIDAY_YEARS, isHolidayYearMaintained, nextHoliday } from './holidays';
 import { getLunarInfo } from './lunar';
 import { buildMonthGrid, dayLabel } from './calendar';
 
@@ -48,6 +48,34 @@ describe('holidays · 2026 法定节假日与调休', () => {
   it('未维护年份 getHoliday 返回普通日（不臆造节假日）', () => {
     expect(getHoliday(2027, 1, 1)).toEqual({ type: null });
     expect(getHoliday(2027, 10, 1)).toEqual({ type: null });
+  });
+
+  it('nextHoliday 返回最近未来法定假日的天数差与日期', () => {
+    // 2026-09-17 → 最近为中秋 9/25（8 天）
+    const r = nextHoliday({ y: 2026, m: 9, d: 17 });
+    expect(r).not.toBeNull();
+    if (r) {
+      expect(r.date).toEqual({ y: 2026, m: 9, d: 25 });
+      expect(r.days).toBe(8);
+      expect(r.name).toBe('中秋');
+    }
+  });
+
+  it('nextHoliday 当天为假期时 days=0', () => {
+    const r = nextHoliday({ y: 2026, m: 10, d: 1 });
+    expect(r?.days).toBe(0);
+    expect(r?.name).toBe('国庆');
+  });
+
+  it('nextHoliday 在已维护年份的最后假期之后返回 null（诚实不臆造 2027）', () => {
+    // 2026-10-08 国庆连休已结束，2027 尚未维护 → 无未来假期
+    expect(nextHoliday({ y: 2026, m: 10, d: 8 })).toBeNull();
+  });
+
+  it('nextHoliday 早于首假期的年前日期定位到首假期', () => {
+    const r = nextHoliday({ y: 2026, m: 1, d: 1 });
+    expect(r?.date).toEqual({ y: 2026, m: 1, d: 1 }); // 元旦当天
+    expect(r?.days).toBe(0);
   });
 });
 

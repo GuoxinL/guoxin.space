@@ -10,6 +10,8 @@ interface JsonTreeProps {
   path?: string;
   /** JSONPath 查询命中的路径集合；命中节点加 jp-hl 高亮 */
   hlPaths?: string[];
+  /** 树形过滤词：键名包含该词（不区分大小写）的节点加 jt-match 高亮 */
+  filter?: string;
 }
 
 /** 叶子节点：按类型着色 */
@@ -35,17 +37,20 @@ function childPath(parent: string, k: string, isArr: boolean): string {
  * 其祖先自动展开以便可见。
  */
 export const JsonTree = component$<JsonTreeProps>(
-  ({ val, name = 'root', depth = 0, path = '$', hlPaths }) => {
+  ({ val, name = 'root', depth = 0, path = '$', hlPaths, filter }) => {
     const hitSelf = hlPaths ? hlPaths.includes(path) : false;
     // 是否有命中后代：任意匹配路径以本节点路径为前缀（对象 [' / 数组 [）
     const hitChild = hlPaths
       ? hlPaths.some((p) => p !== path && (p.startsWith(`${path}['`) || p.startsWith(`${path}[`)))
       : false;
+    // 过滤词：键名包含该词（不区分大小写）则高亮
+    const fm = filter ? filter.toLowerCase() : '';
+    const matchSelf = fm !== '' && name !== undefined && String(name).toLowerCase().includes(fm);
 
     if (!isBranch(val)) {
       return (
         <div class={`jt-leaf${hitSelf ? ' jp-hl' : ''}`}>
-          {name !== undefined && <span class="j-key">{name}: </span>}
+          {name !== undefined && <span class={`j-key${matchSelf ? ' jt-match' : ''}`}>{name}: </span>}
           <Leaf v={val} />
         </div>
       );
@@ -59,7 +64,7 @@ export const JsonTree = component$<JsonTreeProps>(
     return (
       <details class={`jt-node${hitSelf ? ' jp-hl' : ''}`} open={depth < 2 || hitSelf || hitChild}>
         <summary>
-          {name !== undefined && <span class="j-key">{name}: </span>}
+          {name !== undefined && <span class={`j-key${matchSelf ? ' jt-match' : ''}`}>{name}: </span>}
           <span class="j-meta">
             {isArr ? `Array [${entries.length}]` : `Object {${entries.length}}`}
           </span>
@@ -73,6 +78,7 @@ export const JsonTree = component$<JsonTreeProps>(
                 depth={depth + 1}
                 path={childPath(path, e.k, isArr)}
                 hlPaths={hlPaths}
+                filter={filter}
               />
             </li>
           ))}

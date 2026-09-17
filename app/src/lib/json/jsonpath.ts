@@ -4,7 +4,7 @@ import type { DataValue, Lang, Range } from '../../types/json';
 import { parseByLang } from './lang';
 
 export type JpResult =
-  | { ok: true; count: number; ranges: Range[]; paths: string[] }
+  | { ok: true; count: number; ranges: Range[]; paths: string[]; values: DataValue[] }
   | { ok: false; msg: string };
 
 /**
@@ -46,8 +46,11 @@ export function jpKeyNeedles(key: string, lang: Lang): string[] {
   return [key];
 }
 
-/** 在原文中查找所有候选文本的出现区间 */
-export function jpFindRanges(raw: string, needles: string[]): Range[] {
+/** 在原文中查找所有候选文本的出现区间。
+ * wordBoundary=true 时，仅当匹配两侧都不是标识符字符（[A-Za-z0-9_]）才计入，
+ * 用于非 JSON 语言（YAML/TOML 裸键）避免误命中 mytype / types 等同名子串。 */
+const IDENT_RE = /[A-Za-z0-9_]/;
+export function jpFindRanges(raw: string, needles: string[], wordBoundary = false): Range[] {
   const ranges: Range[] = [];
   for (const nd of needles) {
     if (!nd) continue;
@@ -55,8 +58,17 @@ export function jpFindRanges(raw: string, needles: string[]): Range[] {
     for (;;) {
       idx = raw.indexOf(nd, idx);
       if (idx < 0) break;
-      ranges.push([idx, idx + nd.length]);
-      idx += nd.length;
+      const end = idx + nd.length;
+      if (wordBoundary) {
+        const before = idx > 0 ? raw[idx - 1] : '';
+        const after = end < raw.length ? raw[end] : '';
+        if (IDENT_RE.test(before) || IDENT_RE.test(after)) {
+          idx = end;
+          continue;
+        }
+      }
+      ranges.push([idx, end]);
+      idx = end;
     }
   }
   return ranges;
@@ -114,9 +126,12 @@ export function queryJsonPath(raw: string, lang: Lang, expr: string): JpResult {
   }
 
   const paths = (res || []).map((r) => r.path);
-  if (!res || !res.length) return { ok: true, count: 0, ranges: [], paths };
+  const values = (res || []).map((r) => r.value);
+  if (!res || !res.length) return { ok: true, count: 0, ranges: [], paths, values: [] };
 
   let ranges: Range[] = [];
+  // 非 JSON 语言用裸键检索，需词边界避免误命中同名子串（mytype / types）
+  const wordBoundary = lang !== 'json' && lang !== 'json5';
   for (const r of res) {
     const needles = jpNeedles(r.value, lang);
     // 容器值（对象 / 数组）用紧凑 JSON.stringify 无法命中美化后的原文，
@@ -125,9 +140,9 @@ export function queryJsonPath(raw: string, lang: Lang, expr: string): JpResult {
       const leaf = jpLeafKey(r.path);
       if (leaf != null) needles.push(...jpKeyNeedles(leaf, lang));
     }
-    ranges = ranges.concat(jpFindRanges(raw, needles));
+    ranges = ranges.concat(jpFindRanges(raw, needles, wordBoundary));
   }
-  return { ok: true, count: res.length, ranges: jpMergeRanges(ranges), paths };
+  return { ok: true, count: res.length, ranges: jpMergeRanges(ranges), paths, values };
 }
 
 /** 把区间按行切分，返回每行的高亮片段（列偏移相对行首） */

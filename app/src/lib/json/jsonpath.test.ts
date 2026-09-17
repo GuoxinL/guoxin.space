@@ -143,6 +143,34 @@ describe('rangesToLines', () => {
   });
 });
 
+describe('jpFindRanges（词边界，防误命中）', () => {
+  it('非词边界：裸键命中 mytype / types 子串', () => {
+    const raw = 'type: a\nmytype: b\ntypes: c';
+    expect(jpFindRanges(raw, ['type'], false)).toHaveLength(3);
+  });
+  it('词边界：仅命中独立键 type，跳过 mytype / types', () => {
+    const raw = 'type: a\nmytype: b\ntypes: c';
+    expect(jpFindRanges(raw, ['type'], true)).toEqual([[0, 4]]);
+  });
+  it('JSON 引号键不受词边界影响', () => {
+    const raw = '{"type":"a","mytype":"b"}';
+    expect(jpFindRanges(raw, ['"type"'], false)).toHaveLength(1);
+  });
+});
+
+describe('queryJsonPath（YAML 高亮不误命中同名子串）', () => {
+  it('查询对象键 $.type 仅高亮独立键，不命中 mytype / types', () => {
+    const raw = 'type:\n  a: 1\nmytype:\n  b: 2';
+    const r = queryJsonPath(raw, 'yaml', '$.type');
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.count).toBe(1);
+      expect(r.ranges).toHaveLength(1);
+      expect(raw.slice(r.ranges[0][0], r.ranges[0][1])).toBe('type');
+    }
+  });
+});
+
 describe('jpStripPrefixNoise（前缀式输入框：剥误输入的 $ 与首个 .）', () => {
   it('旧式完整路径 $.a.b → a.b', () => {
     expect(jpStripPrefixNoise('$.a.b')).toBe('a.b');

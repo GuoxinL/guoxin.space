@@ -11,12 +11,17 @@ import { copyText, downloadFile } from '../../lib/clipboard';
 import { fmtTime, nowStr } from '../../lib/format';
 import {
   convertLang,
+  clearHistory,
+  decodeShare,
   deleteHistory,
   diffLines,
   diffStats,
+  diffStructure,
   draftKey,
+  encodeShare,
   escapeText,
   formatText,
+  inferSchema,
   jpMergeRanges,
   loadHistory,
   minifyText,
@@ -32,15 +37,19 @@ import { SAMPLE_L, SAMPLE_R } from '../../lib/json/sample';
 import { readStore, writeStore } from '../../lib/storage';
 import {
   LANGS,
+  type DataValue,
   type HistoryItem,
   type Indent,
   type Lang,
   type ParseError,
   type Range,
+  type ShareState,
   type Side,
 } from '../../types/json';
 import { DiffPane } from './DiffPane';
 import { JsonTree } from './JsonTree';
+import { StructDiffView } from './StructDiffView';
+import { SmallTools } from './SmallTools';
 
 /** 草稿写入防抖，避免每敲一个字符就写 localStorage */
 const saveTimers: Partial<Record<Side, ReturnType<typeof setTimeout>>> = {};
@@ -79,6 +88,8 @@ export const JsonWorkbench = component$(() => {
   const treeL = useSignal(false);
   const treeR = useSignal(false);
   const diffOn = useSignal(false);
+  const structOn = useSignal(false);
+  const toolsOpen = useSignal(false);
   const indent = useSignal<Indent>(2);
   const lastSide = useSignal<Side>('L');
   const toast = useSignal<{ msg: string; kind: 'ok' | 'err' }>({ msg: '就绪', kind: 'ok' });
@@ -90,6 +101,10 @@ export const JsonWorkbench = component$(() => {
   const hlR = useSignal<Range[]>([]);
   const jpPathsL = useSignal<string[]>([]);
   const jpPathsR = useSignal<string[]>([]);
+  const jpValsL = useSignal<DataValue[]>([]);
+  const jpValsR = useSignal<DataValue[]>([]);
+  const treeFilterL = useSignal('');
+  const treeFilterR = useSignal('');
   const scL = useSignal(0);
   const scR = useSignal(0);
   const gutL = useSignal<HTMLElement>();
@@ -99,8 +114,15 @@ export const JsonWorkbench = component$(() => {
   const valL = useComputed$(() => parseByLang(textL.value, langL.value));
   const valR = useComputed$(() => parseByLang(textR.value, langR.value));
   const diffRes = useComputed$(() =>
-    diffOn.value ? diffLines(textL.value, textR.value) : null
+    diffOn.value && !structOn.value ? diffLines(textL.value, textR.value) : null
   );
+  const structRes = useComputed$(() => {
+    if (!structOn.value) return null;
+    const a = valL.value;
+    const b = valR.value;
+    if (!a.ok || !b.ok) return null;
+    return diffStructure(a.val, b.val);
+  });
 
   // 客户端恢复草稿与历史：SSR 阶段输出示例数据，避免首屏空白
   useVisibleTask$(() => {
@@ -109,6 +131,15 @@ export const JsonWorkbench = component$(() => {
     if (dl && dl.trim()) textL.value = dl;
     if (dr && dr.trim()) textR.value = dr;
     hist.value = loadHistory();
+
+    // 分享链接：若 URL 带 #s=... 则优先用分享内容覆盖草稿
+    const shared = decodeShare(location.hash);
+    if (shared) {
+      textL.value = shared.l.t;
+      langL.value = shared.l.lang;
+      textR.value = shared.r.t;
+      langR.value = shared.r.lang;
+    }
   });
 
   /* ---------------- 操作 ---------------- */
@@ -147,7 +178,7 @@ export const JsonWorkbench = component$(() => {
     else if (op === 'esc') r = escapeText(raw, lang, indent.value);
     else if (op === 'unesc') r = unescapeText(raw);
     else {
-      const rr = repairJson(raw, indent.value);
+      const rr = repairJson(raw, lang, indent.value);
       r = rr.ok
         ? { ok: true, text: rr.text, msg: `修复成功 · 常见错误已自动处理（${sideName(side)}）` }
         : { ok: false, msg: `无法自动修复 · ${rr.err.msg}（第 ${rr.err.line} 行）` };
@@ -206,6 +237,48 @@ export const JsonWorkbench = component$(() => {
     };
   });
 
+  /** 结构对比：按 key-path 递归比较两侧数据（需两侧均合法） */
+  const toggleStruct = $(() => {
+    const a = valL.value;
+    const b = valR.value;
+    if (!structOn.value && (!a.ok || !b.ok)) {
+      toast.value = { msg: '结构对比需两侧均为合法 JSON', kind: 'err' };
+      return;
+    }
+    structOn.value = !structOn.value;
+    diffOn.value = false;
+    if (structOn.value && a.ok && b.ok) {
+      const r = diffStructure(a.val, b.val);
+      const s = r.summary;
+      toast.value = {
+        msg: r.changes.length
+          ? `结构对比：${s.added} 新增 · ${s.removed} 删除 · ${s.changed} 变更`
+          : '两侧结构完全一致',
+        kind: 'ok',
+      };
+    } else {
+      toast.value = { msg: '已退出结构对比', kind: 'ok' };
+    }
+  });
+
+  /** 从当前侧数据推断 JSON Schema 并写入对侧编辑区 */
+  const inferSchemaSide = $(() => {
+    const side = lastSide.value;
+    const raw = side === 'L' ? textL.value : textR.value;
+    const lang = side === 'L' ? langL.value : langR.value;
+    const p = parseByLang(raw, lang);
+    if (!p.ok) {
+      toast.value = { msg: `${sideName(side)}解析失败，无法推断 Schema`, kind: 'err' };
+      return;
+    }
+    const target: Side = side === 'L' ? 'R' : 'L';
+    commit(target, JSON.stringify(inferSchema(p.val), null, 2));
+    toast.value = {
+      msg: `已从${sideName(side)}数据推断 JSON Schema 并写入${sideName(target)}编辑区`,
+      kind: 'ok',
+    };
+  });
+
   const runJp = $((side: Side) => {
     const rest = side === 'L' ? jpL.value : jpR.value;
     const expr = jpComposePath(rest);
@@ -223,9 +296,11 @@ export const JsonWorkbench = component$(() => {
     if (side === 'L') {
       hlL.value = r.ranges;
       jpPathsL.value = r.paths;
+      jpValsL.value = r.values;
     } else {
       hlR.value = r.ranges;
       jpPathsR.value = r.paths;
+      jpValsR.value = r.values;
     }
     toast.value = {
       msg: r.count
@@ -235,15 +310,49 @@ export const JsonWorkbench = component$(() => {
     };
   });
 
+  /** 把当前侧 JSONPath 命中结果（数组）提取到对侧编辑区 */
+  const extractJp = $((side: Side) => {
+    const vals = side === 'L' ? jpValsL.value : jpValsR.value;
+    if (!vals.length) {
+      toast.value = { msg: `${sideName(side)}暂无 JSONPath 命中结果可提取`, kind: 'err' };
+      return;
+    }
+    const target: Side = side === 'L' ? 'R' : 'L';
+    commit(target, JSON.stringify(vals, null, 2));
+    toast.value = { msg: `已提取 ${vals.length} 项结果到${sideName(target)}编辑区`, kind: 'ok' };
+  });
+
+  /** 生成可分享链接：把两侧内容编码进 location.hash 并复制到剪贴板 */
+  const shareJson = $(async () => {
+    const state: ShareState = {
+      l: { t: textL.value, lang: langL.value },
+      r: { t: textR.value, lang: langR.value },
+    };
+    const enc = encodeShare(state);
+    if (enc.length > 30000) {
+      toast.value = { msg: '内容过大，无法生成分享链接（请缩减后重试）', kind: 'err' };
+      return;
+    }
+    const url = `${location.origin}${location.pathname}#${enc}`;
+    history.replaceState(null, '', `#${enc}`);
+    const ok = await copyText(url);
+    toast.value = {
+      msg: ok ? '已生成分享链接并复制到剪贴板' : `分享链接已写入地址栏：${url.slice(0, 48)}…`,
+      kind: ok ? 'ok' : 'err',
+    };
+  });
+
   const clearJp = $((side: Side) => {
     if (side === 'L') {
       jpL.value = '';
       hlL.value = [];
       jpPathsL.value = [];
+      jpValsL.value = [];
     } else {
       jpR.value = '';
       hlR.value = [];
       jpPathsR.value = [];
+      jpValsR.value = [];
     }
     toast.value = { msg: `已清除${sideName(side)} JSONPath 高亮`, kind: 'ok' };
   });
@@ -281,6 +390,10 @@ export const JsonWorkbench = component$(() => {
 
   const importFile = $(async (file: File) => {
     const side = lastSide.value;
+    const cur = side === 'L' ? textL.value : textR.value;
+    if (cur && cur.trim() && !window.confirm(`导入 ${file.name} 将覆盖当前编辑区内容，是否继续？`)) {
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async () => {
       await commit(side, String(reader.result));
@@ -304,6 +417,11 @@ export const JsonWorkbench = component$(() => {
 
   const delHist = $((idx: number) => {
     hist.value = deleteHistory(idx);
+  });
+
+  const clearAllHist = $(() => {
+    hist.value = clearHistory();
+    toast.value = { msg: '已清空全部历史记录', kind: 'ok' };
   });
 
   /* ---------------- 渲染 ---------------- */
@@ -350,14 +468,19 @@ export const JsonWorkbench = component$(() => {
     const jp = side === 'L' ? jpL.value : jpR.value;
     const hl = side === 'L' ? hlL.value : hlR.value;
     const hlPaths = side === 'L' ? jpPathsL.value : jpPathsR.value;
+    const filter = side === 'L' ? treeFilterL.value : treeFilterR.value;
     const scroll = side === 'L' ? scL.value : scR.value;
     const diff = diffRes.value;
     const diffLinesOut = diff ? (side === 'L' ? diff.a : diff.b) : null;
+    const sRes = structRes.value;
 
     const showDiff = !!diffLinesOut;
-    const showTree = !showDiff && tree;
+    const showStruct = !!sRes;
+    const showTree = !showDiff && !showStruct && tree;
     const err = v.ok ? null : v.err;
     const lineCount = text.split('\n').length;
+    const BIG_FILE_LINES = 5000;
+    const big = lineCount > BIG_FILE_LINES;
     const gut = side === 'L' ? gutL : gutR;
 
     return (
@@ -436,16 +559,44 @@ export const JsonWorkbench = component$(() => {
               <button class="btn ghost jp-clear" onClick$={() => clearJp(side)}>
                 ×
               </button>
+              <button
+                class="btn ghost jp-extract"
+                title="把 JSONPath 命中结果提取到对侧编辑区"
+                onClick$={() => extractJp(side)}
+              >
+                提取
+              </button>
             </span>
           </div>
 
           <div class={`editor view-edit ${showTree || showDiff ? 'hide' : ''}`}>
-            <div class="gutter" ref={gut}>
-              {Array.from({ length: lineCount }, (_, i) => (
-                <div key={i} class={err && err.line === i + 1 ? 'ln err' : 'ln'}>
-                  {i + 1}
-                </div>
-              ))}
+            <div class={`gutter ${big ? 'big' : ''}`} ref={gut}>
+              {big
+                ? (() => {
+                    const LINE_H = 24;
+                    const PAD = 12;
+                    const VIEW = 480;
+                    const start = Math.max(0, Math.floor((scroll - PAD) / LINE_H) - 8);
+                    const end = Math.min(lineCount, Math.ceil((scroll - PAD + VIEW) / LINE_H) + 8);
+                    const nodes: JSXOutput[] = [];
+                    for (let i = start; i < end; i++) {
+                      nodes.push(
+                        <div
+                          key={i}
+                          class={err && err.line === i + 1 ? 'ln err' : 'ln'}
+                          style={{ position: 'absolute', top: `${i * LINE_H - scroll + PAD}px`, left: '0', right: '0', paddingRight: '8px' }}
+                        >
+                          {i + 1}
+                        </div>
+                      );
+                    }
+                    return nodes;
+                  })()
+                : Array.from({ length: lineCount }, (_, i) => (
+                    <div key={i} class={err && err.line === i + 1 ? 'ln err' : 'ln'}>
+                      {i + 1}
+                    </div>
+                  ))}
             </div>
             <textarea
               spellcheck={false}
@@ -469,8 +620,15 @@ export const JsonWorkbench = component$(() => {
                 if (side === 'L') scL.value = el.scrollTop;
                 else scR.value = el.scrollTop;
               }}
+              onKeyDown$={(e) => {
+                // Ctrl/Cmd+Enter 格式化当前侧（便捷快捷键）
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  runOp(side, 'fmt');
+                }
+              }}
             />
-            {hl.length > 0 && (
+            {hl.length > 0 && !big && (
               <pre class="jp-overlay" aria-hidden="true">
                 {highlightNodes(text, hl)}
               </pre>
@@ -489,10 +647,24 @@ export const JsonWorkbench = component$(() => {
             )}
           </div>
 
+          {showTree && (
+            <div class="tree-toolbar">
+              <input
+                class="tree-filter"
+                placeholder="过滤键名高亮…"
+                spellcheck={false}
+                value={filter}
+                onInput$={(_e, el) => {
+                  if (side === 'L') treeFilterL.value = el.value;
+                  else treeFilterR.value = el.value;
+                }}
+              />
+            </div>
+          )}
           {showTree &&
             (v.ok ? (
               <div class="view tree-view">
-                <JsonTree val={v.val} name="root" depth={0} path="$" hlPaths={hlPaths} />
+                <JsonTree val={v.val} name="root" depth={0} path="$" hlPaths={hlPaths} filter={filter} />
               </div>
             ) : (
               <div class="view tree-view">
@@ -500,6 +672,7 @@ export const JsonWorkbench = component$(() => {
               </div>
             ))}
 
+          {showStruct && side === 'L' && sRes && <StructDiffView result={sRes} />}
           {showDiff && <DiffPane lines={diffLinesOut} />}
 
           <div class="vbar">
@@ -546,10 +719,31 @@ export const JsonWorkbench = component$(() => {
           </button>
           <button
             class={`btn ${diffOn.value ? 'primary' : ''}`}
-            title="左右编辑区内联显示颜色差异"
+            title="左右编辑区内联显示颜色差异（行级）"
             onClick$={() => toggleDiff()}
           >
             {diffOn.value ? '退出对比' : '对比'}
+          </button>
+          <button
+            class={`btn ${structOn.value ? 'primary' : ''}`}
+            title="按 key-path 比较两侧结构（需两侧均合法 JSON）"
+            onClick$={() => toggleStruct()}
+          >
+            {structOn.value ? '退出结构' : '结构'}
+          </button>
+          <button
+            class="btn"
+            title="从当前侧数据推断 JSON Schema 并写入对侧"
+            onClick$={() => inferSchemaSide()}
+          >
+            Schema
+          </button>
+          <button
+            class="btn ghost"
+            title="Base64 / URL / 时间戳 / JWT / CSV 等小工具"
+            onClick$={() => (toolsOpen.value = true)}
+          >
+            小工具
           </button>
           <button class="btn" title="最近 10 条历史记录" onClick$={() => openHist()}>
             历史
@@ -563,6 +757,9 @@ export const JsonWorkbench = component$(() => {
           <button class="btn ghost" title="复制当前编辑区内容" onClick$={() => copySide()}>
             复制
           </button>
+          <button class="btn ghost" title="生成可分享链接（含两侧内容）" onClick$={() => shareJson()}>
+            分享
+          </button>
         </div>
       </div>
 
@@ -575,7 +772,7 @@ export const JsonWorkbench = component$(() => {
 
       <div class="hint">
         所有处理均在本地浏览器完成，数据不会上传。左右两侧互不干扰：每侧可独立格式化 / 压缩 /
-        转义 / 去转义，点击「树形」在编辑区与树形视图间互斥切换；输入即实时校验（绿色=合法，红色=错误位置）；「对比」在两侧编辑区内直接着色显示差异（红=左侧独有，绿=右侧新增）。
+        转义 / 去转义，点击「树形」在编辑区与树形视图间互斥切换；编辑区内 Ctrl/Cmd+Enter 可快速格式化当前侧；输入即实时校验（绿色=合法，红色=错误位置）；「对比」按行着色差异，「结构」按 key-path 比较两侧差异（红=左侧独有，绿=右侧新增）；「Schema」从一侧数据推断 JSON Schema 写入对侧；「小工具」提供 Base64 / URL / 时间戳 / JWT / CSV 转换。
       </div>
 
       <input
@@ -595,9 +792,14 @@ export const JsonWorkbench = component$(() => {
           <div class="modal-box" onClick$={(e) => e.stopPropagation()}>
             <div class="modal-head">
               <span>历史记录</span>
-              <button class="btn ghost" onClick$={() => (histOpen.value = false)}>
-                ×
-              </button>
+              <div class="modal-head-actions">
+                <button class="btn ghost" title="清空全部历史" onClick$={() => clearAllHist()}>
+                  清空
+                </button>
+                <button class="btn ghost" onClick$={() => (histOpen.value = false)}>
+                  ×
+                </button>
+              </div>
             </div>
             <div class="hist-out">
               {hist.value.length === 0 ? (
@@ -627,6 +829,8 @@ export const JsonWorkbench = component$(() => {
           </div>
         </div>
       )}
+
+      {toolsOpen.value && <SmallTools onClose$={() => (toolsOpen.value = false)} />}
     </div>
   );
 });

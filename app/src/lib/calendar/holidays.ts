@@ -6,8 +6,9 @@
  *
  * - rest：放假日期（ISO yyyy-mm-dd，含节日当天与调休连休）。
  * - work：调休补班日期（原本为周末、但因调休需上班的日期）。
- * - names：法定节日名（仅标注锚点日，用于日历格高亮显示，如「春节」标在正月初一）。
- */
+ * - names：法定节日名（仅标注锚点日，用于日历格高亮显示，如「春节」标在正月初一）。 */
+
+import type { DayRef } from './calendar';
 export interface YearHoliday {
   year: number;
   rest: string[];
@@ -99,4 +100,36 @@ export const HOLIDAY_YEARS: number[] = Object.keys(HOLIDAYS)
 
 export function isHolidayYearMaintained(y: number): boolean {
   return HOLIDAYS[y] !== undefined;
+}
+
+export interface NextHoliday {
+  /** 距今天数差（含今天=0） */
+  days: number;
+  date: DayRef;
+  name?: string;
+}
+
+/**
+ * 自 from（含）起最近的法定放假日的天数差与日期。
+ * 仅在「已维护年份」的放假数据内查找；若未来无已维护的放假数据则返回 null（诚实不臆造）。
+ */
+export function nextHoliday(from: DayRef): NextHoliday | null {
+  const fromTime = Date.UTC(from.y, from.m - 1, from.d);
+  let best: { time: number; date: DayRef; name?: string } | null = null;
+  for (const y of HOLIDAY_YEARS) {
+    const year = HOLIDAYS[y];
+    for (const isoStr of year.rest) {
+      const parts = isoStr.split('-');
+      const yy = Number(parts[0]);
+      const mm = Number(parts[1]);
+      const dd = Number(parts[2]);
+      const time = Date.UTC(yy, mm - 1, dd);
+      if (time >= fromTime && (!best || time < best.time)) {
+        best = { time, date: { y: yy, m: mm, d: dd }, name: year.names[isoStr] };
+      }
+    }
+  }
+  if (!best) return null;
+  const days = Math.round((best.time - fromTime) / 86_400_000);
+  return { days, date: best.date, name: best.name };
 }

@@ -580,6 +580,27 @@ select.lang-sel {
   overflow: auto;
   min-height: 320px;
 }
+.tree-toolbar {
+  margin: 0 0 8px;
+}
+.tree-filter {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--slate-5);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--slate-95);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.tree-filter::placeholder {
+  color: var(--slate-50);
+}
+.tree-filter:focus {
+  border-color: var(--violet-65);
+  box-shadow: 0 0 0 3px var(--violet-0);
+}
 .tree-view {
   font-family: var(--mono);
   font-size: 13px;
@@ -617,6 +638,14 @@ select.lang-sel {
 .j-meta {
   color: var(--text3);
   font-size: 12px;
+}
+/* 树形过滤词命中的键名高亮（violet，区别于 JSONPath 命中的 jp-hl 黄底） */
+.jt-match {
+  background: var(--violet-0);
+  color: var(--violet-80);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 600;
 }
 
 .diff-view {
@@ -761,6 +790,11 @@ select.lang-sel {
   font-weight: 600;
   flex-shrink: 0;
 }
+.modal-head-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
 .hist-out {
   padding: 12px;
   overflow: auto;
@@ -848,6 +882,138 @@ select.lang-sel {
   display: flex;
   gap: 8px;
 }
+/* 超大文件：gutter 改为相对定位 + 窗口化渲染（仅绘制可视窗口内的行号） */
+.gutter.big {
+  position: relative;
+  padding: 0;
+}
+
+/* 结构对比视图 */
+.struct-diff {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 0;
+}
+.sd-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-size: 12.5px;
+}
+.sd-empty {
+  padding: 18px 12px;
+  color: var(--muted);
+}
+.sd-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.sd-badge {
+  flex-shrink: 0;
+  min-width: 34px;
+  text-align: center;
+  font-size: 11px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-weight: 700;
+}
+.sd-badge-added { background: var(--success-soft); color: var(--success); }
+.sd-badge-removed { background: var(--danger-soft); color: var(--danger); }
+.sd-badge-changed { background: var(--primary-soft); color: var(--primary-deep); }
+.sd-path {
+  flex-shrink: 0;
+  color: var(--text2);
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sd-vals {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.sd-old { color: var(--danger); }
+.sd-new { color: var(--success); }
+.sd-arrow { color: var(--muted); }
+
+/* 小工具弹窗 */
+.tools-box {
+  max-width: 620px;
+  width: 92%;
+}
+.tools-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.tools-tab {
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  padding: 7px 12px;
+  font-size: 13px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+}
+.tools-tab:hover { background: var(--border); }
+.tools-tab.active {
+  background: var(--primary-soft);
+  color: var(--primary-deep);
+  font-weight: 600;
+}
+.tools-body { padding: 14px 12px; }
+.tools-pane { display: flex; flex-direction: column; gap: 10px; }
+.tools-in,
+.tools-out {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.tools-out { background: var(--surface2); color: var(--text2); }
+.tools-in-line {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 6px 10px;
+  outline: none;
+  box-sizing: border-box;
+}
+.tools-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tools-err {
+  color: var(--danger);
+  font-size: 12.5px;
+  background: var(--danger-soft);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.tools-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.tools-toast { color: var(--success); font-size: 12.5px; }
+
 .btn.danger {
   background: var(--danger);
   border-color: var(--danger);
@@ -3161,6 +3327,97 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
   border-radius: 8px;
   padding: 0.55rem 0.8rem;
   margin: 0 0 1rem;
+}
+
+/* 距下一假期提示条 */
+.cal-next {
+  color: var(--violet-80);
+  font-size: 13.5px;
+  font-weight: 500;
+  background: var(--violet-0);
+  border: 1px solid var(--violet-15);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  margin: 0 0 1rem;
+}
+
+/* 月/年视图切换（分段控件） */
+.cal-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--slate-5);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-left: 4px;
+}
+.cal-view-btn {
+  border: 0;
+  background: transparent;
+  color: var(--slate-65);
+  font: inherit;
+  font-size: 13px;
+  padding: 0 12px;
+  min-height: 30px;
+  cursor: pointer;
+}
+.cal-view-btn + .cal-view-btn { border-left: 1px solid var(--slate-5); }
+.cal-view-btn:hover { background: var(--violet-0); color: var(--slate-95); }
+.cal-view-btn.active { background: var(--violet-65); color: #fff; font-weight: 600; }
+
+/* 跨月补白格可点击跳月 */
+.cal-out.cal-link { cursor: pointer; }
+.cal-out.cal-link:hover { background: var(--violet-0); }
+
+/* 年视图：12 个紧凑月格总览 */
+.cal-year {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.cal-mini {
+  border: 1px solid var(--slate-5);
+  border-radius: 10px;
+  padding: 8px 8px 10px;
+  background: var(--surface);
+}
+.cal-mini-head {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--slate-95);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  text-align: left;
+  padding: 2px 4px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.cal-mini-head:hover { background: var(--violet-0); color: var(--violet-80); }
+.cal-mini-grid { gap: 0; }
+.cal-mini-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  font-size: 11px;
+  border: 0;
+  background: transparent;
+  color: var(--slate-80);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.cal-mini-cell:hover { background: var(--violet-0); }
+.cal-mini-out { color: var(--slate-25); cursor: default; }
+.cal-mini-out:hover { background: transparent; }
+.cal-mini-rest { background: var(--violet-0); color: var(--violet-80); font-weight: 600; }
+.cal-mini-work { color: var(--slate-65); text-decoration: underline; }
+.cal-mini-today { box-shadow: inset 0 0 0 1.5px var(--violet-65); }
+
+@media (max-width: 720px) {
+  .cal-year { grid-template-columns: repeat(2, 1fr); }
+  .cal-cell { min-height: 64px; }
 }
 
 /* Toolbox 子导航（JSON / Calendar 互链，下划线 tab，发丝线分隔） */

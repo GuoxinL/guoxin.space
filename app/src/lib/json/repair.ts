@@ -1,5 +1,5 @@
-import type { Indent, ParseError } from '../../types/json';
-import { indentStr } from './lang';
+import type { DataValue, Indent, Lang, ParseError } from '../../types/json';
+import { dumpByLang, indentStr, parseByLang } from './lang';
 
 /**
  * 把「像 JSON 但不是严格 JSON」的文本放宽为可解析形式。
@@ -22,9 +22,24 @@ export type RepairResult =
 
 /**
  * 尽力修复并按缩进格式化输出。
+ * - json / json5：放宽常见错误（注释 / 无引号键 / 尾逗号 / 单引号）后解析。
+ * - yaml / toml / xml：非 JSON 语言没有「严格 JSON 语法错误」概念，修复 = 解析后重新序列化归一化。
  * 修复后仍无法解析时返回错误位置，让调用方提示「无法自动修复」。
  */
-export function repairJson(raw: string, indent: Indent = 2): RepairResult {
+export function repairJson(raw: string, lang: Lang = 'json', indent: Indent = 2): RepairResult {
+  if (lang !== 'json' && lang !== 'json5') {
+    const p = parseByLang(raw, lang);
+    if (!p.ok) {
+      return { ok: false, err: { line: 1, col: 1, msg: `无法自动修复（${lang} 解析失败）：${p.err.msg}` } };
+    }
+    try {
+      const text = dumpByLang(p.val as DataValue, lang, false, indent);
+      return { ok: true, text };
+    } catch (e) {
+      return { ok: false, err: { line: 1, col: 1, msg: '无法自动修复：' + String((e as Error)?.message ?? e) } };
+    }
+  }
+
   const relaxed = relaxJson(raw);
   try {
     const val = JSON.parse(relaxed) as unknown;
