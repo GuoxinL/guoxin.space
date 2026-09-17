@@ -1,6 +1,6 @@
 # AGENTS.md — 仓库操作指南（供 AI Agent 阅读）
 
-个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（5 页静态预渲染：`/`、`/skills`、`/toolbox/json`、`/running`、`/notes` 列表页；`/notes/<中文标题>` 详情为纯 CSR 运行时取数），推送 `main` 即 GitHub Actions 自动构建并上线。
+个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（6 页静态预渲染：`/`、`/skills`、`/toolbox/json`、`/toolbox/calendar`、`/running`、`/notes` 列表页；`/skills/<dir>` 与 `/notes/<中文标题>` 详情为纯 CSR 运行时取数），推送 `main` 即 GitHub Actions 自动构建并上线。
 
 > 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：AI 开发动作一律走 `.harness/plans/_template/` 的 8 步 SOP；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若本文档（操作指南 / 上下文）与 CONSTRAINTS.md / 对应 SOP 步骤冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文档定位 = AI 操作入口与项目上下文（目录 / 数据流 / 红线速览），非硬约束真源。
 
@@ -14,7 +14,7 @@ personal-homepage/
 ├── package.json        # Qwik 项目；packageManager: pnpm@9.15.0（禁用 npm / yarn，禁止提交 package-lock.json）
 ├── vite.config.ts / tsconfig*.json
 ├── app/                # Qwik 应用源码（唯一改动区）
-│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 9 文件 / 136 用例，CI 实测）
+│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 16 文件 / 265 用例，CI 实测）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
 │   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
@@ -114,7 +114,7 @@ gh run list --workflow=deploy.yml --limit 5
 > **不要**用 `gh api repos/GuoxinL/guoxin.space/pages/builds/latest` 判断上线——workflow 模式下该接口停留在旧 branch-deploy 记录，不更新（见红线 6 / CONSTRAINTS C-19）。
 > 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`，模拟 GitHub Pages 语义 —— 含 404 fallback，深链用例才可验证）。
 
-线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/running`（Running）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）。
+线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情）。
 
 ## 易错点备忘
 
@@ -252,9 +252,9 @@ gh run list --workflow=deploy.yml --limit 5
 | `npm run lint` | ESLint 检查 `app/src` | 配置见 `eslint-plugin-qwik` + `@typescript-eslint` |
 | `npm run fmt` | Prettier 格式化 `app/src` | 提交前必跑；当前未接 pre-commit 钩子（仅 commit-msg 校验提交格式） |
 | `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
-| `npm run test` | `vitest run` 单测（9 文件 / 136 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
+| `npm run test` | `vitest run` 单测（16 文件 / 265 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
 | `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`（模拟 GitHub Pages 语义）；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
-| `npm run build` | Qwik SSG 构建（client + SSR 预渲染 5 页；末尾自动写 SPA fallback `404.html`） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
+| `npm run build` | Qwik SSG 构建（client + SSR 预渲染 6 页；末尾自动写 SPA fallback `404.html`） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
 
 ### 语言 / 框架版本约束
 

@@ -8,12 +8,14 @@
 |---|---|
 | `/` | 工作台首页：Hero（QWIK · 像素基因）、终端命令框、区块导航卡片 |
 | `/skills`（含 `/skills/<dir>`） | Skills 技能夹：浏览 GitHub 仓库中的技能目录，frontmatter 元数据、GitHub 风格 Markdown 渲染、文件树抽屉、收藏（proxy / mirror）与通道管理 |
-| `/toolbox/json` | 万能工具箱 · JSON：解析 / 格式化 / 对比 / JSONPath / 历史，纯前端本地计算 |
+| `/toolbox/json` | 万能工具箱 · JSON：解析 / 格式化 / 对比 / JSONPath / 历史 / Schema 推断 / 小工具集（Base64·URL·时间戳·JWT·CSV）/ 语义 diff，纯前端本地计算 |
+| `/toolbox/calendar` | 万能工具箱 · 日历：农历、法定节假日与调休、二十四节气、年视图、距下一假期倒计时 |
 | `/running` | 骑行 · 跑步运动数据：年度热力图、活动列表、地图轨迹与回放 |
+| `/notes`（含 `/notes/<中文标题>`） | 文章（Notes）：知识库文章列表与阅读，详情纯 CSR 运行时取数 |
 
 ## 架构一句话
 
-- **静态站**：构建期把 4 个顶层页面预渲染为纯静态 HTML（`app/dist/`），运行时 Qwik resumability 按需激活，无后端、无数据库。
+- **静态站**：构建期把 6 个顶层页面预渲染为纯静态 HTML（`app/dist/`），运行时 Qwik resumability 按需激活，无后端、无数据库。
 - **数据链路**：Skills / Running 的私有数据全部经 **Cloudflare Worker**（[`worker.js`](./worker.js)）代理 GitHub OAuth 鉴权与私有仓库 `GuoxinL/running-private`，页面零凭证；数据生产（行者 OpenAPI 每小时同步 → 预览产物）在独立私有仓库完成。
 - **设计系统**：`DESIGN.md` 为唯一视觉真源（QWIK-INSPIRED v2，现代 SaaS 骨架 + 街机像素基因），同步到 `app/src/global.css`。
 
@@ -23,7 +25,7 @@
 ├── AGENTS.md           # AI 操作指南 + 8 步 SOP 入口（CLAUDE.md / CODEBUDDY.md 为其符号链接）
 ├── DESIGN.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
 ├── app/                # Qwik 应用源码（唯一改动区）
-│   ├── src/            # routes / components / lib（单测 9 文件 / 136 用例）
+│   ├── src/            # routes / components / lib（单测 16 文件 / 265 用例）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   └── dist/           # 构建产物（gitignore，CI 生成）
 ├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Skills 写通道 + Running 轨迹代理
@@ -42,7 +44,7 @@ pnpm install
 
 npm run dev         # 本地开发（vite --mode ssr，端口 5173）
 npm run build       # SSG 构建 → app/dist/
-npm run test        # Vitest 单元测试（9 文件 / 136 用例）
+npm run test        # Vitest 单元测试（16 文件 / 265 用例）
 npm run test:e2e    # Playwright 页面自动化（自动静态服务 app/dist）
 npm run lint / fmt / type-check
 ```
@@ -58,6 +60,7 @@ npm run lint / fmt / type-check
 - **2026-09-09**：Qwik + Qwik City SSG 全站重构（4 页静态预渲染，旧站文件删除，回滚基线 = git 历史）。
 - **2026-09-10 ~ 11**：设计系统 QWIK-INSPIRED v2（去容器化 / 发丝线 / 偏移实心阴影），Hero 主图保真路线。
 - **2026-09-12**：Playwright e2e 双门禁接入 CI（vitest + e2e 任一失败阻断部署）；SOP 精简为 8 步（提交并入 Deploy），硬约束收敛到 `.harness/docs/CONSTRAINTS.md` 单一真相源。
+- **2026-09-17**：Toolbox 扩展——日历从主导航并入 Toolbox 子导航（新增 `/toolbox/calendar`：农历 / 法定节假日与调休 / 二十四节气 / 年视图 / 距下一假期倒计时）；JSON 工具增强（Schema 推断 / 小工具集 / 语义 diff / 大文件限流）；静态预渲染页增至 6 个，单测增至 16 文件 / 265 用例。
 
 ## 文档
 
