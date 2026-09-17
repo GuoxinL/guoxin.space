@@ -2623,6 +2623,62 @@ body[data-theme='dark'] .mc-nav-menu {
   font-size: 13px;
 }
 
+/* Toolbox 悬浮子菜单（V2：无圆角 / 无偏移阴影，发丝线 + violet-0 hover） */
+.mc-nav-group { position: relative; }
+.mc-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 184px;
+  background: var(--white);
+  border-top: 1.6px solid var(--slate-25);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease-out, transform 120ms ease-out, visibility 120ms;
+}
+body[data-theme='dark'] .mc-submenu { background: var(--surface); }
+.mc-nav-group:hover .mc-submenu,
+.mc-nav-group:focus-within .mc-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.mc-submenu .mc-nav-item {
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: 0;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+.mc-submenu .mc-nav-item:hover { background: var(--violet-0); }
+.mc-submenu .mc-nav-item[aria-current='page'] {
+  background: var(--violet-0);
+  color: var(--violet-65);
+  box-shadow: none;
+}
+/* 小工具面板（独立路由页） */
+.tools-panel { max-width: 680px; margin: 0 auto; padding: 18px 14px 28px; }
+.tools-panel-head { margin-bottom: 12px; }
+.tools-panel-head h2 { font-family: var(--font-heading); font-size: 18px; color: var(--slate-95); margin: 0; }
+.tools-panel-slogan { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.tools-status { margin-bottom: 8px; }
+.tools-tab { text-decoration: none; }
+/* 移动端 Toolbox 嵌套子项 */
+.mc-nav-group-m { display: flex; flex-direction: column; }
+.mc-nav-sub { display: flex; flex-direction: column; }
+.mc-nav-sub .mc-nav-item {
+  width: 100%;
+  justify-content: flex-start;
+  padding-left: 38px;
+  font-size: 13px;
+  border-radius: 0;
+}
+
 /* ---------- 终端命令框（官网同款窗口装饰） ---------- */
 /* V2：终端框保留深色「窗口」语义，但去掉描边与偏移阴影 */
 .mc-term {

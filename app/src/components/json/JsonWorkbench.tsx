@@ -49,7 +49,6 @@ import {
 import { DiffPane } from './DiffPane';
 import { JsonTree } from './JsonTree';
 import { StructDiffView } from './StructDiffView';
-import { SmallTools } from './SmallTools';
 
 /** 草稿写入防抖，避免每敲一个字符就写 localStorage */
 const saveTimers: Partial<Record<Side, ReturnType<typeof setTimeout>>> = {};
@@ -89,7 +88,6 @@ export const JsonWorkbench = component$(() => {
   const treeR = useSignal(false);
   const diffOn = useSignal(false);
   const structOn = useSignal(false);
-  const toolsOpen = useSignal(false);
   const indent = useSignal<Indent>(2);
   const lastSide = useSignal<Side>('L');
   const toast = useSignal<{ msg: string; kind: 'ok' | 'err' }>({ msg: '就绪', kind: 'ok' });
@@ -663,11 +661,11 @@ export const JsonWorkbench = component$(() => {
           )}
           {showTree &&
             (v.ok ? (
-              <div class="view tree-view">
+              <div class="tree-view">
                 <JsonTree val={v.val} name="root" depth={0} path="$" hlPaths={hlPaths} filter={filter} />
               </div>
             ) : (
-              <div class="view tree-view">
+              <div class="tree-view">
                 <div class="empty">{lang} 解析失败：{v.err.msg}</div>
               </div>
             ))}
@@ -738,14 +736,7 @@ export const JsonWorkbench = component$(() => {
           >
             Schema
           </button>
-          <button
-            class="btn ghost"
-            title="Base64 / URL / 时间戳 / JWT / CSV 等小工具"
-            onClick$={() => (toolsOpen.value = true)}
-          >
-            小工具
-          </button>
-          <button class="btn" title="最近 10 条历史记录" onClick$={() => openHist()}>
+          <button class="btn ghost" title="最近 10 条历史记录" onClick$={() => openHist()}>
             历史
           </button>
           <button class="btn ghost" title="导入文件到当前编辑区" onClick$={() => pickFile()}>
@@ -772,7 +763,7 @@ export const JsonWorkbench = component$(() => {
 
       <div class="hint">
         所有处理均在本地浏览器完成，数据不会上传。左右两侧互不干扰：每侧可独立格式化 / 压缩 /
-        转义 / 去转义，点击「树形」在编辑区与树形视图间互斥切换；编辑区内 Ctrl/Cmd+Enter 可快速格式化当前侧；输入即实时校验（绿色=合法，红色=错误位置）；「对比」按行着色差异，「结构」按 key-path 比较两侧差异（红=左侧独有，绿=右侧新增）；「Schema」从一侧数据推断 JSON Schema 写入对侧；「小工具」提供 Base64 / URL / 时间戳 / JWT / CSV 转换。
+        转义 / 去转义，点击「树形」在编辑区与树形视图间互斥切换；编辑区内 Ctrl/Cmd+Enter 可快速格式化当前侧；输入即实时校验（绿色=合法，红色=错误位置）；「对比」按行着色差异，「结构」按 key-path 比较两侧差异（红=左侧独有，绿=右侧新增）；「Schema」从一侧数据推断 JSON Schema 写入对侧。Base64 / URL / 时间戳 / JWT / CSV 等小工具见页头 Toolbox 悬浮菜单。
       </div>
 
       <input
@@ -829,8 +820,6 @@ export const JsonWorkbench = component$(() => {
           </div>
         </div>
       )}
-
-      {toolsOpen.value && <SmallTools onClose$={() => (toolsOpen.value = false)} />}
     </div>
   );
 });

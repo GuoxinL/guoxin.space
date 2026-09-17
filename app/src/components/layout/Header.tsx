@@ -11,6 +11,16 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: '/notes', label: 'Notes', icon: 'note' },
 ];
 
+const TOOLBOX_MENU: { href: string; label: string; icon: PixelIconName }[] = [
+  { href: '/toolbox/json', label: 'JSON', icon: 'scroll' },
+  { href: '/toolbox/calendar', label: '日历', icon: 'calendar' },
+  { href: '/toolbox/base64', label: 'Base64', icon: 'base64' },
+  { href: '/toolbox/url', label: 'URL', icon: 'url' },
+  { href: '/toolbox/timestamp', label: '时间戳', icon: 'ts' },
+  { href: '/toolbox/jwt', label: 'JWT', icon: 'jwt' },
+  { href: '/toolbox/csv', label: 'CSV', icon: 'csv' },
+];
+
 export const Header = component$(() => {
   const loc = useLocation();
   const dark = useSignal(false);
@@ -28,8 +38,12 @@ export const Header = component$(() => {
 
   const isActive = (href: string) => {
     const norm = (p: string) => p.replace(/\/+$/, '') || '/';
-    // Toolbox 是父栏目：/toolbox/json 与 /toolbox/calendar 两个子页都高亮它
+    // Toolbox 是父栏目：/toolbox/json 与 /toolbox/calendar 及 5 个小工具子页都高亮它
     if (href === '/toolbox/json') return loc.url.pathname.startsWith('/toolbox');
+    return norm(loc.url.pathname) === norm(href);
+  };
+  const isExact = (href: string) => {
+    const norm = (p: string) => p.replace(/\/+$/, '') || '/';
     return norm(loc.url.pathname) === norm(href);
   };
 
@@ -42,20 +56,51 @@ export const Header = component$(() => {
         </Link>
 
         <div class="flex items-center gap-1.5">
-          {/* 桌面端内联导航（≥640px 显示文字；移动端收进汉堡菜单） */}
-          <ul class="hidden sm:flex items-center gap-1 overflow-x-auto">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive(item.href) ? 'page' : undefined}
-                  class="mc-nav-item"
-                >
-                  <PixelIcon name={item.icon} size={14} />
-                  <span class="hidden sm:inline">{item.label}</span>
-                </Link>
-              </li>
-            ))}
+          {/* 桌面端内联导航（≥640px 显示文字；移动端收进汉堡菜单）。
+              注意：ul 不能用 overflow-x-auto，否则会裁切绝对定位的子菜单。 */}
+          <ul class="hidden sm:flex items-center gap-1">
+            {NAV.map((item) =>
+              item.href === '/toolbox/json' ? (
+                <li key={item.href} class="mc-nav-group">
+                  <Link
+                    href={item.href}
+                    aria-haspopup="true"
+                    aria-expanded={isActive(item.href) ? 'true' : 'false'}
+                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    class="mc-nav-item"
+                  >
+                    <PixelIcon name={item.icon} size={14} />
+                    <span class="hidden sm:inline">{item.label}</span>
+                  </Link>
+                  <ul class="mc-submenu" role="menu">
+                    {TOOLBOX_MENU.map((m) => (
+                      <li key={m.href}>
+                        <Link
+                          href={m.href}
+                          role="menuitem"
+                          aria-current={isExact(m.href) ? 'page' : undefined}
+                          class="mc-nav-item"
+                        >
+                          <PixelIcon name={m.icon} size={14} />
+                          <span>{m.label}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    class="mc-nav-item"
+                  >
+                    <PixelIcon name={item.icon} size={14} />
+                    <span class="hidden sm:inline">{item.label}</span>
+                  </Link>
+                </li>
+              )
+            )}
           </ul>
 
           <button
@@ -92,25 +137,56 @@ export const Header = component$(() => {
         </div>
       </nav>
 
-      {/* 移动端下拉菜单（<640px；点汉堡展开，含文字标签） */}
+      {/* 移动端下拉菜单（<640px；点汉堡展开，Toolbox 下嵌套同批子项） */}
       {menuOpen.value && (
         <div id="mc-mobile-menu" class="mc-nav-menu sm:hidden" role="menu">
           <div class="mc-container">
             <ul class="mc-nav-menu-list">
-              {NAV.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={isActive(item.href) ? 'page' : undefined}
-                    class="mc-nav-item"
-                    role="menuitem"
-                    onClick$={() => (menuOpen.value = false)}
-                  >
-                    <PixelIcon name={item.icon} size={14} />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              ))}
+              {NAV.map((item) =>
+                item.href === '/toolbox/json' ? (
+                  <li key={item.href} class="mc-nav-group-m">
+                    <Link
+                      href={item.href}
+                      role="menuitem"
+                      aria-current={isActive(item.href) ? 'page' : undefined}
+                      class="mc-nav-item"
+                      onClick$={() => (menuOpen.value = false)}
+                    >
+                      <PixelIcon name={item.icon} size={14} />
+                      <span>{item.label}</span>
+                    </Link>
+                    <ul class="mc-nav-sub">
+                      {TOOLBOX_MENU.map((m) => (
+                        <li key={m.href}>
+                          <Link
+                            href={m.href}
+                            role="menuitem"
+                            aria-current={isExact(m.href) ? 'page' : undefined}
+                            class="mc-nav-item"
+                            onClick$={() => (menuOpen.value = false)}
+                          >
+                            <PixelIcon name={m.icon} size={14} />
+                            <span>{m.label}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ) : (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      role="menuitem"
+                      aria-current={isActive(item.href) ? 'page' : undefined}
+                      class="mc-nav-item"
+                      onClick$={() => (menuOpen.value = false)}
+                    >
+                      <PixelIcon name={item.icon} size={14} />
+                      <span>{item.label}</span>
+                    </Link>
+                  </li>
+                )
+              )}
             </ul>
           </div>
         </div>

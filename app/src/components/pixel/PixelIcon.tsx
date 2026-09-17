@@ -4,7 +4,7 @@ import { component$ } from '@builder.io/qwik';
  * 像素图标：16x16 网格，全部由 1x1 对齐的矩形拼成，无曲线、无描边圆角。
  * 明暗层次用 opacity（0.45 = 暗部），保证单色下也能读形状。
  */
-export type PixelIconName = 'home' | 'chest' | 'scroll' | 'boot' | 'pickaxe' | 'user' | 'sun' | 'moon' | 'note' | 'calendar';
+export type PixelIconName = 'home' | 'chest' | 'scroll' | 'boot' | 'pickaxe' | 'user' | 'sun' | 'moon' | 'note' | 'calendar' | 'base64' | 'url' | 'ts' | 'jwt' | 'csv';
 
 const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
   // 草方块：绿顶 + 棕色土身
@@ -91,6 +91,39 @@ const ICONS: Record<PixelIconName, { d: string; o?: number }[]> = {
     { d: 'M8 8h3v3H8z', o: 0.6 },
     { d: 'M3 12h3v2H3z', o: 0.6 },
     { d: 'M8 12h3v2H8z', o: 0.6 },
+  ],
+  // 小工具：Base64（数据块）
+  base64: [
+    { d: 'M3 3h4v4H3z' },
+    { d: 'M9 3h4v4H9z' },
+    { d: 'M3 9h4v4H3z' },
+    { d: 'M9 9h4v4H9z', o: 0.45 },
+  ],
+  // 小工具：URL（链接）
+  url: [
+    { d: 'M2 6h4v4H2z', o: 0.5 },
+    { d: 'M10 6h4v4H10z', o: 0.5 },
+    { d: 'M6 4h4v8H6z' },
+  ],
+  // 小工具：时间戳（时钟）
+  ts: [
+    { d: 'M3 3h10v10H3z', o: 0.3 },
+    { d: 'M7 5h2v4H7z' },
+    { d: 'M7 9h4v2H7z', o: 0.6 },
+  ],
+  // 小工具：JWT（钥匙）
+  jwt: [
+    { d: 'M3 6h4v4H3z' },
+    { d: 'M7 7h6v2H7z' },
+    { d: 'M11 8h1v2h-1z', o: 0.6 },
+    { d: 'M13 8h1v3h-1z', o: 0.6 },
+  ],
+  // 小工具：CSV（表格）
+  csv: [
+    { d: 'M2 4h12v8H2z', o: 0.3 },
+    { d: 'M2 7h12v1H2z' },
+    { d: 'M7 4h1v8H7z', o: 0.5 },
+    { d: 'M11 4h1v8H11z', o: 0.5 },
   ],
 };
 
