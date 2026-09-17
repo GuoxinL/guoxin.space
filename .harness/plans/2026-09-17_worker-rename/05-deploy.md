@@ -10,7 +10,7 @@
 - push `a0c319a`（默认域 = `api.guoxin.space`）：
   - `Deploy Worker` run 35224896004 → **success**（worker.js 已上线 `guoxin-space`）。
   - `Deploy to GitHub Pages` run 35224895810 → **failure**：e2e `running.spec.ts` 失败（`api.guoxin.space` 未解析 → 年度热力图区块不渲染）。
-- push 修复 commit（默认域 = `guoxin-space.lgx31.workers.dev`）→ 站点重建，e2e 预期转绿。
+- push 修复 commit `160e914`（默认域 = `guoxin-space.lgx31.workers.dev`）→ `Deploy to GitHub Pages` run **35225973512 → success**（e2e 转绿）。
 
 ## 用户唯一操作（Turn B）
 - GitHub → Settings → Developer settings → OAuth Apps → 该 App → **Authorization callback URL** → `https://guoxin-space.lgx31.workers.dev/api/auth/callback` → Update。

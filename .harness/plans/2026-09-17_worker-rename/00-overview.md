@@ -28,9 +28,9 @@
 - [x] 部署：worker.js 已上线 `guoxin-space`（run 35224896004 success）。
 
 ## 待办
-- [ ] **用户**：GitHub OAuth App → Authorization callback URL → `https://guoxin-space.lgx31.workers.dev/api/auth/callback`。
-- [ ] push 修复 commit → 站点部署（默认域）→ e2e 应转绿。
-- [ ] 生产 Playwright 自测（/todo 登录、/skills、/running）。
+- [ ] **用户**：GitHub OAuth App → Authorization callback URL → `https://guoxin-space.lgx31.workers.dev/api/auth/callback`（**唯一剩余动作**，登录依赖它；worker.js:770/772 用「请求 origin + /api/auth/callback」构造 redirect_uri）。
+- [x] 站点部署（默认域）e2e 转绿：run **35225973512 success**。
+- [x] 生产 Playwright 自测：`/running` 数据经新默认域加载（`/api/tracks/raw?f=preview.json` + 缩略图均 200）、`/todo` 登录门禁正常、`/skills` 可加载。
 
 ## 进度记录
 | 时间 | 阶段 | 动作 |
@@ -39,4 +39,6 @@
 | 2026-09-17 21:00 | 03-implement | 代码/文档改名 + 默认域切 api.guoxin.space |
 | 2026-09-17 21:05 | 05-deploy | push a0c319a → worker 部署 success；站点 e2e 失败（api.guoxin.space 未解析） |
 | 2026-09-17 21:15 | 02-plan 修订 | 用户决定**不用自定义域** → 默认域回切 `guoxin-space.lgx31.workers.dev` |
-| 2026-09-17 21:20 | 05-deploy | push 修复 commit → 站点重建，e2e 应转绿 |
+| 2026-09-17 21:15 | 05-deploy | push `160e914` → 站点部署 run **35225973512 success**（e2e 转绿） |
+| 2026-09-17 21:18 | 06-it | 生产 Playwright 自测通过（/running 经新默认域取到真实数据） |
+| 2026-09-17 21:20 | 07/08 | 收尾：文档/计划/日志同步；待用户改 OAuth callback |
