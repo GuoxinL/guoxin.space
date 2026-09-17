@@ -25,6 +25,22 @@ export const SK_APPLY_RAW =
 export const SK_APPLY_AGENT = 'wb,cb';
 
 /* ================= 配置读写（localStorage，SSR 安全） ================= */
+/** 遗留 Worker 主机名（`skillboard-collect` → `guoxin-space` 重命名前）：
+ *  老用户 localStorage 里存的旧域已失效，需迁移到新默认域。 */
+export const SK_LEGACY_WORKER_HOSTS = ['skillboard-collect.lgx31.workers.dev'];
+
+/** 归一化存储的 Worker URL：命中遗留域名 → 返回新默认域；其余原样返回（空串原样，由调用方回退默认）。 */
+export function skMigrateWorker(url: string): string {
+  const u = String(url || '').trim().replace(/\/+$/, '');
+  if (!u) return u;
+  try {
+    if (SK_LEGACY_WORKER_HOSTS.includes(new URL(u).host)) return SK_DFLT_WORKER;
+  } catch {
+    /* 非合法 URL：原样返回 */
+  }
+  return u;
+}
+
 export function loadSkCfg(): SkCfg {
   if (typeof localStorage === 'undefined') {
     return { repo: SK_DFLT_REPO, branch: SK_DFLT_BRANCH, worker: SK_DFLT_WORKER };
@@ -35,11 +51,21 @@ export function loadSkCfg(): SkCfg {
   } catch {
     c = {};
   }
-  return {
+  const rawWorker = String(c.worker ?? '').trim().replace(/\/+$/, '');
+  const cfg: SkCfg = {
     repo: String(c.repo ?? '').trim() || SK_DFLT_REPO,
     branch: String(c.branch ?? '').trim() || SK_DFLT_BRANCH,
-    worker: String(c.worker ?? '').trim().replace(/\/+$/, '') || SK_DFLT_WORKER,
+    worker: skMigrateWorker(rawWorker) || SK_DFLT_WORKER,
   };
+  // 旧 Worker 域名一次性迁移并写回（避免每次读取重算、设置面板显示旧值）
+  if (rawWorker && cfg.worker !== rawWorker) {
+    try {
+      saveSkCfg(cfg);
+    } catch {
+      /* localStorage 不可写：忽略，下次读取再试 */
+    }
+  }
+  return cfg;
 }
 
 export function saveSkCfg(cfg: SkCfg): void {

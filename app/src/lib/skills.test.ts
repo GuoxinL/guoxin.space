@@ -12,6 +12,10 @@ import {
   parseSourceRepo,
   skFilterSkills,
   skPlaceholderIcon,
+  skMigrateWorker,
+  loadSkCfg,
+  SK_DFLT_WORKER,
+  KEY_SK_SET,
 } from './skills';
 import type { SkCfg } from '../types/skills';
 
@@ -297,5 +301,46 @@ describe('skPlaceholderIcon（P1-5 图标回退占位）', () => {
   });
   it('空名安全回退到 ?', () => {
     expect(decodeURIComponent(skPlaceholderIcon(''))).toContain('>?<');
+  });
+});
+
+describe('skMigrateWorker / loadSkCfg 旧域名迁移（skillboard-collect → guoxin-space）', () => {
+  it('遗留旧域 → 新默认域（含尾斜杠）', () => {
+    expect(skMigrateWorker('https://skillboard-collect.lgx31.workers.dev')).toBe(SK_DFLT_WORKER);
+    expect(skMigrateWorker('https://skillboard-collect.lgx31.workers.dev/')).toBe(SK_DFLT_WORKER);
+  });
+  it('新域 / 自定义域 / 空串 → 原样', () => {
+    expect(skMigrateWorker('https://guoxin-space.lgx31.workers.dev')).toBe(
+      'https://guoxin-space.lgx31.workers.dev',
+    );
+    expect(skMigrateWorker('https://api.example.com')).toBe('https://api.example.com');
+    expect(skMigrateWorker('')).toBe('');
+  });
+  it('loadSkCfg：存储旧域时迁移为新默认域并写回 localStorage', () => {
+    const m = new Map<string, string>();
+    m.set(
+      KEY_SK_SET,
+      JSON.stringify({ repo: 'x/y', branch: 'dev', worker: 'https://skillboard-collect.lgx31.workers.dev' }),
+    );
+    const orig = (globalThis as any).localStorage;
+    (globalThis as any).localStorage = {
+      getItem: (k: string) => (m.has(k) ? m.get(k)! : null),
+      setItem: (k: string, v: string) => {
+        m.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        m.delete(k);
+      },
+      clear: () => m.clear(),
+    };
+    try {
+      const got = loadSkCfg();
+      expect(got.worker).toBe(SK_DFLT_WORKER);
+      expect(got.repo).toBe('x/y');
+      expect(got.branch).toBe('dev');
+      expect(JSON.parse(m.get(KEY_SK_SET)!).worker).toBe(SK_DFLT_WORKER); // 已写回
+    } finally {
+      (globalThis as any).localStorage = orig;
+    }
   });
 });

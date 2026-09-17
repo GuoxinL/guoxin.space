@@ -22,6 +22,7 @@
 - [x] `.github/workflows/deploy-worker.yml`：`--name guoxin-space`。
 - [x] `worker.js` / `worker.test.mjs`：标识 `skillboard-collect` → `guoxin-space`。
 - [x] `app/src/lib/skills.ts:20`：`SK_DFLT_WORKER = 'https://guoxin-space.lgx31.workers.dev'`。
+- [x] `app/src/lib/skills.ts`：新增 `skMigrateWorker()` **旧域名一次性迁移**——老用户 localStorage 存有死域 `skillboard-collect.lgx31.workers.dev` 时会覆盖新默认值导致 `Failed to fetch`；`loadSkCfg()` 读取即改写为新默认域并写回。
 - [x] `app/src/lib/running.test.ts:284`、`app/src/lib/auth.test.ts:89`：断言同步。
 - [x] 文档：`cloudflare-worker.md`、`serverchan.md`、`RUNNING-SELFTEST.md`、`TOOLBOX-SELFTEST.md` 旧域名替换；`running-private/*`（嵌套仓）。
 - [x] 单测门禁：`pnpm test` → 310/310。
@@ -41,4 +42,5 @@
 | 2026-09-17 21:15 | 02-plan 修订 | 用户决定**不用自定义域** → 默认域回切 `guoxin-space.lgx31.workers.dev` |
 | 2026-09-17 21:15 | 05-deploy | push `160e914` → 站点部署 run **35225973512 success**（e2e 转绿） |
 | 2026-09-17 21:18 | 06-it | 生产 Playwright 自测通过（/running 经新默认域取到真实数据） |
-| 2026-09-17 21:20 | 07/08 | 收尾：文档/计划/日志同步；待用户改 OAuth callback |
+| 2026-09-17 21:35 | 06-it | bsk 驱动真实浏览器实测：OAuth token 有效（`/api/auth/me` 200 login=GuoxinL）、`/api/todo/all` 200；发现老用户 localStorage 旧域名覆盖问题 |
+| 2026-09-17 21:41 | 03-implement | 新增 `skMigrateWorker()` 旧域名迁移 + 3 条单测（313/313）；待 push 生效 |
