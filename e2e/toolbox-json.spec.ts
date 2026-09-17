@@ -75,11 +75,13 @@ test.describe('Toolbox · JSON /toolbox/json', () => {
     await expect(R_COL(page).locator('textarea')).toHaveValue(/"id"/);
   });
 
-  test('小工具：Base64 编码可得到结果', async ({ page }) => {
+  test('小工具已迁为独立路由：/toolbox/base64 可独立打开并编码', async ({ page }) => {
+    // JSON 页不再有「小工具」弹窗按钮；小工具经页头 Toolbox 悬浮子菜单或独立路由进入
     await page.goto('/toolbox/json');
-    await page.locator('.json-head .toolbar button', { hasText: '小工具' }).click();
-    await expect(page.locator('.tools-box')).toBeVisible();
-    await page.locator('.tools-tab', { hasText: 'Base64' }).click();
+    await expect(page.locator('.json-head .toolbar button', { hasText: '小工具' })).toHaveCount(0);
+    // 经独立路由打开 Base64 小工具
+    await page.goto('/toolbox/base64');
+    await expect(page.locator('.tools-panel')).toBeVisible();
     await page.locator('.tools-in').fill('hello');
     await page.locator('.tools-pane button', { hasText: '编码' }).click();
     await expect(page.locator('.tools-out')).toHaveValue('aGVsbG8=');

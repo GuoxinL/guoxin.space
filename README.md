@@ -10,6 +10,11 @@
 | `/skills`（含 `/skills/<dir>`） | Skills 技能夹：浏览 GitHub 仓库中的技能目录，frontmatter 元数据、GitHub 风格 Markdown 渲染、文件树抽屉、收藏（proxy / mirror）与通道管理 |
 | `/toolbox/json` | 万能工具箱 · JSON：解析 / 格式化 / 对比 / JSONPath / 历史 / Schema 推断 / 小工具集（Base64·URL·时间戳·JWT·CSV）/ 语义 diff，纯前端本地计算 |
 | `/toolbox/calendar` | 万能工具箱 · 日历：农历、法定节假日与调休、二十四节气、年视图、距下一假期倒计时 |
+| `/toolbox/base64` | 小工具 · Base64 编解码（经页头 Toolbox 悬浮子菜单进入，独立路由、URL 可分享） |
+| `/toolbox/url` | 小工具 · URL 编码 / 解码 |
+| `/toolbox/timestamp` | 小工具 · 时间戳（秒 / 毫秒）与日期互转 |
+| `/toolbox/jwt` | 小工具 · JWT 解码查看 header / payload（不校验签名） |
+| `/toolbox/csv` | 小工具 · CSV 与 JSON 互转 |
 | `/running` | 骑行 · 跑步运动数据：年度热力图、活动列表、地图轨迹与回放 |
 | `/notes`（含 `/notes/<中文标题>`） | 文章（Notes）：知识库文章列表与阅读，详情纯 CSR 运行时取数 |
 
@@ -60,7 +65,7 @@ npm run lint / fmt / type-check
 - **2026-09-09**：Qwik + Qwik City SSG 全站重构（4 页静态预渲染，旧站文件删除，回滚基线 = git 历史）。
 - **2026-09-10 ~ 11**：设计系统 QWIK-INSPIRED v2（去容器化 / 发丝线 / 偏移实心阴影），Hero 主图保真路线。
 - **2026-09-12**：Playwright e2e 双门禁接入 CI（vitest + e2e 任一失败阻断部署）；SOP 精简为 8 步（提交并入 Deploy），硬约束收敛到 `.harness/docs/CONSTRAINTS.md` 单一真相源。
-- **2026-09-17**：Toolbox 扩展——日历从主导航并入 Toolbox 子导航（新增 `/toolbox/calendar`：农历 / 法定节假日与调休 / 二十四节气 / 年视图 / 距下一假期倒计时）；JSON 工具增强（Schema 推断 / 小工具集 / 语义 diff / 大文件限流）；静态预渲染页增至 6 个，单测增至 16 文件 / 265 用例。
+- **2026-09-17**：Toolbox 扩展——① 日历从主导航并入 Toolbox 子导航（新增 `/toolbox/calendar`：农历 / 法定节假日与调休 / 二十四节气 / 年视图 / 距下一假期倒计时）；② 页头 Toolbox 悬浮子菜单（hover / focus-within 展开，含 JSON · 日历 · 5 个小工具），5 个小工具升级为独立静态路由 `/toolbox/{base64,url,timestamp,jwt,csv}`（URL 可分享、可深链），JSON 页移除「小工具」弹窗按钮；③ JSON 工具增强（Schema 推断 / 小工具集 / 语义 diff / 大文件限流）；静态预渲染页增至 11 个，单测 16 文件 / 265 用例，e2e 新增 Toolbox 子菜单导航用例。
 
 ## 文档
 

@@ -5,15 +5,15 @@ import { test, expect } from '@playwright/test';
  * 断言：导航项、月视图网格、切月、点击看黄历、今日高亮。
  */
 test.describe('Toolbox · Calendar /toolbox/calendar', () => {
-  test('Toolbox 子导航含 JSON/Calendar 且当前页高亮', async ({ page }) => {
+  test('Toolbox 子导航含 7 个工具且当前页（日历）高亮', async ({ page }) => {
     await page.goto('/toolbox/calendar');
     await expect(page).toHaveTitle(/Calendar/);
-    // 顶部主导航不再含独立 Calendar 项
+    // 顶部主导航不再含独立 Calendar 项（已并入 Toolbox 子菜单，标签为「日历」）
     await expect(page.locator('.mc-nav-item', { hasText: 'Calendar' })).toHaveCount(0);
-    // 子导航含两个 tab
-    await expect(page.locator('.tb-tab')).toHaveCount(2);
-    // 当前页 Calendar tab 高亮、JSON tab 可见可跳转
-    await expect(page.locator('.tb-tab', { hasText: 'Calendar' })).toHaveAttribute(
+    // 子导航含 7 个工具 tab（JSON/日历/Base64/URL/时间戳/JWT/CSV）
+    await expect(page.locator('.tb-tab')).toHaveCount(7);
+    // 当前页 日历 tab 高亮、JSON tab 可见可跳转
+    await expect(page.locator('.tb-tab', { hasText: '日历' })).toHaveAttribute(
       'aria-current',
       'page',
     );
