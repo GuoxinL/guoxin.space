@@ -3670,9 +3670,32 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 }
 
 /* ---------- 日历融合：TODO 进度线条 ---------- */
-.cal-todo { display: flex; flex-direction: column; gap: 3px; width: 100%; margin-top: 4px; }
-.cal-todo-line { display: block; height: 4px; border-radius: 3px; width: 100%; }
+/* 目标：同一个跨日任务的线在整行内连成一条（布局算法见 lib/calendar/todo-line.ts）。
+   两个前提缺一不可：
+   ① margin-top: auto 把 .cal-todo 压到单元格底部 —— 同一行 7 格由 grid 保证等高，
+      容器底部对齐 + 行内统一的 laneCount ⇒ 同一通道的 y 在整行完全一致；
+   ② 线段不能写 width: 100% —— flex column 交叉轴的 stretch 只有在 width: auto 时
+      才把负 margin 计入盒宽；写死宽度会让负 margin 退化成平移，接缝消不掉。 */
+.cal-todo { display: flex; flex-direction: column; gap: 3px; width: 100%; margin-top: auto; }
+.cal-todo-line,
+.cal-todo-spacer { display: block; height: 4px; border-radius: 999px; align-self: stretch; }
 .cal-todo-line.red { background: var(--td-red); }
 .cal-todo-line.yellow { background: var(--td-yellow); }
 .cal-todo-line.green { background: var(--td-green); }
-.cal-todo-more { font-size: 10px; line-height: 1; color: var(--slate-50); align-self: flex-start; }
+/* 承接上一行 / 延续下一行（跨行任务在行首/行尾的端头）：改成直角并贴边 ——
+   左端 -8px 走到本格内边距外沿，右端 -9px 连本格 1px 右边框一起盖住，
+   相邻两格的线段因此在接缝处重叠 1px，视觉上是一条连续的线。 */
+.cal-tl-open-l {
+  margin-left: -8px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.cal-tl-open-r {
+  margin-right: -9px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* 无线段的通道占位：保持行内通道高度一致 */
+.cal-todo-spacer { visibility: hidden; }
+/* +N 提示固定行高（空字符串也占位），避免同行各格高度漂移导致通道错位 */
+.cal-todo-more { display: block; height: 12px; font-size: 10px; line-height: 12px; color: var(--slate-50); }

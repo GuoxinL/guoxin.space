@@ -114,7 +114,7 @@ gh run list --workflow=deploy.yml --limit 5
 > **不要**用 `gh api repos/GuoxinL/guoxin.space/pages/builds/latest` 判断上线——workflow 模式下该接口停留在旧 branch-deploy 记录，不更新（见红线 6 / CONSTRAINTS C-19）。
 > 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`，模拟 GitHub Pages 语义 —— 含 404 fallback，深链用例才可验证）。
 
-线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/toolbox/base64`、`/toolbox/url`、`/toolbox/timestamp`、`/toolbox/jwt`、`/toolbox/csv`（5 个小工具独立页，经页头 Toolbox 悬浮子菜单进入）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情）、`/todo`（TODO 模块，GitHub OAuth 登录门禁，数据存独立仓经 Worker 代理）。
+线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/toolbox/base64`、`/toolbox/url`、`/toolbox/timestamp`、`/toolbox/jwt`、`/toolbox/csv`（5 个小工具独立页，经页头 Toolbox 悬浮子菜单进入）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情）、`/todo`（TODO 模块，GitHub OAuth 登录门禁，**入口在主导航 TODO 项——登录后才显示，桌面/移动端一致**，数据存独立仓经 Worker 代理）。
 
 ## 易错点备忘
 

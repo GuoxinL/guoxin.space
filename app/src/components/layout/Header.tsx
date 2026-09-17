@@ -1,7 +1,7 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
 import { AuthButton } from "../auth/AuthButton";
-import { isAdmin } from "../../lib/auth";
+import { authSubscribe, isAdmin } from "../../lib/auth";
 import { PixelIcon, type PixelIconName } from "../pixel/PixelIcon";
 
 const NAV: { href: string; label: string; icon: PixelIconName }[] = [
@@ -29,14 +29,21 @@ export const Header = component$(() => {
   const showTodo = useSignal(false);
 
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(() => {
+  useVisibleTask$(({ cleanup }) => {
     const saved = localStorage.getItem("mc-theme");
     const isDark = saved
       ? saved === "dark"
       : window.matchMedia("(prefers-color-scheme: dark)").matches;
     dark.value = isDark;
     document.body.dataset.theme = isDark ? "dark" : "light";
-    showTodo.value = isAdmin();
+    // TODO 导航项随登录态显隐（未登录不出现）；订阅以便登录/登出即时同步，
+    // 无需刷新页面（authSave / authLogout 内部会 authNotify）。
+    const sync = () => {
+      showTodo.value = isAdmin();
+    };
+    const unsub = authSubscribe(sync);
+    cleanup(unsub);
+    sync();
   });
 
   const isActive = (href: string) => {
@@ -104,6 +111,19 @@ export const Header = component$(() => {
                   </Link>
                 </li>
               ),
+            )}
+            {/* TODO 是登录后的站长功能：未登录不渲染（与移动端菜单共用 showTodo 门控） */}
+            {showTodo.value && (
+              <li key="/todo">
+                <Link
+                  href="/todo"
+                  aria-current={isActive("/todo") ? "page" : undefined}
+                  class="mc-nav-item"
+                >
+                  <PixelIcon name="todo" size={14} />
+                  <span class="hidden sm:inline">TODO</span>
+                </Link>
+              </li>
             )}
           </ul>
 

@@ -2,6 +2,7 @@ import { component$ } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
 import { PixelIcon, type PixelIconName } from "../pixel/PixelIcon";
 
+// Toolbox = 纯本地小工具集合；TODO 不在此列（已提升为登录后的主导航项，见 Header.tsx）
 const TOOLS: { href: string; label: string; icon: PixelIconName }[] = [
   { href: "/toolbox/json", label: "JSON", icon: "scroll" },
   { href: "/toolbox/calendar", label: "日历", icon: "calendar" },
@@ -10,7 +11,6 @@ const TOOLS: { href: string; label: string; icon: PixelIconName }[] = [
   { href: "/toolbox/timestamp", label: "时间戳", icon: "ts" },
   { href: "/toolbox/jwt", label: "JWT", icon: "jwt" },
   { href: "/toolbox/csv", label: "CSV", icon: "csv" },
-  { href: "/todo", label: "TODO", icon: "todo" },
 ];
 
 export const ToolboxTabs = component$(() => {

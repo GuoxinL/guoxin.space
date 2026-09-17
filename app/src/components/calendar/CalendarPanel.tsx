@@ -17,8 +17,12 @@ import {
   isHolidayYearMaintained,
   nextHoliday,
 } from "../../lib/calendar/holidays";
+import {
+  dayKey,
+  layoutTodoRow,
+  type TodoRowLayout,
+} from "../../lib/calendar/todo-line";
 import { fetchMonth, isTodoAuthed } from "../../lib/todo/api";
-import { progressColor } from "../../lib/todo/progress";
 import type { TodoIndexEntry } from "../../lib/todo/types";
 
 function cellClass(c: CalendarCell): string {
@@ -97,10 +101,25 @@ export const CalendarPanel = component$(() => {
     }
   });
 
+  /** 行级任务线布局：按月索引逐行（每周 7 格）分配通道。
+   *  同一行 7 格共用一套 lane 编号，使跨日的同一任务在视觉上连成一条线；
+   *  补白格（inMonth=false）不参与，避免把相邻月份的格子画进本月视图。 */
+  const rows = useComputed$(() => {
+    const cells = grid.value;
+    const out: TodoRowLayout[] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      const slots = cells
+        .slice(i, i + 7)
+        .map((c) => ({ key: dayKey(c.y, c.m, c.d), enabled: c.inMonth }));
+      out.push(layoutTodoRow(slots, monthIndex.value));
+    }
+    return out;
+  });
+
   /** 取某单元格命中的 TODO：按日期区间 [startDate, endDate] 包含当天（YYYY-MM-DD 字典序可比）。 */
   const cellTodos = (c: CalendarCell): TodoIndexEntry[] => {
     if (!c.inMonth) return [];
-    const key = `${c.y}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
+    const key = dayKey(c.y, c.m, c.d);
     return monthIndex.value.filter((e) => {
       const start = e.startDate;
       const end = e.endDate || e.startDate;
@@ -287,8 +306,9 @@ export const CalendarPanel = component$(() => {
           </div>
 
           <div class="cal-grid cal-body" role="grid">
-            {grid.value.map((c) => {
+            {grid.value.map((c, idx) => {
               const label = dayLabel(c);
+              const col = idx % 7;
               return (
                 <button
                   type="button"
@@ -301,7 +321,7 @@ export const CalendarPanel = component$(() => {
                       gotoMonth(c.y, c.m);
                       return;
                     }
-                    const key = `${c.y}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
+                    const key = dayKey(c.y, c.m, c.d);
                     const hit = monthIndex.value.find((e) => {
                       const start = e.startDate;
                       const end = e.endDate || e.startDate;
@@ -340,22 +360,32 @@ export const CalendarPanel = component$(() => {
                   </span>
                   {c.inMonth &&
                     (() => {
-                      const items = cellTodos(c);
-                      if (!items.length) return null;
-                      const shown = items.slice(0, 3);
-                      const extra = items.length - shown.length;
+                      // 行级布局：同一行 7 格共用 lane 编号，格内按 lane 固定槽位渲染
+                      // （无段处用 spacer 占位），同一通道的 y 在整行一致 → 跨日线段无缝相连。
+                      const row = rows.value[Math.floor(idx / 7)];
+                      const mine = row?.cells[col];
+                      if (!row || row.laneCount === 0 || !mine?.length) return null;
                       return (
                         <span class="cal-todo" aria-hidden="true">
-                          {shown.map((it) => (
-                            <span
-                              key={it.id}
-                              class={
-                                "cal-todo-line " + progressColor(it.progress)
-                              }
-                            />
-                          ))}
-                          {extra > 0 && (
-                            <span class="cal-todo-more">+{extra}</span>
+                          {Array.from({ length: row.laneCount }, (_, lane) => {
+                            const seg = mine.find((s) => s.lane === lane);
+                            if (!seg) {
+                              return <span key={lane} class="cal-todo-spacer" />;
+                            }
+                            const cls = [
+                              "cal-todo-line",
+                              seg.color,
+                              seg.openL ? "cal-tl-open-l" : "",
+                              seg.openR ? "cal-tl-open-r" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ");
+                            return <span key={lane} class={cls} />;
+                          })}
+                          {row.overflow > 0 && (
+                            <span class="cal-todo-more">
+                              {col === row.homeCol ? `+${row.overflow}` : ""}
+                            </span>
                           )}
                         </span>
                       );

@@ -68,6 +68,7 @@ npm run lint / fmt / type-check
 - **2026-09-12**：Playwright e2e 双门禁接入 CI（vitest + e2e 任一失败阻断部署）；SOP 精简为 8 步（提交并入 Deploy），硬约束收敛到 `.harness/docs/CONSTRAINTS.md` 单一真相源。
 - **2026-09-17**：Toolbox 扩展——① 日历从主导航并入 Toolbox 子导航（新增 `/toolbox/calendar`：农历 / 法定节假日与调休 / 二十四节气 / 年视图 / 距下一假期倒计时）；② 页头 Toolbox 悬浮子菜单（hover / focus-within 展开，含 JSON · 日历 · 5 个小工具），5 个小工具升级为独立静态路由 `/toolbox/{base64,url,timestamp,jwt,csv}`（URL 可分享、可深链），JSON 页移除「小工具」弹窗按钮；③ JSON 工具增强（Schema 推断 / 小工具集 / 语义 diff / 大文件限流）；静态预渲染页增至 11 个，单测 16 文件 / 265 用例，e2e 新增 Toolbox 子菜单导航用例。
 - **2026-09-17（下午）**：TODO 模块上线——GitHub OAuth 保护、独立数据仓 `GuoxinL/todo-data`（经 Worker `/api/todo/*` 代理，env `TODO_REPO`/`TODO_PATH`/`TODO_BRANCH`）、子任务 / 标签 / 双层进度 / 周报 / 日历融合进度线条；单测增至 21 文件 / 308 用例，新增 `e2e/todo.spec.ts`（9 例，mock Worker）。
+- **2026-09-17（晚）**：TODO 入口上移 + 日历任务线连续化——① TODO 由 Toolbox 子导航（8→7 个 tab）上移为**主导航项**（桌面与移动端一致，`isAdmin()` 登录后才显示，登录/登出经 `authSubscribe` 即时增删）；② 日历月视图的 TODO 进度线改为**按行（周）分配通道**（`lib/calendar/todo-line.ts` 纯函数，≤3 条 lane + 溢出计数），同一任务跨日连成一条（格内固定槽位对齐、负 margin 消除接缝，跨行处用贴边直角表达延续）；单元格 hover tooltip 仍列出全部命中任务与进度。单测增至 22 文件 / 329 用例（新增 16 条 lane 布局用例），e2e 新增日历连线几何断言 ×5 与主导航登录门控 ×3。
 
 ## 文档
 

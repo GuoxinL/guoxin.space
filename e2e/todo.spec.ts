@@ -54,6 +54,15 @@ const SAMPLE_TAGS = [
 ];
 
 function mockWorker(page: Page) {
+  // 静默校验必须显式 mock 为 200，否则会走真实网络（可能返回 401）→ authLogout
+  // 把登录态清掉，Header 的 TODO 项与 /todo 列表随之消失（离线确定性）。
+  page.route(`${MOCK_WORKER}api/auth/me`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, login: 'GuoxinL' }),
+    }),
+  );
   page.route(`${MOCK_WORKER}api/todo/all`, (route) =>
     route.fulfill({
       status: 200,
@@ -198,5 +207,48 @@ test.describe('日历融合 TODO 进度线条（已登录）', () => {
     await expect(page.locator('.cal-todo-line')).toHaveCount(1);
     await page.locator('.cal-todo-line').first().click();
     await expect(page).toHaveURL(/todo=todo-1/);
+  });
+});
+
+test.describe('主导航 TODO 项（登录门控）', () => {
+  test('未登录：主导航不出现 TODO 入口', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.mc-nav-item', { hasText: 'TODO' })).toHaveCount(0);
+  });
+
+  test('已登录：主导航出现 TODO 入口，点击进入 /todo', async ({ page }) => {
+    seedAuth(page);
+    mockWorker(page);
+    await page.goto('/');
+    const item = page.locator('.mc-nav-item', { hasText: 'TODO' });
+    await expect(item).toHaveCount(1);
+    await item.click();
+    // Qwik City 目的地可能带尾斜杠（/todo/），两种都接受
+    await expect(page).toHaveURL(/\/todo\/?$/);
+  });
+
+  test('静默登出后导航项即时移除（无刷新，验证登录态订阅）', async ({ page }) => {
+    seedAuth(page);
+    mockWorker(page);
+    // 用「手动放行」的 mock 控制静默校验时点（不用 sleep，避免时序竞态）：
+    // 先让页面稳定处于登录态（TODO 项已渲染），再放行 401 →
+    // authLogout → authNotify → Header 的 authSubscribe 回调把它即时移除（期间未导航）。
+    let release401: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release401 = resolve;
+    });
+    page.route(`${MOCK_WORKER}api/auth/me`, async (route) => {
+      await gate;
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'expired' }),
+      });
+    });
+    await page.goto('/');
+    const item = page.locator('.mc-nav-item', { hasText: 'TODO' });
+    await expect(item).toHaveCount(1);
+    release401();
+    await expect(item).toHaveCount(0);
   });
 });
