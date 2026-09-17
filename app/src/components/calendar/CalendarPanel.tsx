@@ -4,7 +4,7 @@ import {
   useComputed$,
   useSignal,
   useVisibleTask$,
-} from '@builder.io/qwik';
+} from "@builder.io/qwik";
 
 import {
   buildMonthGrid,
@@ -12,32 +12,42 @@ import {
   WEEKDAYS,
   type CalendarCell,
   type DayRef,
-} from '../../lib/calendar';
-import { isHolidayYearMaintained, nextHoliday } from '../../lib/calendar/holidays';
+} from "../../lib/calendar";
+import {
+  isHolidayYearMaintained,
+  nextHoliday,
+} from "../../lib/calendar/holidays";
+import { useNavigate } from "@builder.io/qwik-city";
+import { fetchMonth, isTodoAuthed } from "../../lib/todo/api";
+import { progressColor } from "../../lib/todo/progress";
+import type { TodoIndexEntry } from "../../lib/todo/types";
 
 function cellClass(c: CalendarCell): string {
-  const cls = ['cal-cell'];
-  if (!c.inMonth) cls.push('cal-out', 'cal-link');
-  else if (c.holiday.type === 'rest') cls.push('cal-rest-cell');
-  else if (c.weekday === 0 || c.weekday === 6) cls.push('cal-we');
-  if (c.isToday) cls.push('cal-today');
-  return cls.join(' ');
+  const cls = ["cal-cell"];
+  if (!c.inMonth) cls.push("cal-out", "cal-link");
+  else if (c.holiday.type === "rest") cls.push("cal-rest-cell");
+  else if (c.weekday === 0 || c.weekday === 6) cls.push("cal-we");
+  if (c.isToday) cls.push("cal-today");
+  return cls.join(" ");
 }
 
 function numClass(c: CalendarCell): string {
-  const cls = ['cal-num'];
-  if (c.holiday.type === 'rest') cls.push('cal-num-fest');
-  return cls.join(' ');
+  const cls = ["cal-num"];
+  if (c.holiday.type === "rest") cls.push("cal-num-fest");
+  return cls.join(" ");
 }
 
 /** 单元格 tooltip：调休/放假日给出明确语义说明（不依赖视觉配色即可理解） */
 function cellTitle(c: CalendarCell): string {
-  if (c.holiday.type === 'work') return '调休补班日：原本为周末，因节假日调休需上班';
-  if (c.holiday.type === 'rest') {
-    return c.holiday.name ? `${c.holiday.name} · 法定节假日（放假）` : '法定节假日（放假）';
+  if (c.holiday.type === "work")
+    return "调休补班日：原本为周末，因节假日调休需上班";
+  if (c.holiday.type === "rest") {
+    return c.holiday.name
+      ? `${c.holiday.name} · 法定节假日（放假）`
+      : "法定节假日（放假）";
   }
   if (!c.inMonth) return `点击查看 ${c.y} 年 ${c.m} 月`;
-  return '';
+  return "";
 }
 
 export const CalendarPanel = component$(() => {
@@ -45,23 +55,75 @@ export const CalendarPanel = component$(() => {
   const viewY = useSignal(2026);
   const viewM = useSignal(9);
   const today = useSignal<DayRef | null>(null);
-  const viewMode = useSignal<'month' | 'year'>('month');
+  const viewMode = useSignal<"month" | "year">("month");
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
     const now = new Date();
-    const t: DayRef = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
+    const t: DayRef = {
+      y: now.getFullYear(),
+      m: now.getMonth() + 1,
+      d: now.getDate(),
+    };
     today.value = t;
     viewY.value = t.y;
     viewM.value = t.m;
   });
 
-  const grid = useComputed$(() => buildMonthGrid(viewY.value, viewM.value, today.value));
+  const grid = useComputed$(() =>
+    buildMonthGrid(viewY.value, viewM.value, today.value),
+  );
   // 距今日最近的法定放假日（仅已维护年份）；无则返回 null
-  const nextInfo = useComputed$(() => (today.value ? nextHoliday(today.value) : null));
+  const nextInfo = useComputed$(() =>
+    today.value ? nextHoliday(today.value) : null,
+  );
+
+  // TODO 进度线条：仅登录态拉当月索引；视图切换（viewY/viewM 变化）重新拉取
+  const nav = useNavigate();
+  const todoAuth = useSignal(false);
+  const monthIndex = useSignal<TodoIndexEntry[]>([]);
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async ({ track }) => {
+    track(() => viewY.value);
+    track(() => viewM.value);
+    const ok = isTodoAuthed();
+    todoAuth.value = ok;
+    if (!ok) {
+      monthIndex.value = [];
+      return;
+    }
+    try {
+      monthIndex.value = await fetchMonth(viewY.value, viewM.value);
+    } catch {
+      monthIndex.value = [];
+    }
+  });
+
+  /** 取某单元格命中的 TODO：按日期区间 [startDate, endDate] 包含当天（YYYY-MM-DD 字典序可比）。 */
+  const cellTodos = (c: CalendarCell): TodoIndexEntry[] => {
+    if (!c.inMonth) return [];
+    const key = `${c.y}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
+    return monthIndex.value.filter((e) => {
+      const start = e.startDate;
+      const end = e.endDate || e.startDate;
+      return start <= key && key <= end;
+    });
+  };
+
+  /** 单元格浮窗标题：节假日语义 + TODO 进度行（title 属性支持 \n 换行）。 */
+  const cellHoverTitle = (c: CalendarCell): string => {
+    const base = cellTitle(c);
+    if (!c.inMonth) return base;
+    const items = cellTodos(c);
+    if (items.length === 0) return base;
+    const lines = items
+      .map((i) => `• ${i.title || "（无标题）"}（${i.progress}%）`)
+      .join("\n");
+    return base ? base + "\n" + lines : lines;
+  };
 
   const prev = $(() => {
-    if (viewMode.value === 'year') {
+    if (viewMode.value === "year") {
       viewY.value -= 1;
       return;
     }
@@ -73,7 +135,7 @@ export const CalendarPanel = component$(() => {
     }
   });
   const next = $(() => {
-    if (viewMode.value === 'year') {
+    if (viewMode.value === "year") {
       viewY.value += 1;
       return;
     }
@@ -88,7 +150,7 @@ export const CalendarPanel = component$(() => {
     if (today.value) {
       viewY.value = today.value.y;
       viewM.value = today.value.m;
-      viewMode.value = 'month';
+      viewMode.value = "month";
     }
   });
 
@@ -96,11 +158,11 @@ export const CalendarPanel = component$(() => {
   const gotoMonth = $((y: number, m: number) => {
     viewY.value = y;
     viewM.value = m;
-    viewMode.value = 'month';
+    viewMode.value = "month";
   });
 
   const toggleView = $(() => {
-    viewMode.value = viewMode.value === 'month' ? 'year' : 'month';
+    viewMode.value = viewMode.value === "month" ? "year" : "month";
   });
 
   return (
@@ -112,32 +174,44 @@ export const CalendarPanel = component$(() => {
 
       <div class="cal-head">
         <div class="cal-title">
-          {viewMode.value === 'year' ? `${viewY.value} 年` : `${viewY.value} 年 ${viewM.value} 月`}
+          {viewMode.value === "year"
+            ? `${viewY.value} 年`
+            : `${viewY.value} 年 ${viewM.value} 月`}
         </div>
         <div class="cal-nav">
-          <button type="button" class="btn" onClick$={prev} aria-label={viewMode.value === 'year' ? '上一年' : '上一月'}>
-            ‹ {viewMode.value === 'year' ? '上年' : '上月'}
+          <button
+            type="button"
+            class="btn"
+            onClick$={prev}
+            aria-label={viewMode.value === "year" ? "上一年" : "上一月"}
+          >
+            ‹ {viewMode.value === "year" ? "上年" : "上月"}
           </button>
           <button type="button" class="btn" onClick$={goToday}>
             今天
           </button>
-          <button type="button" class="btn" onClick$={next} aria-label={viewMode.value === 'year' ? '下一年' : '下一月'}>
-            {viewMode.value === 'year' ? '下年' : '下月'} ›
+          <button
+            type="button"
+            class="btn"
+            onClick$={next}
+            aria-label={viewMode.value === "year" ? "下一年" : "下一月"}
+          >
+            {viewMode.value === "year" ? "下年" : "下月"} ›
           </button>
           <span class="cal-view-toggle" role="group" aria-label="视图切换">
             <button
               type="button"
-              class={`cal-view-btn ${viewMode.value === 'month' ? 'active' : ''}`}
+              class={`cal-view-btn ${viewMode.value === "month" ? "active" : ""}`}
               onClick$={toggleView}
-              aria-pressed={viewMode.value === 'month'}
+              aria-pressed={viewMode.value === "month"}
             >
               月
             </button>
             <button
               type="button"
-              class={`cal-view-btn ${viewMode.value === 'year' ? 'active' : ''}`}
+              class={`cal-view-btn ${viewMode.value === "year" ? "active" : ""}`}
               onClick$={toggleView}
-              aria-pressed={viewMode.value === 'year'}
+              aria-pressed={viewMode.value === "year"}
             >
               年
             </button>
@@ -147,40 +221,48 @@ export const CalendarPanel = component$(() => {
 
       {!isHolidayYearMaintained(viewY.value) && (
         <p class="cal-hint">
-          法定节假日与调休数据待补充：国务院办公厅尚未发布 {viewY.value}{' '}
+          法定节假日与调休数据待补充：国务院办公厅尚未发布 {viewY.value}{" "}
           年放假安排，当前仅显示农历与二十四节气。
         </p>
       )}
 
       {/* 距下一假期提示条：仅月视图 + 已维护年份 + 存在未来假期时显示 */}
-      {viewMode.value === 'month' && nextInfo.value && (
+      {viewMode.value === "month" && nextInfo.value && (
         <p class="cal-next">
           {nextInfo.value.days === 0
-            ? '今天是法定节假日 🎉'
-            : `距下一假期还有 ${nextInfo.value.days} 天（${nextInfo.value.name ?? '法定节假日'} · ${nextInfo.value.date.m} 月 ${nextInfo.value.date.d} 日）`}
+            ? "今天是法定节假日 🎉"
+            : `距下一假期还有 ${nextInfo.value.days} 天（${nextInfo.value.name ?? "法定节假日"} · ${nextInfo.value.date.m} 月 ${nextInfo.value.date.d} 日）`}
         </p>
       )}
 
-      {viewMode.value === 'year' ? (
+      {viewMode.value === "year" ? (
         <div class="cal-year">
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
             const yGrid = buildMonthGrid(viewY.value, m, today.value);
             return (
               <div class="cal-mini" key={m}>
-                <button type="button" class="cal-mini-head" onClick$={() => gotoMonth(viewY.value, m)}>
+                <button
+                  type="button"
+                  class="cal-mini-head"
+                  onClick$={() => gotoMonth(viewY.value, m)}
+                >
                   {m} 月
                 </button>
-                <div class="cal-grid cal-mini-grid" role="grid" aria-label={`${viewY.value}年${m}月`}>
+                <div
+                  class="cal-grid cal-mini-grid"
+                  role="grid"
+                  aria-label={`${viewY.value}年${m}月`}
+                >
                   {yGrid.map((c) => (
                     <button
                       type="button"
                       key={`${c.y}-${c.m}-${c.d}`}
                       class={
-                        'cal-mini-cell' +
-                        (c.inMonth ? '' : ' cal-mini-out') +
-                        (c.holiday.type === 'rest' ? ' cal-mini-rest' : '') +
-                        (c.holiday.type === 'work' ? ' cal-mini-work' : '') +
-                        (c.isToday ? ' cal-mini-today' : '')
+                        "cal-mini-cell" +
+                        (c.inMonth ? "" : " cal-mini-out") +
+                        (c.holiday.type === "rest" ? " cal-mini-rest" : "") +
+                        (c.holiday.type === "work" ? " cal-mini-work" : "") +
+                        (c.isToday ? " cal-mini-today" : "")
                       }
                       title={cellTitle(c)}
                       onClick$={() => {
@@ -215,31 +297,63 @@ export const CalendarPanel = component$(() => {
                   class={cellClass(c)}
                   key={`${c.y}-${c.m}-${c.d}`}
                   aria-label={`${c.y}年${c.m}月${c.d}日 ${c.lunar.lunarText}`}
-                  title={cellTitle(c)}
+                  title={cellHoverTitle(c)}
                   onClick$={() => {
-                    if (!c.inMonth) gotoMonth(c.y, c.m);
+                    if (!c.inMonth) {
+                      gotoMonth(c.y, c.m);
+                      return;
+                    }
+                    const key = `${c.y}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
+                    const hit = monthIndex.value.find((e) => {
+                      const start = e.startDate;
+                      const end = e.endDate || e.startDate;
+                      return start <= key && key <= end;
+                    });
+                    if (todoAuth.value && hit) nav("/todo?todo=" + hit.id);
                   }}
                 >
                   <span class={numClass(c)}>{c.d}</span>
-                  {c.holiday.type === 'work' ? (
+                  {c.holiday.type === "work" ? (
                     <span class="cal-badge cal-work" title="调休补班（需上班）">
                       班
                     </span>
-                  ) : c.holiday.type === 'rest' && !c.holiday.name ? (
+                  ) : c.holiday.type === "rest" && !c.holiday.name ? (
                     <span class="cal-badge cal-rest">休</span>
                   ) : null}
                   <span
                     class={
-                      'cal-sub ' +
-                      (label.kind === 'fest'
-                        ? 'cal-fest'
-                        : label.kind === 'term'
-                          ? 'cal-term'
-                          : 'cal-lunar')
+                      "cal-sub " +
+                      (label.kind === "fest"
+                        ? "cal-fest"
+                        : label.kind === "term"
+                          ? "cal-term"
+                          : "cal-lunar")
                     }
                   >
                     {label.text}
                   </span>
+                  {c.inMonth &&
+                    (() => {
+                      const items = cellTodos(c);
+                      if (!items.length) return null;
+                      const shown = items.slice(0, 3);
+                      const extra = items.length - shown.length;
+                      return (
+                        <span class="cal-todo" aria-hidden="true">
+                          {shown.map((it) => (
+                            <span
+                              key={it.id}
+                              class={
+                                "cal-todo-line " + progressColor(it.progress)
+                              }
+                            />
+                          ))}
+                          {extra > 0 && (
+                            <span class="cal-todo-more">+{extra}</span>
+                          )}
+                        </span>
+                      );
+                    })()}
                 </button>
               );
             })}

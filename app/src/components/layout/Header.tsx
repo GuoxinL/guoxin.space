@@ -1,49 +1,53 @@
-import { component$, useSignal, useVisibleTask$ } from '@builder.io/qwik';
-import { Link, useLocation } from '@builder.io/qwik-city';
-import { AuthButton } from '../auth/AuthButton';
-import { PixelIcon, type PixelIconName } from '../pixel/PixelIcon';
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { Link, useLocation } from "@builder.io/qwik-city";
+import { AuthButton } from "../auth/AuthButton";
+import { isAdmin } from "../../lib/auth";
+import { PixelIcon, type PixelIconName } from "../pixel/PixelIcon";
 
 const NAV: { href: string; label: string; icon: PixelIconName }[] = [
-  { href: '/', label: '首页', icon: 'home' },
-  { href: '/skills', label: 'Skills', icon: 'chest' },
-  { href: '/toolbox/json', label: 'Toolbox', icon: 'scroll' },
-  { href: '/running', label: 'Running', icon: 'boot' },
-  { href: '/notes', label: 'Notes', icon: 'note' },
+  { href: "/", label: "首页", icon: "home" },
+  { href: "/skills", label: "Skills", icon: "chest" },
+  { href: "/toolbox/json", label: "Toolbox", icon: "scroll" },
+  { href: "/running", label: "Running", icon: "boot" },
+  { href: "/notes", label: "Notes", icon: "note" },
 ];
 
 const TOOLBOX_MENU: { href: string; label: string; icon: PixelIconName }[] = [
-  { href: '/toolbox/json', label: 'JSON', icon: 'scroll' },
-  { href: '/toolbox/calendar', label: '日历', icon: 'calendar' },
-  { href: '/toolbox/base64', label: 'Base64', icon: 'base64' },
-  { href: '/toolbox/url', label: 'URL', icon: 'url' },
-  { href: '/toolbox/timestamp', label: '时间戳', icon: 'ts' },
-  { href: '/toolbox/jwt', label: 'JWT', icon: 'jwt' },
-  { href: '/toolbox/csv', label: 'CSV', icon: 'csv' },
+  { href: "/toolbox/json", label: "JSON", icon: "scroll" },
+  { href: "/toolbox/calendar", label: "日历", icon: "calendar" },
+  { href: "/toolbox/base64", label: "Base64", icon: "base64" },
+  { href: "/toolbox/url", label: "URL", icon: "url" },
+  { href: "/toolbox/timestamp", label: "时间戳", icon: "ts" },
+  { href: "/toolbox/jwt", label: "JWT", icon: "jwt" },
+  { href: "/toolbox/csv", label: "CSV", icon: "csv" },
 ];
 
 export const Header = component$(() => {
   const loc = useLocation();
   const dark = useSignal(false);
   const menuOpen = useSignal(false);
+  const showTodo = useSignal(false);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
-    const saved = localStorage.getItem('mc-theme');
+    const saved = localStorage.getItem("mc-theme");
     const isDark = saved
-      ? saved === 'dark'
-      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      ? saved === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
     dark.value = isDark;
-    document.body.dataset.theme = isDark ? 'dark' : 'light';
+    document.body.dataset.theme = isDark ? "dark" : "light";
+    showTodo.value = isAdmin();
   });
 
   const isActive = (href: string) => {
-    const norm = (p: string) => p.replace(/\/+$/, '') || '/';
+    const norm = (p: string) => p.replace(/\/+$/, "") || "/";
     // Toolbox 是父栏目：/toolbox/json 与 /toolbox/calendar 及 5 个小工具子页都高亮它
-    if (href === '/toolbox/json') return loc.url.pathname.startsWith('/toolbox');
+    if (href === "/toolbox/json")
+      return loc.url.pathname.startsWith("/toolbox");
     return norm(loc.url.pathname) === norm(href);
   };
   const isExact = (href: string) => {
-    const norm = (p: string) => p.replace(/\/+$/, '') || '/';
+    const norm = (p: string) => p.replace(/\/+$/, "") || "/";
     return norm(loc.url.pathname) === norm(href);
   };
 
@@ -60,13 +64,13 @@ export const Header = component$(() => {
               注意：ul 不能用 overflow-x-auto，否则会裁切绝对定位的子菜单。 */}
           <ul class="hidden sm:flex items-center gap-1">
             {NAV.map((item) =>
-              item.href === '/toolbox/json' ? (
+              item.href === "/toolbox/json" ? (
                 <li key={item.href} class="mc-nav-group">
                   <Link
                     href={item.href}
                     aria-haspopup="true"
-                    aria-expanded={isActive(item.href) ? 'true' : 'false'}
-                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    aria-expanded={isActive(item.href) ? "true" : "false"}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                     class="mc-nav-item"
                   >
                     <PixelIcon name={item.icon} size={14} />
@@ -78,7 +82,7 @@ export const Header = component$(() => {
                         <Link
                           href={m.href}
                           role="menuitem"
-                          aria-current={isExact(m.href) ? 'page' : undefined}
+                          aria-current={isExact(m.href) ? "page" : undefined}
                           class="mc-nav-item"
                         >
                           <PixelIcon name={m.icon} size={14} />
@@ -92,29 +96,29 @@ export const Header = component$(() => {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                     class="mc-nav-item"
                   >
                     <PixelIcon name={item.icon} size={14} />
                     <span class="hidden sm:inline">{item.label}</span>
                   </Link>
                 </li>
-              )
+              ),
             )}
           </ul>
 
           <button
             type="button"
             class="btn"
-            aria-label={dark.value ? '切换到白天' : '切换到夜晚'}
-            title={dark.value ? '切换到白天' : '切换到夜晚'}
+            aria-label={dark.value ? "切换到白天" : "切换到夜晚"}
+            title={dark.value ? "切换到白天" : "切换到夜晚"}
             onClick$={() => {
               dark.value = !dark.value;
-              document.body.dataset.theme = dark.value ? 'dark' : 'light';
-              localStorage.setItem('mc-theme', dark.value ? 'dark' : 'light');
+              document.body.dataset.theme = dark.value ? "dark" : "light";
+              localStorage.setItem("mc-theme", dark.value ? "dark" : "light");
             }}
           >
-            <PixelIcon name={dark.value ? 'moon' : 'sun'} size={14} />
+            <PixelIcon name={dark.value ? "moon" : "sun"} size={14} />
           </button>
 
           <AuthButton />
@@ -123,12 +127,18 @@ export const Header = component$(() => {
           <button
             type="button"
             class="btn sm:hidden"
-            aria-label={menuOpen.value ? '关闭菜单' : '打开菜单'}
+            aria-label={menuOpen.value ? "关闭菜单" : "打开菜单"}
             aria-expanded={menuOpen.value}
             aria-controls="mc-mobile-menu"
             onClick$={() => (menuOpen.value = !menuOpen.value)}
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="currentColor">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              aria-hidden="true"
+              fill="currentColor"
+            >
               <rect x="2" y="4" width="14" height="2" rx="1" />
               <rect x="2" y="8" width="14" height="2" rx="1" />
               <rect x="2" y="12" width="14" height="2" rx="1" />
@@ -143,12 +153,12 @@ export const Header = component$(() => {
           <div class="mc-container">
             <ul class="mc-nav-menu-list">
               {NAV.map((item) =>
-                item.href === '/toolbox/json' ? (
+                item.href === "/toolbox/json" ? (
                   <li key={item.href} class="mc-nav-group-m">
                     <Link
                       href={item.href}
                       role="menuitem"
-                      aria-current={isActive(item.href) ? 'page' : undefined}
+                      aria-current={isActive(item.href) ? "page" : undefined}
                       class="mc-nav-item"
                       onClick$={() => (menuOpen.value = false)}
                     >
@@ -161,7 +171,7 @@ export const Header = component$(() => {
                           <Link
                             href={m.href}
                             role="menuitem"
-                            aria-current={isExact(m.href) ? 'page' : undefined}
+                            aria-current={isExact(m.href) ? "page" : undefined}
                             class="mc-nav-item"
                             onClick$={() => (menuOpen.value = false)}
                           >
@@ -177,7 +187,7 @@ export const Header = component$(() => {
                     <Link
                       href={item.href}
                       role="menuitem"
-                      aria-current={isActive(item.href) ? 'page' : undefined}
+                      aria-current={isActive(item.href) ? "page" : undefined}
                       class="mc-nav-item"
                       onClick$={() => (menuOpen.value = false)}
                     >
@@ -185,7 +195,21 @@ export const Header = component$(() => {
                       <span>{item.label}</span>
                     </Link>
                   </li>
-                )
+                ),
+              )}
+              {showTodo.value && (
+                <li key="/todo">
+                  <Link
+                    href="/todo"
+                    role="menuitem"
+                    aria-current={isActive("/todo") ? "page" : undefined}
+                    class="mc-nav-item"
+                    onClick$={() => (menuOpen.value = false)}
+                  >
+                    <PixelIcon name="todo" size={14} />
+                    <span>TODO</span>
+                  </Link>
+                </li>
               )}
             </ul>
           </div>

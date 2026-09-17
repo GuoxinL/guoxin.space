@@ -19,6 +19,10 @@
 //   CARTO_API_KEY       选填  地图瓦片代理（/api/tiles/）的 CARTO key；未配时 302 降级 Esri 免 key 瓦片
 //   TRACKS_REPO         必填  轨迹私有仓库，形如 GuoxinL/running-private
 //   REDIRECT_URL        选填  登录回跳地址，默认 https://guoxin.space
+//   TODO_REPO           选填  默认 guoxin.space 站点仓库；建议用独立仓库（如 GuoxinL/todo-data）
+//                            避免每次编辑 TODO 触发站点仓库自动重新部署
+//   TODO_BRANCH         选填  默认 main
+//   TODO_PATH           选填  默认 app/src/data/todo（数据根目录）
 // 鉴权：写通道（collect/remove/sync）与完整轨迹（tracks/raw?f=rides.full.json）
 //      统一要求 Authorization: Bearer <token>，token 为 HMAC 签名、7 天有效；
 //      不再使用共享密钥 x-collect-key（已彻底移除）。
@@ -93,6 +97,37 @@ export default {
           return res;
         }
       }
+      // TODO 模块（均需 GitHub 登录：requireAdmin）
+      if (url.pathname.startsWith("/api/todo/")) {
+        const admin = await requireAdmin(request, env, cors);
+        if (!admin.ok) return json(cors, 401, { error: "未登录 GitHub（仅站长本人可用 TODO）" });
+        const cfg = todoCfg(env);
+        if (!cfg) return json(cors, 500, { error: "Worker 未配置 TODO_REPO（owner/repo）" });
+        if (request.method === "GET") {
+          if (url.pathname === "/api/todo/all") return await todoAll(env, cfg, cors);
+          if (url.pathname === "/api/todo/month") {
+            const y = Number(url.searchParams.get("y"));
+            const m = Number(url.searchParams.get("m"));
+            if (!y || !m) return json(cors, 400, { error: "缺少 y / m" });
+            return await todoMonth(env, cfg, cors, y, m);
+          }
+          if (url.pathname === "/api/todo/day") {
+            const d = url.searchParams.get("d");
+            if (!d) return json(cors, 400, { error: "缺少 d" });
+            return await todoDay(env, cfg, cors, d);
+          }
+          if (url.pathname === "/api/todo/tags") return await todoTags(env, cfg, cors);
+          return json(cors, 404, { error: "Not Found: " + url.pathname });
+        }
+        if (request.method === "POST") {
+          const body = await request.json().catch(() => ({}));
+          if (url.pathname === "/api/todo/save") return await todoSave(env, cfg, cors, body);
+          if (url.pathname === "/api/todo/tags") return await todoSaveTags(env, cfg, cors, body);
+          return json(cors, 404, { error: "Not Found: " + url.pathname });
+        }
+        return json(cors, 405, { error: "Method Not Allowed" });
+      }
+
       return json(cors, 404, { error: "Not Found: " + url.pathname });
     } catch (e) {
       return json(cors, 500, { error: String((e && e.message) || e) });
@@ -488,6 +523,118 @@ export async function sync(env, repo, branch, body, cors) {
     if (ok2) written++;
   }
   return json(cors, 200, { ok: true, dir, name, written });
+}
+
+// ---------- TODO 模块：读写自有仓库的 JSON 数据（均需 GitHub 登录） ----------
+// 数据位于 TODO_REPO 的 TODO_PATH 目录：
+//   tags.json / index/YYYY-MM.json（月索引摘要）/ YYYY-MM-DD.json（当日创建的 todo）
+// 写操作（save）会同步重建对应月份索引，保证日历只读索引与详情一致。
+function todoCfg(env) {
+  const repo = parseRepo(env.TODO_REPO);
+  if (!repo) return null;
+  return { repo, branch: env.TODO_BRANCH || "main", path: (env.TODO_PATH || "app/src/data/todo").replace(/\/+$/, "") };
+}
+
+function isDayName(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s || "");
+}
+function isDayFile(name) {
+  return /^\d{4}-\d{2}-\d{2}\.json$/.test(name || "");
+}
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+// 与前端 lib/todo/progress.ts 的加权算法保持一致（范围保护，不做五档吸附）
+function wProgress(todo) {
+  const subs = (todo && todo.subtasks) || [];
+  if (!subs.length) return todo && todo.completedAt ? 100 : 0;
+  let w = 0, p = 0;
+  for (const s of subs) {
+    const ww = Math.max(1, Math.round(Number(s.weight) || 1));
+    w += ww;
+    p += ww * Math.max(0, Math.min(100, Number(s.progress) || 0));
+  }
+  return w ? Math.round(p / w) : todo && todo.completedAt ? 100 : 0;
+}
+
+async function todoReadJson(env, cfg, relPath) {
+  const r = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/contents/" + enc(cfg.path + "/" + relPath) + "?ref=" + encodeURIComponent(cfg.branch));
+  if (r.status !== 200 || !r.data || !r.data.content) return null;
+  try {
+    return JSON.parse(decodeUtf8(atob(r.data.content)));
+  } catch (e) {
+    return null;
+  }
+}
+
+async function todoWriteJson(env, cfg, relPath, obj, message) {
+  const full = cfg.path + "/" + relPath;
+  const base64 = b64enc(JSON.stringify(obj, null, 2));
+  return putFile(env.GH_TOKEN, cfg.repo.owner, cfg.repo.repo, cfg.branch, full, base64, message);
+}
+
+// 重建某月索引：列举该月所有日文件 → 取摘要 → 写 index/YYYY-MM.json
+async function rebuildMonthIndex(env, cfg, y, m) {
+  const listing = await listDir(env.GH_TOKEN, cfg.repo.owner, cfg.repo.repo, cfg.path, cfg.branch);
+  const prefix = y + "-" + pad2(m) + "-";
+  const days = (listing || []).filter((f) => isDayFile(f.name) && f.name.startsWith(prefix));
+  const entries = [];
+  for (const f of days) {
+    const arr = await todoReadJson(env, cfg, f.name);
+    if (!Array.isArray(arr)) continue;
+    for (const t of arr) {
+      entries.push({
+        id: t.id,
+        title: t.title,
+        tags: t.tags || [],
+        startDate: t.startDate,
+        endDate: t.endDate || null,
+        progress: wProgress(t),
+        completedAt: t.completedAt || null,
+      });
+    }
+  }
+  await todoWriteJson(env, cfg, "index/" + y + "-" + pad2(m) + ".json", entries, "todo: rebuild index " + y + "-" + pad2(m));
+}
+
+async function todoAll(env, cfg, cors) {
+  const listing = await listDir(env.GH_TOKEN, cfg.repo.owner, cfg.repo.repo, cfg.path, cfg.branch);
+  const files = (listing || []).filter((f) => isDayFile(f.name));
+  let out = [];
+  for (const f of files) {
+    const arr = await todoReadJson(env, cfg, f.name);
+    if (Array.isArray(arr)) out = out.concat(arr);
+  }
+  return json(cors, 200, { ok: true, todos: out });
+}
+async function todoMonth(env, cfg, cors, y, m) {
+  const arr = await todoReadJson(env, cfg, "index/" + y + "-" + pad2(m) + ".json");
+  return json(cors, 200, { ok: true, index: Array.isArray(arr) ? arr : [] });
+}
+async function todoDay(env, cfg, cors, d) {
+  const arr = await todoReadJson(env, cfg, d + ".json");
+  return json(cors, 200, { ok: true, todos: Array.isArray(arr) ? arr : [] });
+}
+async function todoTags(env, cfg, cors) {
+  const arr = await todoReadJson(env, cfg, "tags.json");
+  return json(cors, 200, { ok: true, tags: Array.isArray(arr) ? arr : [] });
+}
+async function todoSave(env, cfg, cors, body) {
+  const day = String((body && body.day) || "");
+  if (!isDayName(day)) return json(cors, 400, { error: "day 格式应为 YYYY-MM-DD" });
+  const todos = Array.isArray(body.todos) ? body.todos : [];
+  const ok = await todoWriteJson(env, cfg, day + ".json", todos, body.message || "todo: 更新 " + day);
+  if (!ok) return json(cors, 500, { error: "写入日文件失败（token 是否授权了 " + cfg.repo.owner + "/" + cfg.repo.repo + "？）" });
+  const ym = /^(\d{4})-(\d{2})/.exec(day);
+  if (ym) await rebuildMonthIndex(env, cfg, Number(ym[1]), Number(ym[2]));
+  return json(cors, 200, { ok: true, day, count: todos.length });
+}
+async function todoSaveTags(env, cfg, cors, body) {
+  const tags = Array.isArray(body.tags) ? body.tags : [];
+  const ok = await todoWriteJson(env, cfg, "tags.json", tags, body.message || "todo: 更新标签");
+  if (!ok) return json(cors, 500, { error: "写入标签失败" });
+  return json(cors, 200, { ok: true, count: tags.length });
 }
 
 // ---------- 鉴权：GitHub OAuth + 无状态 HMAC 签名 token ----------
