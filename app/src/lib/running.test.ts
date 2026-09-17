@@ -281,7 +281,7 @@ describe('tracksUrl（Worker 通道拼接）', () => {
   });
   it('默认 Worker 拼接 preview.json 路径', () => {
     const u = tracksUrl('preview.json');
-    expect(u).toContain('api.guoxin.space');
+    expect(u).toContain('guoxin-space.lgx31.workers.dev');
     expect(u).toContain('api/tracks/raw?f=preview.json');
   });
   it('对含空格的文件名做 encodeURIComponent', () => {

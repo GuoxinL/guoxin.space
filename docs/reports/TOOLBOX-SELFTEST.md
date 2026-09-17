@@ -99,7 +99,7 @@ raw.githubusercontent.com/guoxinl/skill-collection/main/fav-brainstorming/{_icon
 
 ### 4.1 数据通路
 
-页面数据全部经 Cloudflare Worker 代理（`api.guoxin.space/…/api/tracks/raw`），
+页面数据全部经 Cloudflare Worker 代理（`guoxin-space.lgx31.workers.dev/…/api/tracks/raw`），
 浏览器实测请求均返回 200，`thumb/<run_id>.light.png` 与 `previews/*.png` 均正常。
 （沙箱内 `curl` 因代理隧道限制无法直连校验，以浏览器实测为准。）
 
