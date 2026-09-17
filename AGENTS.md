@@ -14,7 +14,7 @@ personal-homepage/
 ├── package.json        # Qwik 项目；packageManager: pnpm@9.15.0（禁用 npm / yarn，禁止提交 package-lock.json）
 ├── vite.config.ts / tsconfig*.json
 ├── app/                # Qwik 应用源码（唯一改动区）
-│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 21 文件 / 308 用例（含 todo 逻辑层 43 绿），CI 实测）
+│   ├── src/            # 组件 / 全局样式 global.css / 路由 / lib（单测 24 文件 / 356 用例（含 todo 逻辑层 72 绿），CI 实测）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
 │   ├── entry.ssr.tsx / entry.dev.tsx / entry.preview.tsx
 │   └── dist/           # 构建产物（gitignore；CI 生成并托管 Pages）
@@ -252,7 +252,7 @@ gh run list --workflow=deploy.yml --limit 5
 | `npm run lint` | ESLint 检查 `app/src` | 配置见 `eslint-plugin-qwik` + `@typescript-eslint` |
 | `npm run fmt` | Prettier 格式化 `app/src` | 提交前必跑；当前未接 pre-commit 钩子（仅 commit-msg 校验提交格式） |
 | `npm run type-check` | `tsc --noEmit` 类型检查 | Qwik 严格模式 |
-| `npm run test` | `vitest run` 单测（16 文件 / 265 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
+| `npm run test` | `vitest run` 单测（24 文件 / 356 用例，`app/src/lib/` + `app/src/components/`） | 本机 `prepare` 阶段约 617s（wasm 回退），CI 已覆盖；本地可只跑改动用例 |
 | `npm run test:e2e` | `playwright test` 页面自动化（E2E，chromium） | 改任何页面 / 交互 / CSS 后必跑（强制门禁）；自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`（模拟 GitHub Pages 语义）；本地可只跑改动用例 `npx playwright test e2e/xxx.spec.ts` |
 | `npm run build` | Qwik SSG 构建（client + SSR 预渲染 6 页；末尾自动写 SPA fallback `404.html`） | **必须 Node ≥24** + `export CODEBUDDY_SAFE_DELETE_ENABLED=0`（否则 safe-delete guard 拦截清空 `app/dist/`） |
 

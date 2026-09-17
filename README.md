@@ -17,7 +17,7 @@
 | `/toolbox/csv` | 小工具 · CSV 与 JSON 互转 |
 | `/running` | 骑行 · 跑步运动数据：年度热力图、活动列表、地图轨迹与回放 |
 | `/notes`（含 `/notes/<中文标题>`） | 文章（Notes）：知识库文章列表与阅读，详情纯 CSR 运行时取数 |
-| `/todo` | TODO 列表：子任务 / 标签 / 双层进度 / 周报（GitHub OAuth 登录门禁，数据存独立仓经 Worker 代理） |
+| `/todo` | TODO 列表（**行式**，字段点击即可原地编辑）：子任务 / 标签浮层 / 双层进度 / 周报（GitHub OAuth 登录门禁，数据存独立仓经 Worker 代理） |
 
 ## 架构一句话
 
@@ -69,6 +69,7 @@ npm run lint / fmt / type-check
 - **2026-09-17**：Toolbox 扩展——① 日历从主导航并入 Toolbox 子导航（新增 `/toolbox/calendar`：农历 / 法定节假日与调休 / 二十四节气 / 年视图 / 距下一假期倒计时）；② 页头 Toolbox 悬浮子菜单（hover / focus-within 展开，含 JSON · 日历 · 5 个小工具），5 个小工具升级为独立静态路由 `/toolbox/{base64,url,timestamp,jwt,csv}`（URL 可分享、可深链），JSON 页移除「小工具」弹窗按钮；③ JSON 工具增强（Schema 推断 / 小工具集 / 语义 diff / 大文件限流）；静态预渲染页增至 11 个，单测 16 文件 / 265 用例，e2e 新增 Toolbox 子菜单导航用例。
 - **2026-09-17（下午）**：TODO 模块上线——GitHub OAuth 保护、独立数据仓 `GuoxinL/todo-data`（经 Worker `/api/todo/*` 代理，env `TODO_REPO`/`TODO_PATH`/`TODO_BRANCH`）、子任务 / 标签 / 双层进度 / 周报 / 日历融合进度线条；单测增至 21 文件 / 308 用例，新增 `e2e/todo.spec.ts`（9 例，mock Worker）。
 - **2026-09-17（晚）**：TODO 入口上移 + 日历任务线连续化——① TODO 由 Toolbox 子导航（8→7 个 tab）上移为**主导航项**（桌面与移动端一致，`isAdmin()` 登录后才显示，登录/登出经 `authSubscribe` 即时增删）；② 日历月视图的 TODO 进度线改为**按行（周）分配通道**（`lib/calendar/todo-line.ts` 纯函数，≤3 条 lane + 溢出计数），同一任务跨日连成一条（格内固定槽位对齐、负 margin 消除接缝，跨行处用贴边直角表达延续）；单元格 hover tooltip 仍列出全部命中任务与进度。单测增至 22 文件 / 329 用例（新增 16 条 lane 布局用例），e2e 新增日历连线几何断言 ×5 与主导航登录门控 ×3。
+- **2026-09-17（深夜）**：TODO 列表行式重构——① 卡片网格改**行式**，标题 / 日期点击即可原地编辑（无弹窗），行头 `+/−` 展开收起子任务，标题前方块勾选关闭 / 重新打开（关闭时子任务强制记 100%）；② 点标签弹浮层，可勾选已有标签或输入名称回车新建（先落盘 `tags.json` 再勾选）；③ 列表末尾「＋ 添加 TODO」草稿行，填标题回车落盘；④ 移除 TODO 修改弹窗，日历页点击改弹**只读卡片**（卡内按钮带 `?todo=<id>` 深链跳转）；⑤ 新增 `lib/todo/write-queue.ts`（400ms debounce 合并写盘），避免原地编辑高频触发 Worker 写数据仓；顺带修掉新建任务取 UTC 日期的偏差。单测增至 24 文件 / 356 用例（新增 `mutate` 17 + `write-queue` 10），`e2e/todo.spec.ts` 重写为 19 条。
 
 ## 文档
 
