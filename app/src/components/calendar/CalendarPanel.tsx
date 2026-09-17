@@ -13,6 +13,7 @@ import {
   type CalendarCell,
   type DayRef,
 } from '../../lib/calendar';
+import { isHolidayYearMaintained } from '../../lib/calendar/holidays';
 
 function cellClass(c: CalendarCell): string {
   const cls = ['cal-cell'];
@@ -92,6 +93,13 @@ export const CalendarPanel = component$(() => {
           </button>
         </div>
       </div>
+
+      {!isHolidayYearMaintained(viewY.value) && (
+        <p class="cal-hint">
+          法定节假日与调休数据待补充：国务院办公厅尚未发布 {viewY.value}{' '}
+          年放假安排，当前仅显示农历与二十四节气。
+        </p>
+      )}
 
       <div class="cal-grid cal-dow" aria-hidden="true">
         {WEEKDAYS.map((w) => (

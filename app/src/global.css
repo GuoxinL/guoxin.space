@@ -3150,6 +3150,50 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
   padding-top: 12px;
 }
 
+/* 未维护年份诚实提示：violet-0 色带 + 3px 左border，圆角 8px（callout） */
+.cal-hint {
+  color: var(--slate-80);
+  font-size: 13px;
+  line-height: 1.6;
+  background: var(--violet-0);
+  border: 1px solid var(--violet-15);
+  border-left: 3px solid var(--violet-65);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  margin: 0 0 1rem;
+}
+
+/* Toolbox 子导航（JSON / Calendar 互链，下划线 tab，发丝线分隔） */
+.tb-tabs {
+  margin: 0 0 1.5rem;
+}
+.tb-tabs-list {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--slate-5);
+}
+.tb-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  color: var(--slate-65);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* 与父级发丝线重叠，形成下划线高亮 */
+}
+.tb-tab:hover {
+  color: var(--slate-95);
+  background: var(--violet-0);
+}
+.tb-tab[aria-current='page'] {
+  color: var(--violet-80);
+  border-bottom-color: var(--violet-65);
+  font-weight: 600;
+}
+
 @media (max-width: 720px) {
   .cal-cell { min-height: 64px; }
 }

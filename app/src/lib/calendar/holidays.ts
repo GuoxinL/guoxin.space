@@ -87,3 +87,16 @@ export function getHoliday(y: number, m: number, d: number): HolidayInfo {
   }
   return { type: null };
 }
+
+/**
+ * 已维护法定节假日数据的年份（升序）。
+ * 仅这些年份的日历会显示「休/班」标记；其余年份（国办尚未发布放假安排）只显示农历与节气，
+ * 并给出诚实提示，绝不臆造节假日数据。
+ */
+export const HOLIDAY_YEARS: number[] = Object.keys(HOLIDAYS)
+  .map(Number)
+  .sort((a, b) => a - b);
+
+export function isHolidayYearMaintained(y: number): boolean {
+  return HOLIDAYS[y] !== undefined;
+}

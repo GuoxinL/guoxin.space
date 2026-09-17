@@ -1,10 +1,16 @@
 import { component$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 
+import { ToolboxTabs } from '../../../components/layout/ToolboxTabs';
 import { JsonWorkbench } from '../../../components/json/JsonWorkbench';
 
 export default component$(() => {
-  return <JsonWorkbench />;
+  return (
+    <>
+      <ToolboxTabs />
+      <JsonWorkbench />
+    </>
+  );
 });
 
 export const head: DocumentHead = {

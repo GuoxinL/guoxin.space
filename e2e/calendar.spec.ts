@@ -5,12 +5,19 @@ import { test, expect } from '@playwright/test';
  * 断言：导航项、月视图网格、切月、点击看黄历、今日高亮。
  */
 test.describe('Toolbox · Calendar /toolbox/calendar', () => {
-  test('导航出现「Calendar」项且进入页面标题正确', async ({ page }) => {
+  test('Toolbox 子导航含 JSON/Calendar 且当前页高亮', async ({ page }) => {
     await page.goto('/toolbox/calendar');
     await expect(page).toHaveTitle(/Calendar/);
-    const nav = page.locator('.mc-nav-item', { hasText: 'Calendar' });
-    await expect(nav).toBeVisible();
-    await expect(nav).toHaveAttribute('aria-current', 'page');
+    // 顶部主导航不再含独立 Calendar 项
+    await expect(page.locator('.mc-nav-item', { hasText: 'Calendar' })).toHaveCount(0);
+    // 子导航含两个 tab
+    await expect(page.locator('.tb-tab')).toHaveCount(2);
+    // 当前页 Calendar tab 高亮、JSON tab 可见可跳转
+    await expect(page.locator('.tb-tab', { hasText: 'Calendar' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(page.locator('.tb-tab', { hasText: 'JSON' })).toBeVisible();
   });
 
   test('月视图渲染 42 日格', async ({ page }) => {
@@ -45,5 +52,18 @@ test.describe('Toolbox · Calendar /toolbox/calendar', () => {
   test('今日高亮存在（客户端挂载后）', async ({ page }) => {
     await page.goto('/toolbox/calendar');
     await expect(page.locator('.cal-today')).toBeVisible();
+  });
+
+  test('查看未维护年份显示「数据待补充」提示', async ({ page }) => {
+    await page.goto('/toolbox/calendar');
+    const title = page.locator('.cal-title');
+    // 前进直到进入 2027（国办尚未发布，最多 14 次切月）
+    for (let i = 0; i < 14; i++) {
+      if ((await title.innerText()).includes('2027')) break;
+      await page.locator('button.btn', { hasText: '下月' }).click();
+    }
+    await expect(title).toContainText('2027');
+    await expect(page.locator('.cal-hint')).toBeVisible();
+    await expect(page.locator('.cal-hint')).toContainText('待补充');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getHoliday, HOLIDAYS } from './holidays';
+import { getHoliday, HOLIDAYS, HOLIDAY_YEARS, isHolidayYearMaintained } from './holidays';
 import { getLunarInfo } from './lunar';
 import { buildMonthGrid, dayLabel } from './calendar';
 
@@ -36,6 +36,18 @@ describe('holidays · 2026 法定节假日与调休', () => {
 
   it('数据覆盖 2026 全年 33 天法定假', () => {
     expect(HOLIDAYS[2026].rest.length).toBe(33);
+  });
+
+  it('维护年份清单含 2026、不含 2027（国办尚未发布）', () => {
+    expect(HOLIDAY_YEARS).toContain(2026);
+    expect(isHolidayYearMaintained(2026)).toBe(true);
+    expect(HOLIDAY_YEARS).not.toContain(2027);
+    expect(isHolidayYearMaintained(2027)).toBe(false);
+  });
+
+  it('未维护年份 getHoliday 返回普通日（不臆造节假日）', () => {
+    expect(getHoliday(2027, 1, 1)).toEqual({ type: null });
+    expect(getHoliday(2027, 10, 1)).toEqual({ type: null });
   });
 });
 

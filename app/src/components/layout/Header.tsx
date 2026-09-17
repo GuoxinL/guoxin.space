@@ -7,7 +7,6 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: '/', label: '首页', icon: 'home' },
   { href: '/skills', label: 'Skills', icon: 'chest' },
   { href: '/toolbox/json', label: 'Toolbox', icon: 'scroll' },
-  { href: '/toolbox/calendar', label: 'Calendar', icon: 'calendar' },
   { href: '/running', label: 'Running', icon: 'boot' },
   { href: '/notes', label: 'Notes', icon: 'note' },
 ];
@@ -29,6 +28,8 @@ export const Header = component$(() => {
 
   const isActive = (href: string) => {
     const norm = (p: string) => p.replace(/\/+$/, '') || '/';
+    // Toolbox 是父栏目：/toolbox/json 与 /toolbox/calendar 两个子页都高亮它
+    if (href === '/toolbox/json') return loc.url.pathname.startsWith('/toolbox');
     return norm(loc.url.pathname) === norm(href);
   };
 
