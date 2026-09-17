@@ -43,4 +43,5 @@
 | 2026-09-17 21:15 | 05-deploy | push `160e914` → 站点部署 run **35225973512 success**（e2e 转绿） |
 | 2026-09-17 21:18 | 06-it | 生产 Playwright 自测通过（/running 经新默认域取到真实数据） |
 | 2026-09-17 21:35 | 06-it | bsk 驱动真实浏览器实测：OAuth token 有效（`/api/auth/me` 200 login=GuoxinL）、`/api/todo/all` 200；发现老用户 localStorage 旧域名覆盖问题 |
-| 2026-09-17 21:41 | 03-implement | 新增 `skMigrateWorker()` 旧域名迁移 + 3 条单测（313/313）；待 push 生效 |
+| 2026-09-17 21:41 | 03-implement | 新增 `skMigrateWorker()` 旧域名迁移 + 3 条单测（313/313） |
+| 2026-09-17 21:47 | 06-it | push `9092cb1` → 站点 run **35228799879 success**；bsk 实测旧域自动迁移生效（localStorage 旧域 → 新域，页面无报错） |
