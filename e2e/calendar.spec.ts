@@ -134,6 +134,14 @@ function mockWorkerApi(page: Page) {
       body: JSON.stringify({ ok: true, index: MONTH_INDEX }),
     }),
   );
+  // 卡片内把 tag id 显示为名称，登录态下日历页会拉一次标签库
+  page.route(`${MOCK_WORKER}api/todo/tags`, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, tags: [{ id: 't1', name: 'work' }] }),
+    }),
+  );
 }
 
 /** 按 aria-label 精确定位某一天的日历格（不依赖网格行偏移）。 */

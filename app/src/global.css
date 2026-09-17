@@ -3575,20 +3575,149 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 
 .td-empty { padding: 32px; text-align: center; color: var(--slate-65); }
 
-/* ---------- 卡片列表 ---------- */
-.td-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-.td-card {
-  display: flex; flex-direction: column; gap: 10px; padding: 16px;
-  border: 1px solid var(--slate-5); border-radius: 10px; background: var(--td-surface);
+/* ---------- 行式列表 ----------
+   原地编辑：每个字段「展示态按钮 ↔ 输入态」切换（TodoRow.tsx）。
+   V2 去容器化：不套卡片框，靠 1px 发丝线 + 留白分块。 */
+.td-rows { display: flex; flex-direction: column; border-top: 1px solid var(--slate-5); }
+.td-r { border-bottom: 1px solid var(--slate-5); transition: background-color 120ms ease; }
+.td-r:hover { background: var(--violet-0); }
+.td-r.done .td-r-title { text-decoration: line-through; color: var(--slate-50); }
+.td-r.hl { background: var(--violet-0); box-shadow: inset 3px 0 0 var(--violet-65); }
+.td-r.draft { background: var(--violet-0); }
+.td-r-main { display: flex; align-items: center; gap: 8px; padding: 7px 8px; }
+
+/* 行头 +/−（展开收起子任务）与完成勾选 */
+.td-r-toggle, .td-r-check {
+  flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 14px; line-height: 1; cursor: pointer; color: var(--slate-65);
+  background: transparent; border: 1px solid var(--slate-5); border-radius: 10px;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+.td-r-check { border-radius: 999px; }
+.td-r-toggle:hover, .td-r-check:hover { border-color: var(--violet-45); color: var(--violet-65); }
+.td-r-toggle:focus-visible, .td-r-check:focus-visible { outline: none; border-color: var(--violet-65); box-shadow: 0 0 0 3px var(--violet-0); }
+.td-r-check.on { color: #fff; background: var(--violet-65); border-color: var(--violet-65); }
+
+/* 标题：展示态是按钮（hover 显出可编辑底纹），点击就地变输入框 */
+.td-r-title, .td-r-input {
+  font: inherit; font-size: 14px; text-align: left; color: var(--slate-95);
+  background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 4px 8px;
   transition: border-color 120ms ease, background-color 120ms ease;
 }
-.td-card:hover { border-color: var(--violet-45); background: var(--violet-0); }
-.td-card.done { opacity: 0.72; }
-.td-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.td-card-title { font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--slate-95); }
-.td-card.done .td-card-title { text-decoration: line-through; }
+.td-r-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.td-r-title:hover { border-color: var(--slate-5); background: var(--td-input); }
+.td-r-title:focus-visible { outline: none; border-color: var(--violet-65); }
+.td-r-input { flex: 1; min-width: 0; border-color: var(--violet-65); background: var(--td-input); outline: none; box-shadow: 0 0 0 3px var(--violet-0); }
+.td-r-input.td-r-date-input { flex: none; width: 140px; font-size: 13px; }
 
-.td-progress { display: flex; align-items: center; gap: 8px; flex: none; width: 120px; }
+/* 标签列：点开选择浮层 */
+.td-r-tags { position: relative; flex: none; width: 132px; }
+.td-r-tagbtn {
+  display: flex; align-items: center; gap: 4px; width: 100%; padding: 3px 6px;
+  font: inherit; font-size: 12px; text-align: left; cursor: pointer; color: var(--slate-65);
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.td-r-tagbtn:hover { border-color: var(--slate-5); background: var(--td-input); }
+.td-r-tagbtn:focus-visible { outline: none; border-color: var(--violet-65); }
+.td-r-tagempty { color: var(--slate-25); }
+.td-tag-more { color: var(--slate-50); font-size: 11px; }
+
+/* 日期列：单日只显一个日期，跨日显示「起 → 止」；无结束日期时给一个 ＋ 入口 */
+.td-r-dates {
+  flex: none; display: flex; align-items: center; gap: 2px; width: 150px;
+  font-size: 12.5px; color: var(--slate-65); font-variant-numeric: tabular-nums;
+}
+.td-r-date {
+  font: inherit; font-size: 12.5px; color: inherit; background: transparent; border: 1px solid transparent;
+  border-radius: 10px; padding: 3px 6px; cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+.td-r-date:hover { border-color: var(--slate-5); background: var(--td-input); color: var(--violet-65); }
+.td-r-date:focus-visible { outline: none; border-color: var(--violet-65); }
+.td-r-date-add { color: var(--slate-25); }
+.td-r-datesep { color: var(--slate-25); }
+
+/* 进度列：只读（无子任务看完成态，有子任务看加权结果） */
+.td-r-progress { flex: none; display: flex; align-items: center; gap: 6px; width: 96px; }
+
+.td-r-del {
+  flex: none; width: 22px; height: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  font: inherit; font-size: 15px; line-height: 1; cursor: pointer; color: var(--slate-25);
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+.td-r-del:hover { color: var(--td-red); border-color: var(--slate-5); background: var(--td-input); }
+.td-r-del:focus-visible { outline: none; border-color: var(--violet-65); }
+.td-r-confirm { flex: none; display: flex; gap: 4px; }
+.td-r-confirm .btn { font-size: 12px; padding: 3px 8px; }
+
+/* 行内展开区：子任务编辑（原弹窗内容迁到这里） */
+.td-r-sub { padding: 10px 12px 14px 38px; border-top: 1px solid var(--slate-5); background: var(--td-input); }
+.td-r-subhead { font-size: 12px; color: var(--slate-50); margin-bottom: 8px; }
+.td-sub-editor { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.td-sub-editor .td-subs { width: 100%; }
+
+/* 列表末尾：新增一行 */
+.td-r-add {
+  display: flex; align-items: center; gap: 6px; width: 100%; padding: 10px 12px;
+  font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--slate-50);
+  background: transparent; border: 0; border-bottom: 1px solid var(--slate-5);
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.td-r-add:hover { color: var(--violet-65); background: var(--violet-0); }
+.td-r-add:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--violet-65); }
+
+/* ---------- 标签选择浮层（行内弹出） ---------- */
+.td-picker-mask { position: fixed; inset: 0; z-index: 40; }
+.td-picker {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 41; width: 224px; padding: 6px;
+  background: var(--td-surface); border: 1px solid var(--slate-5); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(1, 11, 26, 0.18);
+}
+.td-picker-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; }
+.td-picker-item {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--slate-80);
+  background: transparent; border: 0; border-radius: 10px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.td-picker-item:hover { background: var(--violet-0); }
+.td-picker-item.on { color: var(--violet-80); }
+.td-picker-box {
+  flex: none; width: 15px; height: 15px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; line-height: 1; border: 1px solid var(--slate-25); border-radius: 999px;
+}
+.td-picker-item.on .td-picker-box { color: #fff; background: var(--violet-65); border-color: var(--violet-65); }
+.td-picker-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-picker-empty { padding: 8px; font-size: 12px; color: var(--slate-50); }
+.td-picker-add { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--slate-5); }
+.td-picker-add input {
+  width: 100%; padding: 7px 9px; font: inherit; font-size: 13px; color: var(--slate-95);
+  background: var(--td-input); border: 1px solid var(--slate-5); border-radius: 10px;
+}
+.td-picker-add input:focus { outline: none; border-color: var(--violet-65); box-shadow: 0 0 0 3px var(--violet-0); }
+
+/* ---------- 日历页只读任务卡片 ---------- */
+.td-cal-card { width: min(420px, 100%); }
+.td-cal-card-body { display: flex; flex-direction: column; gap: 12px; }
+.td-cal-card-title { font-size: 17px; font-weight: 600; line-height: 1.4; color: var(--slate-95); }
+.td-cal-card-title.done { text-decoration: line-through; color: var(--slate-50); }
+.td-cal-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--slate-65); }
+.td-cal-card-state { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--slate-5); }
+.td-cal-card-state.done { color: var(--violet-80); background: var(--violet-0); border-color: var(--violet-15); }
+.td-cal-card-progress { display: flex; align-items: center; gap: 8px; }
+
+/* ---------- 窄屏：行内字段改为两行堆叠 ---------- */
+@media (max-width: 639px) {
+  .td-r-main { flex-wrap: wrap; row-gap: 6px; }
+  .td-r-toggle, .td-r-check { order: 1; }
+  .td-r-title, .td-r-input.td-r-title-input { order: 2; flex: 1 1 calc(100% - 116px); }
+  .td-r-del, .td-r-confirm { order: 3; margin-left: auto; }
+  .td-r-tags { order: 4; width: auto; flex: 0 1 auto; margin-left: 30px; }
+  .td-r-dates { order: 5; width: auto; margin-left: auto; }
+  .td-r-progress { order: 6; width: 84px; }
+}
 .td-bar { flex: 1; height: 6px; border-radius: 999px; background: var(--slate-5); overflow: hidden; }
 .td-bar-fill { display: block; height: 100%; border-radius: 999px; }
 .td-bar-fill.red { background: var(--td-red); }
@@ -3596,22 +3725,9 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .td-bar-fill.green { background: var(--td-green); }
 .td-pct { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--slate-65); width: 34px; text-align: right; }
 
-.td-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--slate-65); }
 .td-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .td-tag { padding: 1px 8px; border-radius: 999px; background: var(--violet-0); color: var(--violet-80); border: 1px solid var(--violet-15); }
 .td-date { color: var(--slate-65); }
-.td-subcount { color: var(--slate-65); }
-
-.td-sublist { list-style: none; margin: 0; padding: 8px 0 0; border-top: 1px solid var(--slate-5); display: flex; flex-direction: column; gap: 6px; }
-.td-sub { display: flex; align-items: center; gap: 8px; }
-.td-sub-title { flex: 1; font-size: 13px; color: var(--slate-80); }
-.td-sub-bar { display: block; width: 56px; height: 5px; border-radius: 999px; background: var(--slate-5); }
-.td-sub-bar.red { background: var(--td-red); }
-.td-sub-bar.yellow { background: var(--td-yellow); }
-.td-sub-bar.green { background: var(--td-green); }
-
-.td-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.td-card-actions .btn { font-size: 13px; padding: 4px 10px; }
 
 /* ---------- 弹窗（浮层） ---------- */
 .td-modal-mask {
@@ -3625,9 +3741,7 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 }
 .td-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .td-modal-head h2 { font-size: 18px; margin: 0; }
-.td-form { display: flex; flex-direction: column; gap: 14px; }
-.td-row { display: flex; gap: 12px; flex-wrap: wrap; }
-.td-row .td-field { flex: 1 1 160px; }
+/* （原 TodoModal 的 .td-form / .td-row 已随组件移除；.td-field 仍被周报弹窗复用） */
 .td-field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--slate-65); }
 .td-field > span { font-weight: 600; }
 .td-field input[type="text"],

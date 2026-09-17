@@ -22,8 +22,9 @@ import {
   layoutTodoRow,
   type TodoRowLayout,
 } from "../../lib/calendar/todo-line";
-import { fetchMonth, isTodoAuthed } from "../../lib/todo/api";
-import type { TodoIndexEntry } from "../../lib/todo/types";
+import { fetchMonth, fetchTags, isTodoAuthed } from "../../lib/todo/api";
+import type { Tag, TodoIndexEntry } from "../../lib/todo/types";
+import { TodoCalendarCard } from "../todo/TodoCalendarCard";
 
 function cellClass(c: CalendarCell): string {
   const cls = ["cal-cell"];
@@ -84,6 +85,19 @@ export const CalendarPanel = component$(() => {
   // TODO 进度线条：仅登录态拉当月索引；视图切换（viewY/viewM 变化）重新拉取
   const todoAuth = useSignal(false);
   const monthIndex = useSignal<TodoIndexEntry[]>([]);
+  /** 点击某天弹出的只读卡片（null = 未弹出） */
+  const picked = useSignal<TodoIndexEntry | null>(null);
+  /** 标签库：卡片内把 tag id 显示成名称（登录态下拉一次） */
+  const tags = useSignal<Tag[]>([]);
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    if (!isTodoAuthed()) return;
+    try {
+      tags.value = await fetchTags();
+    } catch {
+      tags.value = [];
+    }
+  });
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
     track(() => viewY.value);
@@ -327,15 +341,8 @@ export const CalendarPanel = component$(() => {
                       const end = e.endDate || e.startDate;
                       return start <= key && key <= end;
                     });
-                    if (todoAuth.value && hit) {
-                      // 跨路由深链：Qwik City SPA 导航会丢弃 query（仅同路径导航才保留，
-                      // 见 qwik-city lib/index.qwik.mjs 916-918 的 isSamePath 判定），故走真实
-                      // 导航（full reload）以保留 ?todo=<id> 深链，且使其可书签化/可分享。
-                      location.href = new URL(
-                        "/todo?todo=" + hit.id,
-                        location.href,
-                      ).href;
-                    }
+                    // 弹出只读卡片（不再整页跳转到 /todo）；要编辑由卡片内的按钮带 ?todo= 深链过去
+                    if (todoAuth.value && hit) picked.value = hit;
                   }}
                 >
                   <span class={numClass(c)}>{c.d}</span>
@@ -400,6 +407,14 @@ export const CalendarPanel = component$(() => {
       <p class="cal-disclaimer">
         农历与节气为传统历法参考，不构成任何决策依据。
       </p>
+
+      {picked.value && (
+        <TodoCalendarCard
+          entry={picked.value}
+          tags={tags.value}
+          onClose$={() => (picked.value = null)}
+        />
+      )}
     </div>
   );
 });

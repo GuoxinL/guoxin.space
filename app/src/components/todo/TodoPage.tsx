@@ -7,9 +7,24 @@ import {
 } from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
 
-import type { ProgressFilter, SortKey, Tag, Todo } from "../../lib/todo/types";
+import type {
+  ProgressFilter,
+  SortKey,
+  Subtask,
+  Tag,
+  Todo,
+} from "../../lib/todo/types";
 import { filterTodos, sortTodos } from "../../lib/todo/filter";
 import { groupByDay, genTodoId } from "../../lib/todo/store";
+import {
+  closeTodo,
+  localDay,
+  patchTodo,
+  reopenTodo,
+  withSubtasks,
+  type TodoPatch,
+} from "../../lib/todo/mutate";
+import { createWriteQueue, type WriteQueue } from "../../lib/todo/write-queue";
 import {
   fetchAll,
   fetchTags,
@@ -18,10 +33,37 @@ import {
   isTodoAuthed,
 } from "../../lib/todo/api";
 import { authLogin, authSubscribe } from "../../lib/auth";
-import { TodoCard } from "./TodoCard";
-import { TodoModal } from "./TodoModal";
+import { TodoRow } from "./TodoRow";
 import { TagManager } from "./TagManager";
 import { WeeklyReportModal } from "./WeeklyReportModal";
+
+/** 统一的 ISO 时间戳（与既有 createdAt/updatedAt 数据口径一致）。 */
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function errText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+/** 草稿占位对象。
+ *  ⚠️ 草稿行不能用「把 signal 置 null 来卸载」的写法：Qwik 的 props 是惰性求值，
+ *  `{draft.value && <TodoRow todo={draft.value}/>}` 在置空与重渲染竞态时，
+ *  `todo` props 会取到 null 并让 TodoRow 崩溃，进而中断整页渲染、DOM 冻在旧状态。
+ *  因此 draft 永远持有对象，退场只翻 `hasDraft` 标志。 */
+const EMPTY_TODO: Todo = {
+  id: "",
+  title: "",
+  tags: [],
+  startDate: "",
+  endDate: null,
+  createdAt: "",
+  updatedAt: "",
+  lastOperatedAt: "",
+  completedAt: null,
+  subtasks: [],
+};
+
 
 export const TodoPage = component$(() => {
   const nav = useNavigate();
@@ -39,17 +81,29 @@ export const TodoPage = component$(() => {
   const progressFilter = useSignal<ProgressFilter>("all");
   const sortBy = useSignal<SortKey>("recent");
 
-  // 弹窗状态
-  const showModal = useSignal(false);
-  const editing = useSignal<Todo | null>(null);
+  // 浮层状态
   const showWeekly = useSignal(false);
   const showTagMgr = useSignal(false);
   const searchRef = useSignal<HTMLInputElement>();
   const toast = useSignal("");
-  // 首跑守卫：track 任务在 mount 当次会先跑一次 syncUrl，但此时 reload() 尚未异步回填
-  // editing/showModal，syncUrl 会把入站 ?todo=<id> 深链 query 用 replaceState('/todo') 剥掉。
-  // 跳过 mount 当次，待 reload() 回填后再由 track 触发 syncUrl 即可正确保留深链 query。
+  /** 末尾草稿行（点「＋ 添加 TODO」后进入，Enter 落盘）。
+   *  `draft` 恒非 null（见 EMPTY_TODO 说明），退场由 `hasDraft` 控制。 */
+  const draft = useSignal<Todo>(EMPTY_TODO);
+  const hasDraft = useSignal(false);
+  /** 深链 ?todo=<id> 定位高亮（不再打开弹窗） */
+  const highlightId = useSignal("");
+  // 首跑守卫：track 任务在 mount 当次会先跑一次 syncUrl，此时 reload() 尚未异步回填
+  // highlightId，syncUrl 会把入站 ?todo=<id> 深链 query 用 replaceState('/todo') 剥掉。
   const urlSynced = useSignal(false);
+
+  /** 写盘合并队列：原地编辑提交频繁，Worker 每次 save 都会写一次数据仓，
+   *  必须 debounce 合并（见 app/src/lib/todo/write-queue.ts 顶部说明）。
+   *
+   *  ⚠️ 不能用 useConstant 持有：它的值会进入 Qwik 序列化图（组件 `$seq$` 写进 HTML），
+   *  而队列对象含 push/flush 等函数，序列化时抛 Qwik `Code(3)`，会让 `/todo/` 的
+   *  SSG 预渲染整体失败。改为在客户端 visible task 内创建、signal 仅承载引用
+   *  （客户端赋值不参与序列化；SSR 阶段保持 undefined，而事件回调在 SSR 下不会触发）。 */
+  const queue = useSignal<WriteQueue<Todo[]>>();
 
   const filtered = useComputed$(() => {
     const list = filterTodos(todos.value, {
@@ -59,6 +113,7 @@ export const TodoPage = component$(() => {
     });
     return sortTodos(list, sortBy.value);
   });
+
 
   const reload = $(async () => {
     authed.value = isTodoAuthed();
@@ -77,92 +132,169 @@ export const TodoPage = component$(() => {
       todos.value = t;
       tags.value = tg;
       status.value = { kind: "ok", msg: `共 ${t.length} 个 TODO` };
-      // 深链 ?todo=<id> → 打开编辑
+      // 深链 ?todo=<id> → 定位高亮 + 自动展开该行
       const id = new URLSearchParams(location.search).get("todo");
-      if (id) {
-        const hit = t.find((x) => x.id === id);
-        if (hit) {
-          editing.value = hit;
-          showModal.value = true;
-        }
-      }
+      if (id && t.some((x) => x.id === id)) highlightId.value = id;
     } catch (e) {
-      status.value = {
-        kind: "err",
-        msg: "加载失败：" + (e instanceof Error ? e.message : String(e)),
-      };
+      status.value = { kind: "err", msg: "加载失败：" + errText(e) };
     }
   });
 
-  /** 将当前内存中的全量 todos 按日分组，逐日写入 Worker（硬删/移动跨日都正确）。 */
-  const persistTodos = $(async (next: Todo[]) => {
+  /** 内存态立即更新（乐观），写盘交给队列合并。 */
+  const commit$ = $((next: Todo[]) => {
     todos.value = next;
-    const groups = groupByDay(next);
-    await Promise.all(
-      Object.entries(groups).map(([day, arr]) => saveDay(day, arr)),
+    // 队列在客户端 visible task 里创建；用户交互必然晚于它执行
+    queue.value?.push(next);
+  });
+
+  const patchRow$ = $((id: string, patch: TodoPatch) => {
+    const iso = nowIso();
+    commit$(
+      todos.value.map((t) => (t.id === id ? patchTodo(t, patch, iso) : t)),
     );
   });
 
-  const openNew = $(() => {
+  const setSubtasks$ = $((id: string, next: Subtask[]) => {
+    const iso = nowIso();
+    commit$(
+      todos.value.map((t) => (t.id === id ? withSubtasks(t, next, iso) : t)),
+    );
+  });
+
+  const toggleDone$ = $((id: string) => {
+    const iso = nowIso();
+    commit$(
+      todos.value.map((t) => {
+        if (t.id !== id) return t;
+        // 关闭 = 子任务进度全写满 100%（数据自洽）；重新打开 = 只清 completedAt
+        return t.completedAt ? reopenTodo(t, iso) : closeTodo(t, iso);
+      }),
+    );
+  });
+
+  const deleteRow$ = $((id: string) => {
+    commit$(todos.value.filter((t) => t.id !== id));
+    toast.value = "已删除";
+  });
+
+  const onSaveTags$ = $(async (next: Tag[]) => {
+    tags.value = next;
+    await saveTags(next);
+    toast.value = "标签已保存";
+  });
+
+  /** 标签浮层回车新建：先落盘 tags.json，成功后再勾选到该 TODO（避免半成功态）。 */
+  const createTag$ = $(async (todoId: string, rawName: string) => {
+    const name = rawName.trim();
+    if (!name) return;
+    let tag = tags.value.find((t) => t.name === name);
+    if (!tag) {
+      tag = {
+        id:
+          "tag-" +
+          Date.now().toString(36) +
+          Math.random().toString(36).slice(2, 4),
+        name,
+      };
+      try {
+        await saveTags([...tags.value, tag]);
+      } catch (e) {
+        toast.value = "标签创建失败：" + errText(e);
+        return;
+      }
+      tags.value = [...tags.value, tag];
+    }
+    const target = todos.value.find((t) => t.id === todoId);
+    if (!target || target.tags.includes(tag.id)) return;
+    const iso = nowIso();
+    commit$(
+      todos.value.map((t) =>
+        t.id === todoId ? patchTodo(t, { tags: [...t.tags, tag.id] }, iso) : t,
+      ),
+    );
+  });
+
+  // ---- 末尾草稿行 ----
+  const startDraft$ = $(() => {
     const now = new Date();
-    const iso = now.toISOString();
-    const localDay = iso.slice(0, 10);
-    editing.value = {
+    const iso = nowIso();
+    draft.value = {
       id: genTodoId(now),
       title: "",
       tags: [],
-      startDate: localDay,
-      endDate: localDay,
+      // ⚠️ 用本地日期而非 toISOString().slice(0,10)（后者是 UTC，北京时间 0–8 点会算成前一天）
+      startDate: localDay(now),
+      endDate: null,
       createdAt: iso,
       updatedAt: iso,
       lastOperatedAt: iso,
       completedAt: null,
       subtasks: [],
     };
-    showModal.value = true;
+    hasDraft.value = true;
   });
 
-  const onSaveTodo = $(async (t: Todo) => {
-    const iso = new Date().toISOString();
-    const next = todos.value.filter((x) => x.id !== t.id);
-    next.push({ ...t, updatedAt: iso, lastOperatedAt: iso });
-    await persistTodos(next);
-    showModal.value = false;
-    editing.value = null;
-    toast.value = "已保存";
+  const patchDraft$ = $((patch: TodoPatch) => {
+    if (!hasDraft.value) return;
+    draft.value = { ...draft.value, ...patch };
   });
 
-  const onDeleteTodo = $(async (id: string) => {
-    const next = todos.value.filter((x) => x.id !== id);
-    await persistTodos(next);
-    toast.value = "已删除";
+  const commitDraft$ = $(() => {
+    if (!hasDraft.value) return;
+    const d = draft.value;
+    const title = d.title.trim();
+    hasDraft.value = false;
+    draft.value = EMPTY_TODO;
+    if (!title) return; // 空标题不产生记录
+    const iso = nowIso();
+    commit$([
+      ...todos.value,
+      { ...d, title, updatedAt: iso, lastOperatedAt: iso },
+    ]);
   });
 
-  const onReopen = $(async (id: string) => {
-    const next = todos.value.map((x) =>
-      x.id === id
-        ? { ...x, completedAt: null, lastOperatedAt: new Date().toISOString() }
-        : x,
-    );
-    await persistTodos(next);
+  const dropDraft$ = $(() => {
+    hasDraft.value = false;
+    draft.value = EMPTY_TODO;
   });
 
-  const onSaveTags = $(async (next: Tag[]) => {
-    tags.value = next;
-    await saveTags(next);
-    toast.value = "标签已保存";
-  });
+  // 草稿行不渲染这些动作，传空实现满足 props 契约
+  const noop$ = $(() => {});
+  const noopSubs$ = $(() => {});
 
-  // URL 同步：筛选/排序/搜索/选中变化时写回 ?tag=&filter=&sort=&q=&todo=
+  // URL 同步：筛选/排序/搜索/定位变化时写回 ?tag=&filter=&sort=&q=&todo=
   const syncUrl = $(() => {
     const p = new URLSearchParams();
     if (tagFilter.value.length) p.set("tag", tagFilter.value.join(","));
     if (progressFilter.value !== "all") p.set("filter", progressFilter.value);
     if (sortBy.value !== "recent") p.set("sort", sortBy.value);
     if (query.value) p.set("q", query.value);
-    if (editing.value && showModal.value) p.set("todo", editing.value.id);
+    if (highlightId.value) p.set("todo", highlightId.value);
     const qs = p.toString();
     history.replaceState(null, "", qs ? "/todo?" + qs : "/todo");
+  });
+
+  // 写盘队列只在浏览器里存在：客户端挂载后创建，卸载时 flush 兜底
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ cleanup }) => {
+    const q = createWriteQueue<Todo[]>(
+      (next) => {
+        const groups = groupByDay(next);
+        return Promise.all(
+          Object.entries(groups).map(([day, arr]) => saveDay(day, arr)),
+        ).then(() => undefined);
+      },
+      400,
+      (e: unknown) => {
+        status.value = { kind: "err", msg: "保存失败：" + errText(e) };
+      },
+    );
+    queue.value = q;
+    cleanup(() => {
+      // 卸载：把还在 debounce 窗口里的变更尽快写出去。失败已由队列 onError 上报，
+      // 此处组件已不存在，不重复提示（显式忽略）。
+      void q.flush().catch(() => {});
+    });
   });
 
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -170,9 +302,7 @@ export const TodoPage = component$(() => {
     reload();
     const unsub = authSubscribe(() => reload());
     // 注意：mount 阶段不在此调用 syncUrl()——reload() 异步读取入站 ?todo= 深链参数并设置
-    // editing/showModal，若此处先同步 replaceState('/todo') 会覆盖深链 query。筛选 URL 同步
-    // 由下方显式 track 的 useVisibleTask$ 在信号变化时承担，mount 时保留入站 URL 即可。
-    // 快捷键
+    // highlightId，若此处先同步 replaceState('/todo') 会覆盖深链 query。
     const onKey = (e: KeyboardEvent) => {
       const el = document.activeElement;
       const typing =
@@ -181,18 +311,17 @@ export const TodoPage = component$(() => {
           el.tagName === "TEXTAREA" ||
           (el as HTMLElement).isContentEditable);
       if (e.key === "Escape") {
-        showModal.value = false;
         showWeekly.value = false;
         showTagMgr.value = false;
-        editing.value = null;
+        if (!typing && hasDraft.value) dropDraft$();
         return;
       }
       if (typing) return;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") return; // 由弹窗自行处理
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") return;
       if (!authed.value) return;
       if (e.key === "n" || e.key === "N") {
-        if (!(showModal.value || showWeekly.value || showTagMgr.value))
-          openNew();
+        if (!(showWeekly.value || showTagMgr.value) && !hasDraft.value)
+          startDraft$();
       } else if (e.key === "/") {
         e.preventDefault();
         searchRef.value?.focus();
@@ -209,15 +338,14 @@ export const TodoPage = component$(() => {
     };
   });
 
-  // 筛选信号变化 → 同步 URL（显式 track，确保信号变更后重跑 syncUrl 写回 ?tag=&filter=）
+  // 显式 track：信号变化后重跑 syncUrl 写回筛选/定位 query
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => query.value);
     track(() => tagFilter.value);
     track(() => progressFilter.value);
     track(() => sortBy.value);
-    track(() => editing.value);
-    track(() => showModal.value);
+    track(() => highlightId.value);
     if (!urlSynced.value) {
       urlSynced.value = true;
       return; // 跳过 mount 当次，避免剥掉入站 ?todo= 深链 query
@@ -249,9 +377,6 @@ export const TodoPage = component$(() => {
             disabled={!authed.value}
           >
             管理标签
-          </button>
-          <button class="btn" onClick$={openNew} disabled={!authed.value}>
-            新建 TODO
           </button>
         </div>
       </div>
@@ -329,43 +454,55 @@ export const TodoPage = component$(() => {
             </select>
           </div>
 
-          {filtered.value.length === 0 ? (
+          {filtered.value.length === 0 && (
             <div class="td-empty">
               {todos.value.length === 0
-                ? "还没有 TODO，点击「新建 TODO」开始记录。"
+                ? "还没有 TODO，点下方「＋ 添加 TODO」开始记录。"
                 : "没有匹配的任务。"}
             </div>
-          ) : (
-            <div class="td-list">
-              {filtered.value.map((t) => (
-                <TodoCard
-                  key={t.id}
-                  todo={t}
-                  tags={tags.value}
-                  onEdit$={() => {
-                    editing.value = t;
-                    showModal.value = true;
-                  }}
-                  onDelete$={() => onDeleteTodo(t.id)}
-                  onReopen$={() => onReopen(t.id)}
-                />
-              ))}
-            </div>
           )}
+
+          <div class="td-rows">
+            {filtered.value.map((t) => (
+              <TodoRow
+                key={t.id}
+                todo={t}
+                tags={tags.value}
+                highlight={t.id === highlightId.value}
+                defaultOpen={t.id === highlightId.value}
+                onPatch$={(patch) => patchRow$(t.id, patch)}
+                onSubtasks$={(next) => setSubtasks$(t.id, next)}
+                onToggleDone$={() => toggleDone$(t.id)}
+                onDelete$={() => deleteRow$(t.id)}
+                onCreateTag$={createTag$}
+              />
+            ))}
+
+            {/* 三元同槽 + 固定 key：两个 `{cond && ...}` 相邻写法下 Qwik 会残留上一分支的
+                组件 DOM（实测草稿行退场后仍在）。三元让两个分支占用同一 slot，切换即替换。 */}
+            {hasDraft.value ? (
+              <TodoRow
+                key="draft-row"
+                todo={draft.value}
+                tags={tags.value}
+                isDraft={true}
+                onPatch$={patchDraft$}
+                onSubtasks$={noopSubs$}
+                onToggleDone$={noop$}
+                onDelete$={noop$}
+                onCreateTag$={createTag$}
+                onSubmit$={commitDraft$}
+                onDrop$={dropDraft$}
+              />
+            ) : (
+              <button type="button" class="td-r-add" onClick$={startDraft$}>
+                ＋ 添加 TODO
+              </button>
+            )}
+          </div>
         </>
       )}
 
-      {showModal.value && editing.value && (
-        <TodoModal
-          todo={editing.value}
-          tags={tags.value}
-          onSave$={onSaveTodo}
-          onClose$={() => {
-            showModal.value = false;
-            editing.value = null;
-          }}
-        />
-      )}
       {showWeekly.value && (
         <WeeklyReportModal
           todos={todos.value}
@@ -376,7 +513,7 @@ export const TodoPage = component$(() => {
       {showTagMgr.value && (
         <TagManager
           tags={tags.value}
-          onSave$={onSaveTags}
+          onSave$={onSaveTags$}
           onClose$={() => (showTagMgr.value = false)}
         />
       )}
