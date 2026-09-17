@@ -33,6 +33,12 @@ gh run list --workflow=deploy.yml --limit 5
 - e2e 修复 commit：`4e13b87 fix(e2e): align toolbox .tb-tab count to 8`
 - ⚠️ 功能可用前置（外部，需站长操作）：Cloudflare Worker 设 `TODO_REPO=GuoxinL/todo-data`/`TODO_PATH=todo`/`TODO_BRANCH=main`；并建 `GuoxinL/todo-data` 仓库。
 
+## 8. Worker 重新部署（绑定 dashboard 已配 TODO_* 变量）
+- 触发：`gh workflow run deploy-worker.yml`（workflow_dispatch；本机无 wrangler，走 CI 部署，带 `--keep-vars` 保护 dashboard 非加密变量）。
+- run `35202823714`（2026-09-17T09:01:11Z）**success**，`deploy-worker` 43s 完成。
+- 作用：将 Cloudflare dashboard 已配置的 `TODO_REPO/TODO_PATH/TODO_BRANCH` 绑定到最新 Worker 实例；若此前已设置，则 `/api/todo/*` 此后不再 500。
+- 端到端验证需在浏览器登录 `/todo` 后实测（站点 Worker URL 存浏览器 localStorage「Skills 通道设置」，仓库不硬编码，无法服务端 curl）。
+
 ## 5. IT 失败修复循环 / 6. 回滚（见模板）
 
 ## 7. 本次实际 Commit（commit 前填实）
