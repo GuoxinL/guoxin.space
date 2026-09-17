@@ -60,7 +60,7 @@
 - [ ] UT 覆盖率已记录（当前无强制阈值，见 `unittest.md` §5；新逻辑须有对应用例）
 - [ ] 命名清晰
 - [ ] 无重复代码
-- [ ] 文档同步（DESIGN.md / `.harness/docs/` / plans 产物）
+- [ ] 文档同步（AGENTS.md / README.md / DESIGN.md / `.harness/docs/` / plans 产物）：操作文档计数 / 路由清单与代码实测一致，无旧数字残留
 
 ## 3. 发现的问题
 

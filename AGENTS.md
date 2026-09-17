@@ -192,8 +192,8 @@ gh run list --workflow=deploy.yml --limit 5
 | 4 | **UT** | `04-ut.md` | 用例与 Plan §6 逐条对齐、覆盖率、未覆盖行 |
 | 5 | **Deploy** | `05-deploy.md` | 本任务**代码 commit**（首次仅一次，= **边界点 A**）+ push `main` 触发 GitHub Pages 自动部署；IT 修复的 amend 流程定义于此 |
 | 6 | **IT** | `06-it.md` | 每条用例贴关键 Playwright 断言 / 失败截图；失败 → 修复 → 回 05 amend 重部署，**循环直到全绿**；协同模式不跳过 |
-| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/`（md 变更累积在工作区，随收尾 commit 入库） |
-| 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（**收尾 commit** 入库 → **边界点 B** 冻结） |
+| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` 与操作文档（AGENTS.md / README.md / DESIGN.md）对齐代码现状（页面数 / 单测规模 / 路由清单 / URL 列表），md 变更累积在工作区，随收尾 commit 入库 |
+| 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（含 07 文档同步核对）→ **收尾 commit** 入库 → **边界点 B** 冻结） |
 
 > 状态机：`Deploy(代码 commit+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾 commit = 边界点 B)`。
 
