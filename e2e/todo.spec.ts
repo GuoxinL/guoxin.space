@@ -8,8 +8,12 @@ import { test, expect, type Page } from '@playwright/test';
  *
  * ⚠️ 本用例依赖 chromium（CI 已安装；本地 `npx playwright install chromium`）。
  *    若 Worker 真实 secret（TODO_REPO）未配，线上为 500；本用例走 mock URL 不受影响。
- * ⚠️ 已知缺口（见 06-it.md / 08-review.md）：TodoPage 仅把筛选/排序写入 URL，加载时并不回读，
- *    故「刷新保留筛选态」当前未实现——本文件只断言写入侧同步（?tag=/?filter=）。
+ * ⚠️ 已知缺口（见 06-it.md / 08-review.md）：
+ *    - 深链 `?todo=<id>`：加载时由 TodoPage.reload() 读 location.search 回读并打开编辑弹窗（✅ 已可用，可书签化）。
+ *    - 筛选/排序「刷新保留态」：TodoPage 仅把 ?tag=/?filter=/?sort=/?q= 写入 URL，加载时并不回读，
+ *      故刷新后筛选态不保留——本文件只断言写入侧同步。
+ *    - 跨路由深链保 query：Qwik City 1.20 仅同路径导航保留 query（lib/index.qwik.mjs:916-918），
+ *      CalendarPanel → /todo 跨路由深链改用真实导航（location.href）保留 ?todo=。
  */
 
 const MOCK_WORKER = 'https://mock.todo.worker/';
@@ -64,7 +68,7 @@ function mockWorker(page: Page) {
       body: JSON.stringify({ ok: true, tags: SAMPLE_TAGS }),
     }),
   );
-  page.route(`${MOCK_WORKER}api/todo/month`, (route) =>
+  page.route(`${MOCK_WORKER}api/todo/month*`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -95,7 +99,15 @@ function mockWorker(page: Page) {
 
 function seedAuth(page: Page) {
   page.addInitScript(() => {
-    localStorage.setItem('worker_url', 'https://mock.todo.worker/');
+    // Worker URL 真相源 = wb_home_sk_set（loadSkCfg().worker）；值须为 JSON 且含 worker 字段
+    localStorage.setItem(
+      'wb_home_sk_set',
+      JSON.stringify({
+        repo: 'guoxinl/skill-collection',
+        branch: 'main',
+        worker: 'https://mock.todo.worker/',
+      }),
+    );
     localStorage.setItem('wb_home_auth_token', 'mock.jwt.token');
     localStorage.setItem('wb_home_gh_user', JSON.stringify({ login: 'GuoxinL' }));
   });
@@ -118,8 +130,12 @@ test.describe('TODO 已登录（mock Worker）', () => {
 
   test('列表渲染全部 TODO 卡片 + 进度条', async ({ page }) => {
     await expect(page.locator('.td-card')).toHaveCount(2);
-    await expect(page.locator('.td-card').first().locator('.td-title')).toContainText('写需求文档');
-    await expect(page.locator('.td-card').first().locator('.td-bar-fill')).toBeVisible();
+    // 默认按 lastOperatedAt 降序（recent），首卡未必是写需求文档；断言「存在该卡片」即可
+    await expect(page.locator('.td-card-title', { hasText: '写需求文档' })).toHaveCount(1);
+    // 写需求文档进度 50% → 进度条宽度 50% 可见；首卡（健身打卡）进度 0% 宽度 0 不可见，故定位该卡内进度条
+    await expect(
+      page.locator('.td-card').filter({ hasText: '写需求文档' }).locator('.td-bar-fill'),
+    ).toBeVisible();
   });
 
   test('创建 TODO：弹窗填标题并 POST /api/todo/save', async ({ page }) => {
@@ -138,8 +154,9 @@ test.describe('TODO 已登录（mock Worker）', () => {
   test('标签 OR + 进度筛选（写入侧 URL 同步）', async ({ page }) => {
     await page.locator('.td-chip', { hasText: 'work' }).click();
     await expect(page).toHaveURL(/tag=t1/);
-    await page.locator('.td-select').first().selectOption('done');
-    await expect(page).toHaveURL(/filter=done/);
+    // 进度档按 calcProgress：todo-1 子任务均值 50% → 'doing'（'done' 需 100%）
+    await page.locator('.td-select').first().selectOption('doing');
+    await expect(page).toHaveURL(/filter=doing/);
     await expect(page.locator('.td-card')).toHaveCount(1);
   });
 
@@ -148,9 +165,10 @@ test.describe('TODO 已登录（mock Worker）', () => {
     await expect(page.locator('.td-weekly')).toBeVisible();
   });
 
-  test('暗黑模式：todo 表面令牌已接入（非透明背景）', async ({ page }) => {
+  test('暗黑模式：todo 表面令牌已接入（卡片非透明背景）', async ({ page }) => {
     const bg = await page
-      .locator('.td-page')
+      .locator('.td-card')
+      .first()
       .evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(bg).not.toBe('rgba(0, 0, 0, 0)');
   });

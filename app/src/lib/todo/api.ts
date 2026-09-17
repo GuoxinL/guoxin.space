@@ -1,15 +1,14 @@
 /** TODO 前端数据访问层：封装 Worker `/api/todo/*`，统一鉴权头与错误解析。
  *  仅登录态（isAdmin + 已配 Worker URL）可调用；非登录抛错，由页面门禁拦截。 */
 
-import { getWorkerUrl } from "../worker";
-import { getAuthToken, isAdmin } from "../auth";
+import { authWorkerUrl, getAuthToken, isAdmin } from "../auth";
 import type { Tag, Todo, TodoIndexEntry } from "./types";
 
 const ERR_UNAUTH = "未登录 GitHub（仅站长本人可用 TODO）";
 
 /** 当前是否已具备访问 TODO 的登录态（admin + Worker 已配）。 */
 export function isTodoAuthed(): boolean {
-  return isAdmin() && !!getWorkerUrl();
+  return isAdmin() && !!authWorkerUrl();
 }
 
 function authBearer(): string {
@@ -22,7 +21,7 @@ async function todoGet<T>(
   path: string,
   params?: Record<string, string | number>,
 ): Promise<T> {
-  const base = getWorkerUrl();
+  const base = authWorkerUrl();
   if (!base)
     throw new Error("未配置 Worker 地址（请在「通道设置」中填写 Worker URL）");
   const url = new URL(base + path);
@@ -39,7 +38,7 @@ async function todoGet<T>(
 }
 
 async function todoPost<T>(path: string, body: unknown): Promise<T> {
-  const base = getWorkerUrl();
+  const base = authWorkerUrl();
   if (!base)
     throw new Error("未配置 Worker 地址（请在「通道设置」中填写 Worker URL）");
   const res = await fetch(base + path, {

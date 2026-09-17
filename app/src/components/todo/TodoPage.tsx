@@ -46,6 +46,10 @@ export const TodoPage = component$(() => {
   const showTagMgr = useSignal(false);
   const searchRef = useSignal<HTMLInputElement>();
   const toast = useSignal("");
+  // 首跑守卫：track 任务在 mount 当次会先跑一次 syncUrl，但此时 reload() 尚未异步回填
+  // editing/showModal，syncUrl 会把入站 ?todo=<id> 深链 query 用 replaceState('/todo') 剥掉。
+  // 跳过 mount 当次，待 reload() 回填后再由 track 触发 syncUrl 即可正确保留深链 query。
+  const urlSynced = useSignal(false);
 
   const filtered = useComputed$(() => {
     const list = filterTodos(todos.value, {
@@ -165,8 +169,9 @@ export const TodoPage = component$(() => {
   useVisibleTask$(() => {
     reload();
     const unsub = authSubscribe(() => reload());
-    // URL 同步（追踪筛选信号，变化时重写）
-    syncUrl();
+    // 注意：mount 阶段不在此调用 syncUrl()——reload() 异步读取入站 ?todo= 深链参数并设置
+    // editing/showModal，若此处先同步 replaceState('/todo') 会覆盖深链 query。筛选 URL 同步
+    // 由下方显式 track 的 useVisibleTask$ 在信号变化时承担，mount 时保留入站 URL 即可。
     // 快捷键
     const onKey = (e: KeyboardEvent) => {
       const el = document.activeElement;
@@ -204,15 +209,19 @@ export const TodoPage = component$(() => {
     };
   });
 
-  // 筛选信号变化 → 同步 URL
+  // 筛选信号变化 → 同步 URL（显式 track，确保信号变更后重跑 syncUrl 写回 ?tag=&filter=）
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(() => {
-    void query.value;
-    void tagFilter.value;
-    void progressFilter.value;
-    void sortBy.value;
-    void editing.value;
-    void showModal.value;
+  useVisibleTask$(({ track }) => {
+    track(() => query.value);
+    track(() => tagFilter.value);
+    track(() => progressFilter.value);
+    track(() => sortBy.value);
+    track(() => editing.value);
+    track(() => showModal.value);
+    if (!urlSynced.value) {
+      urlSynced.value = true;
+      return; // 跳过 mount 当次，避免剥掉入站 ?todo= 深链 query
+    }
     syncUrl();
   });
 

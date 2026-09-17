@@ -17,7 +17,6 @@ import {
   isHolidayYearMaintained,
   nextHoliday,
 } from "../../lib/calendar/holidays";
-import { useNavigate } from "@builder.io/qwik-city";
 import { fetchMonth, isTodoAuthed } from "../../lib/todo/api";
 import { progressColor } from "../../lib/todo/progress";
 import type { TodoIndexEntry } from "../../lib/todo/types";
@@ -79,7 +78,6 @@ export const CalendarPanel = component$(() => {
   );
 
   // TODO 进度线条：仅登录态拉当月索引；视图切换（viewY/viewM 变化）重新拉取
-  const nav = useNavigate();
   const todoAuth = useSignal(false);
   const monthIndex = useSignal<TodoIndexEntry[]>([]);
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -309,7 +307,15 @@ export const CalendarPanel = component$(() => {
                       const end = e.endDate || e.startDate;
                       return start <= key && key <= end;
                     });
-                    if (todoAuth.value && hit) nav("/todo?todo=" + hit.id);
+                    if (todoAuth.value && hit) {
+                      // 跨路由深链：Qwik City SPA 导航会丢弃 query（仅同路径导航才保留，
+                      // 见 qwik-city lib/index.qwik.mjs 916-918 的 isSamePath 判定），故走真实
+                      // 导航（full reload）以保留 ?todo=<id> 深链，且使其可书签化/可分享。
+                      location.href = new URL(
+                        "/todo?todo=" + hit.id,
+                        location.href,
+                      ).href;
+                    }
                   }}
                 >
                   <span class={numClass(c)}>{c.d}</span>

@@ -1,4 +1,4 @@
-/** api.ts 单测：mock Worker fetch + getWorkerUrl/getAuthToken，覆盖 plan §6 #8~#10。 */
+/** api.ts 单测：mock Worker fetch + authWorkerUrl/getAuthToken，覆盖 plan §6 #1~#6。 */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   fetchAll,
@@ -9,11 +9,10 @@ import {
   isTodoAuthed,
 } from "./api";
 import type { Todo } from "./types";
+import { authWorkerUrl, isAdmin } from "../auth";
 
-vi.mock("../worker", () => ({
-  getWorkerUrl: vi.fn(() => "https://worker.example/"),
-}));
 vi.mock("../auth", () => ({
+  authWorkerUrl: vi.fn(() => "https://worker.example/"),
   getAuthToken: vi.fn(() => "tok"),
   isAdmin: vi.fn(() => true),
 }));
@@ -101,7 +100,17 @@ describe("lib/todo/api", () => {
     expect(body.tags[0].name).toBe("N");
   });
 
-  it("isTodoAuthed 在 admin + Worker 已配时为真", () => {
+  it("isTodoAuthed：未登录时为假（plan §6 #2 逆向）", () => {
+    vi.mocked(isAdmin).mockReturnValueOnce(false);
+    expect(isTodoAuthed()).toBe(false);
+  });
+
+  it("isTodoAuthed：Worker 地址为空时为假（plan §6 #2 边界）", () => {
+    vi.mocked(authWorkerUrl).mockReturnValueOnce("");
+    expect(isTodoAuthed()).toBe(false);
+  });
+
+  it("isTodoAuthed 在 admin + Worker 已配时为真（plan §6 #1 正向）", () => {
     expect(isTodoAuthed()).toBe(true);
   });
 });
