@@ -2968,22 +2968,22 @@ select:focus-visible {
   position: relative; margin: 4px 0; padding-left: 22px;
 }
 .md-list:not(.md-list--ordered) > li:not(.md-task)::before {
-  content: ""; position: absolute; left: 0; top: 0.6em;
+  content: ""; position: absolute; left: 0; top: 0.35em;
   width: 8px; height: 8px; background: var(--violet-65);
 }
 .md-list--ordered { counter-reset: md-li; }
 .md-list--ordered > li:not(.md-task) { counter-increment: md-li; }
 .md-list--ordered > li:not(.md-task)::before {
   content: counter(md-li) ".";
-  position: absolute; left: 0; top: 0.1em;
-  min-width: 22px; font-family: var(--font-pixel); font-size: 0.78em; line-height: 1.5;
+  position: absolute; left: 0; top: 0.4em;
+  min-width: 22px; font-family: var(--font-pixel); font-size: 0.78em; line-height: 1;
   font-variant-numeric: tabular-nums; color: var(--slate-65);
 }
 .md-task {
   position: relative; padding-left: 22px;
   list-style: none; display: flex; gap: 8px; align-items: baseline;
 }
-.md-task input { position: absolute; left: 0; top: 0.25em; margin: 0; }
+.md-task input { position: absolute; left: 0; top: 0.4em; margin: 0; }
 
 /* 引用 / Callout */
 .md-blockquote {
