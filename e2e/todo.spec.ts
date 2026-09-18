@@ -300,7 +300,10 @@ test.describe('TODO 已登录（mock Worker）', () => {
     await expect(draft).toBeVisible();
 
     const saveReq = page.waitForRequest(
-      (req) => req.url().includes('/api/todo/save') && req.method() === 'POST',
+      (req) =>
+        req.url().includes('/api/todo/save') &&
+        req.method() === 'POST' &&
+        (req.postData() ?? '').includes('新任务'),
     );
     await draft.locator('.td-r-title-input').fill('新任务');
     await draft.locator('.td-r-title-input').press('Enter');
