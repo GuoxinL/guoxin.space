@@ -174,6 +174,56 @@ test('标签区长度恒定：点击标签后不全部展开', async ({ page }) 
   await expect(page.getByTestId('notes-item')).toHaveCount(2);
 });
 
+test('标签溢出分支：默认折叠前 8 个，点靠后标签提到可见区且不膨胀', async ({ page }) => {
+  // 注入 13 个标签的索引（覆盖 beforeEach 的 5 标签 fixtures mock），专门覆盖 overflow(>8) 分支
+  const seed = postsIndex.posts[0];
+  const injected = {
+    posts: Array.from({ length: 13 }, (_, i) => {
+      const n = String(i + 1).padStart(2, '0');
+      return {
+        ...seed,
+        id: 't' + n,
+        slug: 'Tag ' + n + ' Post',
+        title: 'Tag ' + n + ' Post',
+        date: '2026-09-' + String((i % 28) + 1).padStart(2, '0'),
+        tags: ['tag' + n],
+      };
+    }),
+  };
+  await page.route(
+    'https://raw.githubusercontent.com/GuoxinL/notes/main/build/posts.json',
+    (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(injected) }),
+  );
+
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+
+  const tagsWrap = page.getByTestId('notes-tags');
+  // 可见区：.notes-tags 直接子里的标签按钮，排除「全部」按钮（避免把弹层内 CSS 隐藏的标签一并计入）
+  const visibleTags = tagsWrap.locator('> .notes-tag').filter({ hasNotText: '全部' });
+
+  // ① 默认可见区恒定 = 8 个（不膨胀）
+  await expect(visibleTags).toHaveCount(8);
+  // ② 「更多」按钮存在，文案含溢出数量
+  const more = tagsWrap.locator('.notes-tag--more');
+  await expect(more).toBeVisible();
+  await expect(more).toContainText('更多 5 个');
+  // ③ 弹层含溢出标签 tag09~tag13（点击「更多」切换 .is-open 确定性显示，不依赖 CSS :hover）
+  await more.click();
+  const pop = tagsWrap.locator('.notes-tags-popover');
+  await expect(pop).toBeVisible();
+  for (const n of ['09', '10', '11', '12', '13']) {
+    await expect(pop.getByText('tag' + n)).toBeVisible();
+  }
+  // ④ 点第 9 名标签：提到可见区、列表长度仍恒定、列表按该标签过滤
+  await pop.getByText('tag09').click();
+  await expect(visibleTags).toHaveCount(8); // 仍恒定，不膨胀
+  await expect(visibleTags.filter({ hasText: 'tag09' })).toHaveCount(1); // 已提到可见区
+  await expect(tagsWrap.locator('.notes-tag--active')).toContainText('tag09'); // 高亮选中
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  await expect(page.getByTestId('notes-item').first()).toContainText('Tag 09 Post');
+});
+
 test('归档视图按年月分组展示笔记', async ({ page }) => {
   await page.goto('/notes/');
   await expect(page.getByTestId('notes-item').first()).toBeVisible();
