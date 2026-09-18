@@ -159,6 +159,21 @@ test('标签筛选：点击标签只显示相关笔记', async ({ page }) => {
   await expect(page.getByTestId('notes-item')).toHaveCount(2);
 });
 
+test('标签区长度恒定：点击标签后不全部展开', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  const countBefore = await page.getByTestId('notes-tags').locator('button.notes-tag').count();
+  // 点一个标签：筛选应生效，且标签区不应全部摊开
+  await page.getByTestId('notes-tags').getByText('markdown', { exact: false }).first().click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  const countAfter = await page.getByTestId('notes-tags').locator('button.notes-tag').count();
+  // 「全部」+ 最多 8 个标签按钮；本 fixtures 仅 5 个标签，点击前后数量应一致且 ≤ 9
+  expect(countAfter).toBeLessThanOrEqual(9);
+  expect(countAfter).toBe(countBefore);
+  await page.getByTestId('notes-tags').getByText('全部').click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(2);
+});
+
 test('归档视图按年月分组展示笔记', async ({ page }) => {
   await page.goto('/notes/');
   await expect(page.getByTestId('notes-item').first()).toBeVisible();

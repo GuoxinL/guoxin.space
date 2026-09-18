@@ -707,7 +707,9 @@ export const NotesShell = component$(() => {
   allPosts.forEach((p) => p.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)));
   const tags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   const MAX_TAGS = 8;
-  const tagsOverflow = tags.slice(MAX_TAGS);
+  // 纯切片（不读信号，安全）：前 8 与剩余。信号判断全部留在 JSX 行内，保证索引加载后每次渲染都取最新值
+  const tagsBase = tags.slice(0, MAX_TAGS);
+  const tagsRest = tags.slice(MAX_TAGS);
 
   // N-T20：搜索命中 → 在标签筛选基础上再收窄。索引未就绪时（query 已输入但仍在构建）暂不过滤，避免误清空。
   const searchQ = searchQuery.value.trim();
@@ -768,7 +770,14 @@ export const NotesShell = component$(() => {
                   >
                     全部
                   </button>
-                  {(tagFilter.value ? tags : tags.slice(0, MAX_TAGS)).map(([t, c]) => (
+                  {(() => {
+                    const sel = tagFilter.value;
+                    if (sel && !tagsBase.some(([t]) => t === sel)) {
+                      const entry = tags.find(([t]) => t === sel);
+                      if (entry) return [...tagsBase.slice(0, MAX_TAGS - 1), entry];
+                    }
+                    return tagsBase;
+                  })().map(([t, c]) => (
                     <button
                       key={t}
                       type="button"
@@ -779,7 +788,7 @@ export const NotesShell = component$(() => {
                       <span class="notes-tag-count">{c}</span>
                     </button>
                   ))}
-                  {tagsOverflow.length > 0 && !tagFilter.value && (
+                  {tagsRest.filter(([t]) => t !== tagFilter.value).length > 0 && (
                     <div class={{ 'notes-tags-more-wrap': true, 'is-open': tagPopoverOpen.value }}>
                       <button
                         type="button"
@@ -789,10 +798,10 @@ export const NotesShell = component$(() => {
                         aria-expanded={tagPopoverOpen.value}
                         onClick$={() => (tagPopoverOpen.value = !tagPopoverOpen.value)}
                       >
-                        更多 {tagsOverflow.length} 个 ▾
+                        更多 {tagsRest.filter(([t]) => t !== tagFilter.value).length} 个 ▾
                       </button>
                       <div class="notes-tags-popover" role="menu">
-                        {tagsOverflow.map(([t, c]) => (
+                        {tagsRest.filter(([t]) => t !== tagFilter.value).map(([t, c]) => (
                           <button
                             key={t}
                             type="button"
