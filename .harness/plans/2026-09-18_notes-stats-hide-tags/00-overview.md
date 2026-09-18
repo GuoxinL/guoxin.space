@@ -40,10 +40,10 @@
 - [x] 02-plan：改动点已锁定（NotesShell.tsx:285-293 + global.css:3216-3218）
 - [x] 03-implement：执行删除（NotesShell.tsx 标签分布块 + global.css 孤儿样式）
 - [x] 04-ut：build 验证（SSG 12 页成功）；dist 无 `notes-stat-tag`/`notes-stats-tags` 残留
-- [ ] 05-deploy：分批 push + CI 双门禁
-- [ ] 06-it：§2.5 字节比对
-- [ ] 07-docs：本计划收尾
-- [ ] 08-review：自检 + 用户确认
+- [x] 05-deploy：分批 push（代码 `7c05b7f` + 收尾 `1299a17` [skip ci]）；部署 `35347701170` success + 双门禁 ✓
+- [x] 06-it：§2.5 字节比对全绿（CSS `D8AWmbbK` / JS `q-ChrvdkFb` 本地==线上；线上 `notes-stat-tag`=0）
+- [x] 07-docs：本计划收尾
+- [x] 08-review：自检 + 用户确认（需求澄清后落地并生产验证）
 
 ## 7. 时间记录
 
