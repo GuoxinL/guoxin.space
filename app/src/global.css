@@ -2948,8 +2948,20 @@ select:focus-visible {
 
 .md-hr { border: 0; border-top: 1px solid var(--slate-5); margin: 28px 0; }
 
-.md-list { padding-left: 22px; margin: 0; }
-.md-list li { margin: 4px 0; }
+/* Notes 无序列表标记：用 Minecraft 紫晶块（Amethyst）像素图标替换默认圆点。
+   仅作用于 <ul class="md-list"> 的直接 <li>（不含 .md-task 任务项）；
+   有序列表 <ol class="md-list md-list--ordered"> 走 decimal，不受影响。
+   嵌套 <ul> 的 <li> 同为 ul.md-list 直接子元素，自动继承同款标记。
+   像素 SVG 经 data-uri 内联 + shape-rendering:crispEdges 保持任意缩放清晰。 */
+.md-list { padding-left: 22px; margin: 0; list-style: none; }
+.md-list > li:not(.md-task) {
+  position: relative; margin: 4px 0; padding-left: 22px;
+}
+.md-list > li:not(.md-task)::before {
+  content: ""; position: absolute; left: 0; top: 5px;
+  width: 14px; height: 14px;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20shape-rendering%3D%22crispEdges%22%3E%3Cpath%20fill%3D%22%232C2C2A%22%20d%3D%22M4%204h1v1h-1z%20M5%204h1v1h-1z%20M6%204h1v1h-1z%20M7%204h1v1h-1z%20M8%204h1v1h-1z%20M9%204h1v1h-1z%20M10%204h1v1h-1z%20M11%204h1v1h-1z%20M4%205h1v1h-1z%20M12%205h1v1h-1z%20M4%206h1v1h-1z%20M12%206h1v1h-1z%20M4%207h1v1h-1z%20M12%207h1v1h-1z%20M4%208h1v1h-1z%20M12%208h1v1h-1z%20M4%209h1v1h-1z%20M12%209h1v1h-1z%20M4%2010h1v1h-1z%20M12%2010h1v1h-1z%20M4%2011h1v1h-1z%20M5%2011h1v1h-1z%20M6%2011h1v1h-1z%20M7%2011h1v1h-1z%20M8%2011h1v1h-1z%20M9%2011h1v1h-1z%20M10%2011h1v1h-1z%20M11%2011h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%23CECBF6%22%20d%3D%22M5%205h1v1h-1z%20M6%205h1v1h-1z%20M7%205h1v1h-1z%20M8%205h1v1h-1z%20M9%205h1v1h-1z%20M10%205h1v1h-1z%20M11%205h1v1h-1z%20M5%206h1v1h-1z%20M6%206h1v1h-1z%20M7%206h1v1h-1z%20M8%206h1v1h-1z%20M9%206h1v1h-1z%20M10%206h1v1h-1z%20M11%206h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%237F77DD%22%20d%3D%22M5%207h1v1h-1z%20M6%207h1v1h-1z%20M7%207h1v1h-1z%20M8%207h1v1h-1z%20M9%207h1v1h-1z%20M10%207h1v1h-1z%20M5%208h1v1h-1z%20M6%208h1v1h-1z%20M7%208h1v1h-1z%20M8%208h1v1h-1z%20M9%208h1v1h-1z%20M10%208h1v1h-1z%20M5%209h1v1h-1z%20M6%209h1v1h-1z%20M7%209h1v1h-1z%20M8%209h1v1h-1z%20M9%209h1v1h-1z%20M10%209h1v1h-1z%20M5%2010h1v1h-1z%20M6%2010h1v1h-1z%20M7%2010h1v1h-1z%20M8%2010h1v1h-1z%20M9%2010h1v1h-1z%20M10%2010h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%23534AB7%22%20d%3D%22M11%207h1v1h-1z%20M11%208h1v1h-1z%20M11%209h1v1h-1z%20M11%2010h1v1h-1z%22%2F%3E%3C%2Fsvg%3E") no-repeat center / 14px;
+}
 .md-list--ordered { list-style: decimal; }
 .md-task { list-style: none; margin-left: -22px; display: flex; gap: 8px; align-items: baseline; }
 .md-task input { margin-top: 4px; }
