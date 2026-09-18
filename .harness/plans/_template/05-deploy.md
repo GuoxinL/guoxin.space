@@ -62,14 +62,14 @@ git push origin main
 ```bash
 # 查部署流水线状态
 gh run list --workflow=deploy.yml --limit 5
-gh run view <run-id>
+gh run watch <run-id> --exit-status   # 等结论
 
 # 线上复验（Playwright 回读关键 DOM，需先 npx playwright install chromium）
 BASE_URL=https://guoxin.space npx playwright test
 ```
 
-- [ ] deploy run 结论为 success
-- [ ] 线上复验（或本地 `npm run test:e2e`）关键 DOM / 交互态符合预期
+- [ ] deploy run 结论为 success 且「页面自动化测试」步骤 ✓
+- [ ] **确凿上线验证**：执行 `08-review.md` §2.5 生产复测——线上 `build/*.js` / `assets/*.css` 与本地 `app/dist` 逐字节比对一致（见该节命令），而非仅看 CI success
 
 ## 5. IT 失败修复循环（与 06-it.md 联动）
 

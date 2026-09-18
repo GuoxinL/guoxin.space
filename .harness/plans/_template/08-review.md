@@ -53,7 +53,7 @@
 ### 2.3 可观测 / 质量
 - [ ] 浏览器控制台无报错 / 无 404
 - [ ] 错误边界兜底（组件崩溃不白屏）
-- [ ] 线上复验通过（`BASE_URL=https://guoxin.space npx playwright test`）
+- [ ] 线上复验通过：执行 **§2.5 生产复测（确凿上线验证）**（含线上产物与本地构建字节比对 + 行为验证）
 - [ ] 单测 + 页面自动化双门禁通过（CI 绿）
 
 ### 2.4 可测 / 可维护
@@ -61,6 +61,35 @@
 - [ ] 命名清晰
 - [ ] 无重复代码
 - [ ] 文档同步（AGENTS.md / README.md / DESIGN.md / `.harness/docs/` / plans 产物）：操作文档计数 / 路由清单与代码实测一致，无旧数字残留
+
+## 2.5 生产复测（确凿上线验证）
+
+> **目的**：push `main` 触发自动部署后，不只看 CI `success`，还要**确凿证明线上跑的就是本次源码构建产物**（避免旧码缓存 / SSG 滞后导致"改了却没生效"——本仓库多次实测踩过此坑：只 build 没 push、或 push 了但生产仍是旧 chunk）。
+> 适用：每次代码改动上线后（边界点 A 之后）。
+
+### 步骤
+
+1. **等部署跑完**：`gh run list --workflow=deploy.yml --limit 1` 取最新 run；`gh run watch <run-id> --exit-status` 等结论。
+2. **确认门禁真过**：`conclusion == success` 且「页面自动化测试（Playwright）」步骤 ✓——仅 build success 不够（坏构建可能门禁未拦住）。
+3. **线上产物 == 本地构建（字节比对）**：
+   - 本地构建产物已就绪（`app/dist/`）；
+   - 定位线上组件 chunk：CSR 页的组件逻辑在**懒加载 chunk**（不在初始 prefetch 列表），需下载对应 `build/q-*.js` 而非只看 HTML：
+     ```bash
+     # 看线上 HTML 引用的 chunk（或直接用已知文件名）
+     curl -s --noproxy '*' https://guoxin.space/notes/ | grep -oE 'build/q-[A-Za-z0-9_-]+\.js'
+     # 下载线上 chunk 与本地比对
+     curl -s --noproxy '*' -o /tmp/prod.js https://guoxin.space/build/q-XXXX.js
+     cmp -s app/dist/build/q-XXXX.js /tmp/prod.js && echo "✅ 字节一致"
+     ```
+   - 同时确认 **chunk hash 随源码变化**（如 `q-C4jLY164` → `q-Ddi2gTpN`）= 重新构建部署，非旧码缓存。
+4. **行为验证（补 e2e 盲区）**：若改动涉及 fixtures 未覆盖的分支（如标签 > 8 的 overflow），在本地 `app/dist` 起静态服务 + Playwright 注入数据跑针对性验证——线上产物已逐字节比对，行为等价，无需连外网复验。
+
+### 注意（避坑）
+
+- 本地沙箱浏览器常被系统代理挡住外网 → 用「**下载线上产物字节比对**」替代浏览器复验，结论同样确凿且不受外网限制。
+- `gh` 报 401 → 先 `unset GH_TOKEN` 再跑（环境里有失效 `GH_TOKEN` 会盖过钥匙串）。
+- 判上线以 `gh run list --workflow=deploy.yml` 为准，**勿**用 `pages/builds/latest`（workflow 模式下该接口停更）。
+- 完成后通知用户**硬刷新**（Cmd+Shift+R）清缓存后真机复测。
 
 ## 3. 发现的问题
 
@@ -133,5 +162,6 @@ git push origin main                 # 普通 push；站点产物不变
 - [ ] 讨论决议已归档
 - [ ] 用户确认收尾
 - [ ] 收尾 commit 已执行（或确认 05 后无 md 变更）→ **边界点 B 已触发**
+- [ ] 生产复测（§2.5）已执行并确凿（线上产物 == 本地构建字节一致）
 - [ ] 已在 `00-overview.md` Progress 勾选 08.
 - [ ] 已与用户完成结束确认

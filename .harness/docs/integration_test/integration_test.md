@@ -102,6 +102,7 @@ ls ~/.cache/ms-playwright/chromium* >/dev/null 2>&1 && echo "chromium OK" || ech
 | 本站页面 | 真实（本地静态服务） |
 | Cloudflare Worker / running-private | 只读真实调用；不可达时桩 fixture |
 | 第三方 | 桩 |
+| Notes 取数（raw.githubusercontent） | `build/**` JSON + `content/**` 图片**均需桩离线**：JSON 用本地 fixtures（`e2e/fixtures/notes/build/`），图片用 1×1 PNG/SVG **真实文件**（`route.fulfill({ path })`）。⚠️ **禁用 `Buffer` 作 body**——Playwright worker 中 Buffer body 序列化异常会连累同页详情渲染（表现为 `notes-detail` 不渲染、整批详情测试失败）；改用 `path` 指向 fixture 文件即正常。 |
 
 ---
 
