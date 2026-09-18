@@ -53,7 +53,7 @@
 ### 2.3 可观测 / 质量
 - [x] 浏览器控制台无报错 / 无 404 → e2e 全绿，无 console error
 - [x] 错误边界兜底 → localStorage 失败静默回退默认，不白屏
-- [ ] 线上复验通过：执行 **§2.5** → 待用户 push 后执行（本地构建已就绪）
+- [x] 线上复验通过：执行 **§2.5** → 已执行，字节比对全绿（详见 §2.5 结果块）
 - [x] 单测 + 页面自动化双门禁通过（CI 绿）→ 单测 371 + notes e2e 35，本地已跑通
 
 ### 2.4 可测 / 可维护
@@ -91,13 +91,28 @@
 - 判上线以 `gh run list --workflow=deploy.yml` 为准，**勿**用 `pages/builds/latest`（workflow 模式下该接口停更）。
 - 完成后通知用户**硬刷新**（Cmd+Shift+R）清缓存后真机复测。
 
+### 本次执行结果（2026-09-18）
+
+- 部署运行：`35341844272`（push `d90f108` 触发）→ `conclusion=success`；`build` 2m31s（含 vitest 单测 + Playwright e2e 双门禁 ✓）、`deploy` 10s ✓。
+- 字节比对（线上 `guoxin.space` 直连 vs 本地 `app/dist`，`shasum -a 256`）：
+
+  | 产物 | sha256（本地 == 线上） | 结论 |
+  |------|------------------------|------|
+  | `assets/DJZoDu3S-style.css` | `6a0243f1b207002083ae2f5a76de892fa21769ef7994974e95de84e5fbaa981a` | ✅ 一致 |
+  | `build/q-B1Q1uVMM.js`（NotesShell 新功能） | `7dd5882cb7681451dacb7142b5ede0b7d968681aee1259ce69bd21b86e1f68f0` | ✅ 一致 |
+  | `build/q-B2v5sBox.js`（NotesShell 新功能） | `0f717e54d84dd052e83875852257be6e3dffec2a7a737b65d13f86e7e0ddacb8` | ✅ 一致 |
+
+- chunk hash 随源码变化（本次新引入 `q-B1Q1uVMM.js` / `q-B2v5sBox.js` 承载 Notes 增强逻辑），非旧码缓存。
+- **结论**：线上已确凿运行 `d90f108` 功能构建产物，五项新功能（阅读设置 / 收藏 / 标签云 / 键盘导航 / 回到顶端）已上线。
+- 后续：通知用户**硬刷新（Cmd+Shift+R）**清缓存后真机复测。
+
 ## 3. 发现的问题
 
 | # | 严重度 | 文件:行 | 问题描述 | 建议 | 修复状态 | 修复 commit |
 |---|-------|---------|---------|------|---------|-----------|
-| 1 | 🔴 高 | NotesShell.tsx | 首版用 useStore 在每次渲染将新数组引用写入 → Qwik 无限重渲染，列表交互 e2e 集体超时 | 改用依赖 track 的 useVisibleTask$ 重算 kbList signal，不自写回 store | ✅ 已修（进代码 commit） | 待提交 |
-| 2 | 🟡 中 | NotesShell.tsx | 阅读设置 article class 生成 read-l/read-wide，CSS 选择器写 read-fz-l/read-width-narrow → 字号/宽度不生效 | 改对象语法 class + 前缀对齐 CSS | ✅ 已修 | 待提交 |
-| 3 | 🟡 中 | NotesShell.tsx | searchRef 信号声明未绑到 input → `/` 无法聚焦搜索框 | 补 ref={searchRef} | ✅ 已修 | 待提交 |
+| 1 | 🔴 高 | NotesShell.tsx | 首版用 useStore 在每次渲染将新数组引用写入 → Qwik 无限重渲染，列表交互 e2e 集体超时 | 改用依赖 track 的 useVisibleTask$ 重算 kbList signal，不自写回 store | ✅ 已修（进代码 commit） | d90f108 |
+| 2 | 🟡 中 | NotesShell.tsx | 阅读设置 article class 生成 read-l/read-wide，CSS 选择器写 read-fz-l/read-width-narrow → 字号/宽度不生效 | 改对象语法 class + 前缀对齐 CSS | ✅ 已修 | d90f108 |
+| 3 | 🟡 中 | NotesShell.tsx | searchRef 信号声明未绑到 input → `/` 无法聚焦搜索框 | 补 ref={searchRef} | ✅ 已修 | d90f108 |
 
 > 严重度：🔴 高（阻塞） \| 🟡 中（需修或明确忽略） \| 🟢 低（可选）
 > 个人仓库走一个 commit + amend，修复一律累积进原 commit（禁止新增第二个 commit），本列填 `amend` 即可。
@@ -115,9 +130,10 @@
 - [x] 所有 🔴 高严重度问题已修复
 - [x] 所有 🟡 中严重度问题已修复 **或** 有书面忽略理由
 - [x] 🟢 低严重度问题已评估
-- [ ] 用户确认收尾（口头 / 文本均可，无需 Reviewer 签字）—— 待用户确认
+- [x] 用户确认收尾（口头 / 文本均可，无需 Reviewer 签字）—— 用户已确认「推送上线（推荐）」（2026-09-18，经 AskUserQuestion）
 
 **用户确认**（文本记录即可）：
+> 用户选择「推送上线（推荐）」，确认经双门禁验证的功能 commit `d90f108` 与收尾 `[skip ci]` commit `fe8856c` 已分批推送 `main`，部署运行 `35341844272` 成功，字节比对全绿。
 
 ---
 
@@ -159,11 +175,11 @@ git push origin main                 # 普通 push；站点产物不变
 
 ## 完成标志
 
-- [ ] AI 自检全部打钩
-- [ ] 发现的问题全部有处置（修复或记录）
-- [ ] 讨论决议已归档
-- [ ] 用户确认收尾
-- [ ] 收尾 commit 已执行（或确认 05 后无 md 变更）→ **边界点 B 已触发**
-- [ ] 生产复测（§2.5）已执行并确凿（线上产物 == 本地构建字节一致）
-- [ ] 已在 `00-overview.md` Progress 勾选 08.
-- [ ] 已与用户完成结束确认
+- [x] AI 自检全部打钩
+- [x] 发现的问题全部有处置（修复或记录）
+- [x] 讨论决议已归档
+- [x] 用户确认收尾
+- [x] 收尾 commit 已执行（`fe8856c` [skip ci]，与功能 commit `d90f108` 分批 push）→ **边界点 B 已触发**
+- [x] 生产复测（§2.5）已执行并确凿（线上产物 == 本地构建字节一致）
+- [x] 已在 `00-overview.md` Progress 勾选 08.
+- [x] 已与用户完成结束确认
