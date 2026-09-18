@@ -2957,32 +2957,33 @@ select:focus-visible {
 
 .md-hr { border: 0; border-top: 1px solid var(--slate-5); margin: 28px 0; }
 
-/* Notes 列表标记：
-   - 无序列表 <ul class="md-list">：用 Minecraft 紫晶块（Amethyst）像素图标替换默认圆点，
-     仅作用于直接 <li>（不含 .md-task 任务项）；嵌套 <ul> 的 <li> 自动继承同款标记。
-   - 有序列表 <ol class="md-list md-list--ordered">：用 CSS counter 渲染数字（见下方 ::before），
-     与无序标记共用同一条 22px 泳道（left:0），文字统一从同一起排位置开始，
-     避免历史上「紫晶块 + 原生数字」双标记及缩进错位。
-   像素 SVG 经 data-uri 内联 + shape-rendering:crispEdges 保持任意缩放清晰。 */
+/* Notes 列表标记（像素字体风格，呼应站点 Minecraft 像素主题）：
+   - 无序列表 <ul class="md-list">：像素方块标记（CSS 实心方块，不再用紫晶块图标），位于 22px 泳道左缘。
+   - 有序列表 <ol class="md-list md-list--ordered">：CSS counter 数字，套用 --font-pixel 像素字体，与无序标记同泳道。
+   - 任务列表 <li class="md-task">：复选框置于同一条 22px 泳道（left:0），文字与普通列表同样从 44px 起排，
+     去掉历史上 margin-left:-22px 造成的缩进错位。
+   统一模型：普通 <li> 与任务 <li> 文字均 padding-left:22px（=44px 起排），标记均 left:0（=22px 泳道）。 */
 .md-list { padding-left: 22px; margin: 0; list-style: none; }
 .md-list > li:not(.md-task) {
   position: relative; margin: 4px 0; padding-left: 22px;
 }
 .md-list:not(.md-list--ordered) > li:not(.md-task)::before {
-  content: ""; position: absolute; left: 0; top: 5px;
-  width: 14px; height: 14px;
-  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20shape-rendering%3D%22crispEdges%22%3E%3Cpath%20fill%3D%22%232C2C2A%22%20d%3D%22M4%204h1v1h-1z%20M5%204h1v1h-1z%20M6%204h1v1h-1z%20M7%204h1v1h-1z%20M8%204h1v1h-1z%20M9%204h1v1h-1z%20M10%204h1v1h-1z%20M11%204h1v1h-1z%20M4%205h1v1h-1z%20M12%205h1v1h-1z%20M4%206h1v1h-1z%20M12%206h1v1h-1z%20M4%207h1v1h-1z%20M12%207h1v1h-1z%20M4%208h1v1h-1z%20M12%208h1v1h-1z%20M4%209h1v1h-1z%20M12%209h1v1h-1z%20M4%2010h1v1h-1z%20M12%2010h1v1h-1z%20M4%2011h1v1h-1z%20M5%2011h1v1h-1z%20M6%2011h1v1h-1z%20M7%2011h1v1h-1z%20M8%2011h1v1h-1z%20M9%2011h1v1h-1z%20M10%2011h1v1h-1z%20M11%2011h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%23CECBF6%22%20d%3D%22M5%205h1v1h-1z%20M6%205h1v1h-1z%20M7%205h1v1h-1z%20M8%205h1v1h-1z%20M9%205h1v1h-1z%20M10%205h1v1h-1z%20M11%205h1v1h-1z%20M5%206h1v1h-1z%20M6%206h1v1h-1z%20M7%206h1v1h-1z%20M8%206h1v1h-1z%20M9%206h1v1h-1z%20M10%206h1v1h-1z%20M11%206h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%237F77DD%22%20d%3D%22M5%207h1v1h-1z%20M6%207h1v1h-1z%20M7%207h1v1h-1z%20M8%207h1v1h-1z%20M9%207h1v1h-1z%20M10%207h1v1h-1z%20M5%208h1v1h-1z%20M6%208h1v1h-1z%20M7%208h1v1h-1z%20M8%208h1v1h-1z%20M9%208h1v1h-1z%20M10%208h1v1h-1z%20M5%209h1v1h-1z%20M6%209h1v1h-1z%20M7%209h1v1h-1z%20M8%209h1v1h-1z%20M9%209h1v1h-1z%20M10%209h1v1h-1z%20M5%2010h1v1h-1z%20M6%2010h1v1h-1z%20M7%2010h1v1h-1z%20M8%2010h1v1h-1z%20M9%2010h1v1h-1z%20M10%2010h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%23534AB7%22%20d%3D%22M11%207h1v1h-1z%20M11%208h1v1h-1z%20M11%209h1v1h-1z%20M11%2010h1v1h-1z%22%2F%3E%3C%2Fsvg%3E") no-repeat center / 14px;
+  content: ""; position: absolute; left: 0; top: 0.6em;
+  width: 8px; height: 8px; background: var(--violet-65);
 }
 .md-list--ordered { counter-reset: md-li; }
 .md-list--ordered > li:not(.md-task) { counter-increment: md-li; }
 .md-list--ordered > li:not(.md-task)::before {
   content: counter(md-li) ".";
-  position: absolute; left: 0; top: 4px;
-  min-width: 18px; font-variant-numeric: tabular-nums;
-  color: var(--slate-65);
+  position: absolute; left: 0; top: 0.1em;
+  min-width: 22px; font-family: var(--font-pixel); font-size: 0.78em; line-height: 1.5;
+  font-variant-numeric: tabular-nums; color: var(--slate-65);
 }
-.md-task { list-style: none; margin-left: -22px; display: flex; gap: 8px; align-items: baseline; }
-.md-task input { margin-top: 4px; }
+.md-task {
+  position: relative; padding-left: 22px;
+  list-style: none; display: flex; gap: 8px; align-items: baseline;
+}
+.md-task input { position: absolute; left: 0; top: 0.25em; margin: 0; }
 
 /* 引用 / Callout */
 .md-blockquote {
