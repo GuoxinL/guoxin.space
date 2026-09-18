@@ -3130,6 +3130,24 @@ body[data-theme='light'] .md-pre { background: #f6f8fa; color: #24292f; }
 .notes-tag:hover { border-color: var(--slate-25); color: var(--slate-95); }
 .notes-tag--active { border-color: var(--violet-65); color: var(--violet-65); background: var(--violet-0); font-weight: 600; }
 .notes-tag-count { font-size: .72rem; opacity: .7; }
+.notes-tag--more { border-style: dashed; color: var(--slate-55); cursor: pointer; }
+.notes-tag--more:hover { border-color: var(--slate-25); color: var(--slate-95); }
+/* 悬浮小窗：承载「更多」标签，hover 或点击展开（is-open 兼顾触屏） */
+.notes-tags-more-wrap { position: relative; display: inline-flex; }
+/* 透明桥接层：弥合按钮与弹层之间的 8px 间隙，避免鼠标移入弹层时 hover 断开 */
+.notes-tags-more-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: 10px; }
+.notes-tags-popover {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 30;
+  display: none; flex-direction: column; align-items: stretch; gap: .4rem;
+  padding: .55rem; min-width: 176px; max-height: 60vh; overflow: auto;
+  background: var(--surface); color: var(--slate-95);
+  border: 1px solid var(--slate-5); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .16);
+}
+.notes-tags-more-wrap:hover .notes-tags-popover,
+.notes-tags-more-wrap:focus-within .notes-tags-popover,
+.notes-tags-more-wrap.is-open .notes-tags-popover { display: flex; }
+.notes-tag--pop { width: 100%; justify-content: space-between; border-style: solid; }
 .notes-view-toggle { display: inline-flex; border: 1px solid var(--slate-5); border-radius: 8px; overflow: hidden; }
 .notes-toolbar-right { display: inline-flex; align-items: center; gap: .6rem; }
 .notes-view-btn {

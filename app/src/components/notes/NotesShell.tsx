@@ -581,6 +581,7 @@ export const NotesShell = component$(() => {
   // N-T17：列表筛选（标签）与视图（列表/归档）状态
   const tagFilter = useSignal('');
   const viewMode = useSignal<'list' | 'archive'>('list');
+  const tagExpanded = useSignal(false);
 
   // N-T20：全文搜索（FlexSearch 懒加载 2-gram）。索引构建在浏览器运行时，配合 searchReady 触发重渲染。
   const searchQuery = useSignal('');
@@ -705,6 +706,9 @@ export const NotesShell = component$(() => {
   const tagCounts = new Map<string, number>();
   allPosts.forEach((p) => p.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1)));
   const tags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const MAX_TAGS = 8;
+  const tagsShown = tagExpanded.value ? tags : tags.slice(0, MAX_TAGS);
+  const tagsHasMore = tags.length > MAX_TAGS;
 
   // N-T20：搜索命中 → 在标签筛选基础上再收窄。索引未就绪时（query 已输入但仍在构建）暂不过滤，避免误清空。
   const searchQ = searchQuery.value.trim();
@@ -765,7 +769,7 @@ export const NotesShell = component$(() => {
                   >
                     全部
                   </button>
-                  {tags.map(([t, c]) => (
+                  {tagsShown.map(([t, c]) => (
                     <button
                       key={t}
                       type="button"
@@ -776,6 +780,37 @@ export const NotesShell = component$(() => {
                       <span class="notes-tag-count">{c}</span>
                     </button>
                   ))}
+                  {showTagPopover && (
+                    <div class={{ 'notes-tags-more-wrap': true, 'is-open': tagPopoverOpen.value }}>
+                      <button
+                        type="button"
+                        class="notes-tag notes-tag--more"
+                        data-testid="notes-tag-more"
+                        aria-haspopup="true"
+                        aria-expanded={tagPopoverOpen.value}
+                        onClick$={() => (tagPopoverOpen.value = !tagPopoverOpen.value)}
+                      >
+                        更多 {tagsOverflow.length} 个 ▾
+                      </button>
+                      <div class="notes-tags-popover" role="menu">
+                        {tagsOverflow.map(([t, c]) => (
+                          <button
+                            key={t}
+                            type="button"
+                            class={{ 'notes-tag': true, 'notes-tag--pop': true, 'notes-tag--active': tagFilter.value === t }}
+                            role="menuitem"
+                            onClick$={() => {
+                              tagFilter.value = t;
+                              tagPopoverOpen.value = false;
+                            }}
+                          >
+                            {t}
+                            <span class="notes-tag-count">{c}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div class="notes-toolbar-right">
                   <div class="notes-view-toggle" data-testid="notes-view-toggle">
