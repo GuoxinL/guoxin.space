@@ -5,6 +5,10 @@ import allDocs from './fixtures/notes/build/all.json';
 import docMarkdown from './fixtures/notes/build/posts/39fb46bd.json';
 import docQwik from './fixtures/notes/build/posts/a9ef50e0.json';
 
+// 离线图片桩（1×1 PNG / SVG，真实文件，避免 Buffer body 在 worker 中序列化异常）
+const IMG_PNG = 'e2e/fixtures/notes/img/1x1.png';
+const IMG_SVG = 'e2e/fixtures/notes/img/1x1.svg';
+
 /**
  * Notes 模块 E2E 冒烟（对齐 plan §9）。
  * 取数来自公开数据仓 GuoxinL/notes 的 build/ 产物：用本地 fixtures 模拟 raw.githubusercontent.com，
@@ -28,6 +32,12 @@ test.beforeEach(async ({ page }) => {
     else if (p.endsWith('/posts/a9ef50e0.json')) body = docQwik;
     else return route.fulfill({ status: 404, body: 'not found' });
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  // 文章图片走 content/**（非 build/**），本地需桩离线图片，否则懒加载图取不到 → 0 尺寸 → 测试偶发 hidden
+  await page.route('https://raw.githubusercontent.com/GuoxinL/notes/main/content/**', (route) => {
+    const p = route.request().url();
+    const isSvg = /\.svg(\?.*)?$/i.test(p);
+    return route.fulfill({ status: 200, contentType: isSvg ? 'image/svg+xml' : 'image/png', path: isSvg ? IMG_SVG : IMG_PNG });
   });
 });
 
