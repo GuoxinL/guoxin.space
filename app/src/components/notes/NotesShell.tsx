@@ -282,15 +282,6 @@ const NotesStatsPanel = component$<{ posts: ArticleSummary[] }>(({ posts }) => {
           <span class="notes-stat-label">活跃月份</span>
         </div>
       </div>
-      {stats.tagCounts.length > 0 && (
-        <div class="notes-stats-tags">
-          {stats.tagCounts.map((t, i) => (
-            <span key={`tg-${i}`} class="notes-stat-tag">
-              {t.tag} <b>{t.count}</b>
-            </span>
-          ))}
-        </div>
-      )}
       <div class="notes-heatmap" data-testid="notes-heatmap" aria-label="发文热力图">
         {stats.heatmap.map((col, w) => (
           <div key={`w-${w}`} class="notes-heatmap-week">
