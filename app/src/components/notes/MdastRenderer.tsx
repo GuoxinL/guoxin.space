@@ -19,7 +19,7 @@ function renderChildren(children?: MdNode[]) {
 const Heading = component$<{ node: MdNode }>(({ node }) => {
   const text = (node.children ?? []).map((c) => c.value ?? '').join('');
   const id = (node.data?.headingId as string | undefined) ?? slugifyHeading(text);
-  const depth = Math.min(Math.max(node.depth ?? 2, 1), 4);
+  const depth = Math.min(Math.max(node.depth ?? 2, 1), 6);
   const anchor = (
     <a class="md-anchor" href={`#${id}`} aria-label="复制锚点链接">
       #
@@ -29,7 +29,9 @@ const Heading = component$<{ node: MdNode }>(({ node }) => {
   if (depth === 1) return <h1 id={id} class="md-h1">{kids}{anchor}</h1>;
   if (depth === 2) return <h2 id={id} class="md-h2">{kids}{anchor}</h2>;
   if (depth === 3) return <h3 id={id} class="md-h3">{kids}{anchor}</h3>;
-  return <h4 id={id} class="md-h4">{kids}{anchor}</h4>;
+  if (depth === 4) return <h4 id={id} class="md-h4">{kids}{anchor}</h4>;
+  if (depth === 5) return <h5 id={id} class="md-h5">{kids}{anchor}</h5>;
+  return <h6 id={id} class="md-h6">{kids}{anchor}</h6>;
 });
 
 const List = component$<{ node: MdNode }>(({ node }) =>

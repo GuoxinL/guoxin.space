@@ -2927,15 +2927,24 @@ select:focus-visible {
 /* 正文排版（.md-*） */
 .md-body { font-size: 16px; line-height: 1.8; }
 .md-body > * + * { margin-top: 16px; }
-.md-h1, .md-h2, .md-h3, .md-h4 { line-height: 1.3; scroll-margin-top: 80px; position: relative; }
+.md-h1, .md-h2, .md-h3, .md-h4, .md-h5, .md-h6 {
+  line-height: 1.3; scroll-margin-top: 80px; position: relative; font-weight: 700; color: var(--text);
+}
+.md-h1 { font-size: 30px; margin-top: 36px; padding-bottom: 8px; border-bottom: 2px solid var(--slate-25); }
 .md-h2 { font-size: 24px; margin-top: 32px; padding-bottom: 6px; border-bottom: 1px solid var(--slate-5); }
-.md-h3 { font-size: 20px; margin-top: 24px; }
-.md-h4 { font-size: 17px; margin-top: 20px; }
+.md-h3 { font-size: 20px; margin-top: 24px; padding-left: 12px; }
+.md-h3::before {
+  content: ""; position: absolute; left: 0; top: 0.18em; bottom: 0.18em;
+  width: 3px; border-radius: 2px; background: var(--violet-65);
+}
+.md-h4 { font-size: 17px; margin-top: 20px; color: var(--violet-80); font-weight: 600; }
+.md-h5 { font-size: 15.5px; margin-top: 16px; color: var(--slate-65); font-weight: 600; }
+.md-h6 { font-size: 14px; margin-top: 14px; color: var(--slate-50); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
 .md-anchor {
   position: absolute; left: -18px; top: 0; color: var(--slate-50);
   text-decoration: none; opacity: 0; transition: opacity 0.15s ease; font-weight: 400;
 }
-.md-h2:hover .md-anchor, .md-h3:hover .md-anchor, .md-h4:hover .md-anchor { opacity: 1; }
+.md-h1:hover .md-anchor, .md-h2:hover .md-anchor, .md-h3:hover .md-anchor, .md-h4:hover .md-anchor, .md-h5:hover .md-anchor, .md-h6:hover .md-anchor { opacity: 1; }
 .md-anchor:hover { background: var(--violet-0); }
 
 .md-p { margin: 0; }
@@ -2948,21 +2957,30 @@ select:focus-visible {
 
 .md-hr { border: 0; border-top: 1px solid var(--slate-5); margin: 28px 0; }
 
-/* Notes 无序列表标记：用 Minecraft 紫晶块（Amethyst）像素图标替换默认圆点。
-   仅作用于 <ul class="md-list"> 的直接 <li>（不含 .md-task 任务项）；
-   有序列表 <ol class="md-list md-list--ordered"> 走 decimal，不受影响。
-   嵌套 <ul> 的 <li> 同为 ul.md-list 直接子元素，自动继承同款标记。
+/* Notes 列表标记：
+   - 无序列表 <ul class="md-list">：用 Minecraft 紫晶块（Amethyst）像素图标替换默认圆点，
+     仅作用于直接 <li>（不含 .md-task 任务项）；嵌套 <ul> 的 <li> 自动继承同款标记。
+   - 有序列表 <ol class="md-list md-list--ordered">：用 CSS counter 渲染数字（见下方 ::before），
+     与无序标记共用同一条 22px 泳道（left:0），文字统一从同一起排位置开始，
+     避免历史上「紫晶块 + 原生数字」双标记及缩进错位。
    像素 SVG 经 data-uri 内联 + shape-rendering:crispEdges 保持任意缩放清晰。 */
 .md-list { padding-left: 22px; margin: 0; list-style: none; }
 .md-list > li:not(.md-task) {
   position: relative; margin: 4px 0; padding-left: 22px;
 }
-.md-list > li:not(.md-task)::before {
+.md-list:not(.md-list--ordered) > li:not(.md-task)::before {
   content: ""; position: absolute; left: 0; top: 5px;
   width: 14px; height: 14px;
   background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%20shape-rendering%3D%22crispEdges%22%3E%3Cpath%20fill%3D%22%232C2C2A%22%20d%3D%22M4%204h1v1h-1z%20M5%204h1v1h-1z%20M6%204h1v1h-1z%20M7%204h1v1h-1z%20M8%204h1v1h-1z%20M9%204h1v1h-1z%20M10%204h1v1h-1z%20M11%204h1v1h-1z%20M4%205h1v1h-1z%20M12%205h1v1h-1z%20M4%206h1v1h-1z%20M12%206h1v1h-1z%20M4%207h1v1h-1z%20M12%207h1v1h-1z%20M4%208h1v1h-1z%20M12%208h1v1h-1z%20M4%209h1v1h-1z%20M12%209h1v1h-1z%20M4%2010h1v1h-1z%20M12%2010h1v1h-1z%20M4%2011h1v1h-1z%20M5%2011h1v1h-1z%20M6%2011h1v1h-1z%20M7%2011h1v1h-1z%20M8%2011h1v1h-1z%20M9%2011h1v1h-1z%20M10%2011h1v1h-1z%20M11%2011h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%23CECBF6%22%20d%3D%22M5%205h1v1h-1z%20M6%205h1v1h-1z%20M7%205h1v1h-1z%20M8%205h1v1h-1z%20M9%205h1v1h-1z%20M10%205h1v1h-1z%20M11%205h1v1h-1z%20M5%206h1v1h-1z%20M6%206h1v1h-1z%20M7%206h1v1h-1z%20M8%206h1v1h-1z%20M9%206h1v1h-1z%20M10%206h1v1h-1z%20M11%206h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%237F77DD%22%20d%3D%22M5%207h1v1h-1z%20M6%207h1v1h-1z%20M7%207h1v1h-1z%20M8%207h1v1h-1z%20M9%207h1v1h-1z%20M10%207h1v1h-1z%20M5%208h1v1h-1z%20M6%208h1v1h-1z%20M7%208h1v1h-1z%20M8%208h1v1h-1z%20M9%208h1v1h-1z%20M10%208h1v1h-1z%20M5%209h1v1h-1z%20M6%209h1v1h-1z%20M7%209h1v1h-1z%20M8%209h1v1h-1z%20M9%209h1v1h-1z%20M10%209h1v1h-1z%20M5%2010h1v1h-1z%20M6%2010h1v1h-1z%20M7%2010h1v1h-1z%20M8%2010h1v1h-1z%20M9%2010h1v1h-1z%20M10%2010h1v1h-1z%22%2F%3E%3Cpath%20fill%3D%22%23534AB7%22%20d%3D%22M11%207h1v1h-1z%20M11%208h1v1h-1z%20M11%209h1v1h-1z%20M11%2010h1v1h-1z%22%2F%3E%3C%2Fsvg%3E") no-repeat center / 14px;
 }
-.md-list--ordered { list-style: decimal; }
+.md-list--ordered { counter-reset: md-li; }
+.md-list--ordered > li:not(.md-task) { counter-increment: md-li; }
+.md-list--ordered > li:not(.md-task)::before {
+  content: counter(md-li) ".";
+  position: absolute; left: 0; top: 4px;
+  min-width: 18px; font-variant-numeric: tabular-nums;
+  color: var(--slate-65);
+}
 .md-task { list-style: none; margin-left: -22px; display: flex; gap: 8px; align-items: baseline; }
 .md-task input { margin-top: 4px; }
 
