@@ -401,3 +401,79 @@ test('详情页渲染方案A 相对路径图片（被重写为 raw 绝对 URL）
   await expect(svg).toHaveAttribute('src', /\.svg$/);
 });
 
+test('收藏：列表星标 → 收藏视图出现，取消后消失（B）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  const firstCard = page.getByTestId('notes-item').first();
+  await firstCard.locator('[data-testid="notes-fav-star"]').click();
+  await expect(page.getByTestId('notes-content-toggle').getByText('收藏', { exact: true })).toBeVisible();
+  await page.getByTestId('notes-content-toggle').getByText('收藏', { exact: true }).click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  // 取消收藏 → 收藏视图清空
+  await page.getByTestId('notes-item').first().locator('[data-testid="notes-fav-star"]').click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(0);
+  // 回到全部视图应恢复 2 篇
+  await page.getByTestId('notes-content-toggle').getByText('全部', { exact: true }).click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(2);
+});
+
+test('标签云：进入云视图并点击标签过滤列表（D）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  await page.getByTestId('notes-content-toggle').getByText('标签云', { exact: true }).click();
+  const cloud = page.getByTestId('notes-cloud');
+  await expect(cloud).toBeVisible();
+  await expect(cloud.locator('.notes-cloud-item')).not.toHaveCount(0);
+  // 点 markdown 标签 → 回到列表视图且按该标签过滤（SAMPLE 含 markdown → 1 篇）
+  await cloud.getByText('markdown', { exact: false }).click();
+  await expect(page.getByTestId('notes-item')).toHaveCount(1);
+  await expect(page.getByTestId('notes-item').first()).toContainText('Markdown 全功能示例');
+});
+
+test('详情页阅读设置：切字号与宽度影响正文呈现（A）', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const md = page.locator('.md-body');
+  const baseFont = await md.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  // 大字
+  await page.getByTestId('notes-readbar').getByText('大', { exact: true }).click();
+  const bigFont = await md.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(bigFont).toBeGreaterThan(baseFont);
+  // 窄宽
+  await page.getByTestId('notes-readbar').getByText('窄', { exact: true }).click();
+  const w = await page.getByTestId('notes-detail').evaluate((el) => el.getBoundingClientRect().width);
+  expect(w).toBeLessThanOrEqual(761);
+  // 恢复默认（宽 + 中），避免污染后续用例
+  await page.getByTestId('notes-readbar').getByText('宽', { exact: true }).click();
+  await page.getByTestId('notes-readbar').getByText('中', { exact: true }).click();
+});
+
+test('键盘导航：/ 聚焦搜索，列表态 j 高亮、Enter 打开，详情态 Esc 返回（F）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  // / 聚焦搜索框
+  await page.keyboard.press('/');
+  await expect(page.getByTestId('notes-search')).toBeFocused();
+  await page.getByTestId('notes-search').blur();
+  // j 高亮第一张
+  await page.keyboard.press('j');
+  await expect(page.getByTestId('notes-item').nth(0)).toHaveClass(/is-kb/);
+  // Enter 打开
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  // Esc 返回列表
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('notes-list')).toBeVisible();
+});
+
+test('键盘导航：搜索框聚焦时字母键不触发卡片导航（F）', async ({ page }) => {
+  await page.goto('/notes/');
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  await page.getByTestId('notes-search').focus();
+  await page.keyboard.type('j');
+  // 字母被输入搜索框，而非触发 j 导航（列表仍可见、未跳转详情）
+  await expect(page.getByTestId('notes-search')).toHaveValue('j');
+  await expect(page.getByTestId('notes-list')).toBeVisible();
+  await page.getByTestId('notes-search').fill('');
+});
+

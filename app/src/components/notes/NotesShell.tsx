@@ -6,6 +6,8 @@ import { computeRelated, type RelatedItem } from '../../lib/notes/related';
 import { computeStats, intensityLevel } from '../../lib/notes/stats';
 import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
 import { readPendingRedirect } from '../../lib/spa-redirect';
+import { getFavs, toggleFav } from '../../lib/notes/favorites';
+import { loadReading, saveReading, DEFAULT_READING, type ReadingCfg, type ReadFont, type ReadWidth } from '../../lib/notes/reading';
 import { MdastRenderer } from './MdastRenderer';
 
 /**
@@ -447,6 +449,15 @@ const ArticleView = component$<{
   const progress = useSignal(0);
   const related = useSignal<RelatedItem[]>([]);
 
+  // 新增 A：阅读设置（字号/宽窄）与详情页收藏星标（SSR 默认安全值，客户端初始化时读 localStorage）
+  const readingSig = useSignal<ReadingCfg>(DEFAULT_READING);
+  const favDetail = useSignal<string[]>([]);
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(() => {
+    readingSig.value = loadReading();
+    favDetail.value = getFavs();
+  });
+
   // N-T21：懒加载全量文章并基于「共同引用 + 标签 Jaccard」计算相关文章
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async () => {
@@ -528,10 +539,66 @@ const ArticleView = component$<{
           ))}
         </ul>
       </aside>
-      <article class="notes-detail" data-testid="notes-detail">
+      <article
+        class={{
+          'notes-detail': true,
+          'read-fz-s': readingSig.value.fz === 's',
+          'read-fz-m': readingSig.value.fz === 'm',
+          'read-fz-l': readingSig.value.fz === 'l',
+          'read-width-narrow': readingSig.value.width === 'narrow',
+          'read-width-wide': readingSig.value.width === 'wide',
+        }}
+        data-testid="notes-detail"
+      >
         <button type="button" class="notes-back" onClick$={onBack}>
           ← 返回列表
         </button>
+        <div class="notes-readbar" data-testid="notes-readbar">
+          <div class="notes-readbar-group" role="group" aria-label="字号">
+            <span class="notes-readbar-label">字号</span>
+            {(['s', 'm', 'l'] as ReadFont[]).map((f) => (
+              <button
+                type="button"
+                key={f}
+                class={{ 'notes-readbar-btn': true, 'is-active': readingSig.value.fz === f }}
+                onClick$={() => {
+                  readingSig.value = { ...readingSig.value, fz: f };
+                  saveReading(readingSig.value);
+                }}
+              >
+                {f === 's' ? '小' : f === 'm' ? '中' : '大'}
+              </button>
+            ))}
+          </div>
+          <div class="notes-readbar-group" role="group" aria-label="宽度">
+            <span class="notes-readbar-label">宽度</span>
+            {(['narrow', 'wide'] as ReadWidth[]).map((w) => (
+              <button
+                type="button"
+                key={w}
+                class={{ 'notes-readbar-btn': true, 'is-active': readingSig.value.width === w }}
+                onClick$={() => {
+                  readingSig.value = { ...readingSig.value, width: w };
+                  saveReading(readingSig.value);
+                }}
+              >
+                {w === 'narrow' ? '窄' : '宽'}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            class={{ 'notes-readbar-fav': true, 'is-fav': favDetail.value.includes(doc.slug) }}
+            data-testid="notes-detail-fav"
+            aria-label={favDetail.value.includes(doc.slug) ? '取消收藏' : '收藏'}
+            onClick$={() => {
+              toggleFav(doc.slug);
+              favDetail.value = getFavs();
+            }}
+          >
+            {favDetail.value.includes(doc.slug) ? '★ 已收藏' : '☆ 收藏'}
+          </button>
+        </div>
         <ArticleHeader doc={doc} />
         <SeriesNav doc={doc} onNav={onNav} />
         <MdastRenderer ast={doc.ast} />
@@ -582,6 +649,16 @@ export const NotesShell = component$(() => {
   const tagFilter = useSignal('');
   const viewMode = useSignal<'list' | 'archive'>('list');
   const tagPopoverOpen = useSignal(false);
+
+  // 新增：内容视图（全部 / 收藏 / 标签云）、收藏列表、键盘导航高亮索引、回到顶端显隐
+  const contentMode = useSignal<'all' | 'fav' | 'tags'>('all');
+  const favSig = useSignal<string[]>([]);
+  const kbIdx = useSignal(-1);
+  const backTopVisible = useSignal(false);
+  // 搜索框 ref（键盘 `/` 聚焦用）；注意 input 仍由 signal 受控（Qwik 坑④不适用，此处非动态挂载）
+  const searchRef = useSignal<HTMLInputElement>();
+  // 键盘导航可用文章序列（slug）：仅在筛选/搜索/视图/收藏/索引变化时重算，避免每次渲染写 store 触发无限重渲染
+  const kbList = useSignal<string[]>([]);
 
   // N-T20：全文搜索（FlexSearch 懒加载 2-gram）。索引构建在浏览器运行时，配合 searchReady 触发重渲染。
   const searchQuery = useSignal('');
@@ -640,6 +717,7 @@ export const NotesShell = component$(() => {
 
   const backToList = $(() => {
     state.initialHash = null;
+    favSig.value = getFavs(); // 从详情返回列表时刷新收藏（详情页可能改过收藏态）
     if (history.state && history.state.noteSlug) history.back();
     else {
       history.pushState(null, '', notePathFor(''));
@@ -660,12 +738,82 @@ export const NotesShell = component$(() => {
     state.initialHash = hash;
     await loadIndex();
     await navigate(slug);
+    favSig.value = getFavs(); // 初始化收藏列表（SSR 守卫在 lib 内）
 
     const onPop = () => {
       void navigate(noteSlugFromPath(location.pathname));
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  });
+
+  // 键盘导航可用列表：依赖（标签/搜索/视图/收藏/索引）变化时重算一次（不在渲染期写 store，避免无限重渲染）
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track }) => {
+    track(() => tagFilter.value);
+    track(() => searchQuery.value);
+    track(() => contentMode.value);
+    track(() => viewMode.value);
+    track(() => favSig.value);
+    track(() => state.index);
+    const all = state.index?.posts ?? [];
+    const q = searchQuery.value.trim();
+    const hits = q && searchCache.idx ? search(searchCache.idx, q) : null;
+    const hitSet = hits ? new Set(hits) : null;
+    const base = tagFilter.value ? all.filter((p) => p.tags.includes(tagFilter.value)) : all;
+    const visible = hitSet ? base.filter((p) => hitSet.has(p.slug)) : base;
+    const shown = contentMode.value === 'fav' ? visible.filter((p) => favSig.value.includes(p.slug)) : visible;
+    kbList.value = shown.map((p) => p.slug);
+  });
+
+  // 键盘导航（列表态 j/k/Enter、详情态 Esc）+ 回到顶端滚动监听（新增功能 F / 回到顶端）
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ cleanup }) => {
+    const onKey = (e: KeyboardEvent) => {
+      const ae = document.activeElement;
+      const typing = !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
+      if (state.slug) {
+        // 详情态：Esc 返回列表
+        if (e.key === 'Escape' && !typing) {
+          e.preventDefault();
+          void backToList();
+        }
+        return;
+      }
+      if (typing) return; // 搜索框聚焦时不拦截字母/方向键
+      if (e.key === '/') {
+        e.preventDefault();
+        searchRef.value?.focus();
+        return;
+      }
+      // 仅在卡片列表态（contentMode!=='tags' 且 viewMode==='list'）响应 j/k/Enter
+      const inList = contentMode.value !== 'tags' && viewMode.value === 'list';
+      const n = kbList.value.length;
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        if (!inList || n === 0) return;
+        e.preventDefault();
+        kbIdx.value = Math.min(n - 1, kbIdx.value + 1);
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        if (!inList || n === 0) return;
+        e.preventDefault();
+        kbIdx.value = Math.max(0, kbIdx.value - 1);
+      } else if (e.key === 'Enter') {
+        if (!inList || kbIdx.value < 0 || kbIdx.value >= n) return;
+        e.preventDefault();
+        const slug = kbList.value[kbIdx.value];
+        if (slug) openNote(slug);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    const onScroll = () => {
+      backTopVisible.value = window.scrollY > 400;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    cleanup(() => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll);
+    });
   });
 
   // N-T29：深链带页内锚点（#heading）时，文章加载后滚动到对应小节。
@@ -717,6 +865,9 @@ export const NotesShell = component$(() => {
   const hitSet = searchHits ? new Set(searchHits) : null;
   const basePosts = tagFilter.value ? allPosts.filter((p) => p.tags.includes(tagFilter.value)) : allPosts;
   const visiblePosts = hitSet ? basePosts.filter((p) => hitSet.has(p.slug)) : basePosts;
+  // 收藏视图：在标签/搜索筛选基础上再收窄（contentMode 为普通信号读取，普通语句内安全）
+  const shownPosts =
+    contentMode.value === 'fav' ? visiblePosts.filter((p) => favSig.value.includes(p.slug)) : visiblePosts;
 
   const isList = !state.slug;
 
@@ -735,6 +886,7 @@ export const NotesShell = component$(() => {
                   class="notes-search"
                   placeholder="搜索标题、正文、标签…"
                   data-testid="notes-search"
+                  ref={searchRef}
                   value={searchQuery.value}
                   onFocus$={() => ensureSearchIndex()}
                   onInput$={(_, el) => {
@@ -821,6 +973,29 @@ export const NotesShell = component$(() => {
                   )}
                 </div>
                 <div class="notes-toolbar-right">
+                  <div class="notes-view-toggle" data-testid="notes-content-toggle" role="group" aria-label="内容视图">
+                    <button
+                      type="button"
+                      class={{ 'notes-view-btn': true, 'is-active': contentMode.value === 'all' }}
+                      onClick$={() => { contentMode.value = 'all'; kbIdx.value = -1; }}
+                    >
+                      全部
+                    </button>
+                    <button
+                      type="button"
+                      class={{ 'notes-view-btn': true, 'is-active': contentMode.value === 'fav' }}
+                      onClick$={() => { contentMode.value = 'fav'; kbIdx.value = -1; }}
+                    >
+                      收藏
+                    </button>
+                    <button
+                      type="button"
+                      class={{ 'notes-view-btn': true, 'is-active': contentMode.value === 'tags' }}
+                      onClick$={() => { contentMode.value = 'tags'; kbIdx.value = -1; }}
+                    >
+                      标签云
+                    </button>
+                  </div>
                   <div class="notes-view-toggle" data-testid="notes-view-toggle">
                     <button
                       type="button"
@@ -839,9 +1014,37 @@ export const NotesShell = component$(() => {
                   </div>
                 </div>
               </div>
-              {viewMode.value === 'archive' ? (
+              {contentMode.value === 'tags' ? (
+                <div class="notes-cloud" data-testid="notes-cloud">
+                  <p class="notes-cloud-hint">点击标签查看相关文章</p>
+                  <div class="notes-cloud-items">
+                    {tags.map(([t, c]) => {
+                      const max = tags[0]?.[1] || 1;
+                      const min = tags[tags.length - 1]?.[1] || 1;
+                      const size = 12 + Math.round(((c - min) / Math.max(1, max - min)) * 10);
+                      return (
+                        <button
+                          type="button"
+                          key={t}
+                          class={{ 'notes-cloud-item': true, 'is-active': tagFilter.value === t }}
+                          style={{ fontSize: `${size}px` }}
+                          onClick$={() => {
+                            tagFilter.value = t;
+                            contentMode.value = 'all';
+                            viewMode.value = 'list';
+                            kbIdx.value = -1;
+                          }}
+                        >
+                          {t}
+                          <span class="notes-cloud-count">{c}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : viewMode.value === 'archive' ? (
                 <div class="notes-archive" data-testid="notes-archive">
-                  {buildArchive(visiblePosts).map((y) => (
+                  {buildArchive(shownPosts).map((y) => (
                     <section key={y.year} class="notes-archive-year">
                       <h3 class="notes-archive-year-title">{y.year}</h3>
                       {y.months.map((m) => (
@@ -867,21 +1070,35 @@ export const NotesShell = component$(() => {
                     </section>
                   ))}
                 </div>
-              ) : searchQ && visiblePosts.length === 0 ? (
+              ) : searchQ && shownPosts.length === 0 ? (
                 <p class="notes-muted" data-testid="notes-search-empty">
                   未找到与「{searchQ}」匹配的文章。
                 </p>
               ) : (
                 <ul class="notes-cards">
-                  {visiblePosts.map((p) => (
+                  {shownPosts.map((p, i) => (
                     <li key={p.slug}>
                       <button
                         type="button"
-                        class="notes-card"
+                        class={{ 'notes-card': true, 'is-fav': favSig.value.includes(p.slug), 'is-kb': kbIdx.value === i }}
                         data-testid="notes-item"
                         data-slug={p.slug}
+                        data-idx={i}
                         onClick$={() => openNote(p.slug)}
                       >
+                        <span
+                          class="notes-card-fav"
+                          data-testid="notes-fav-star"
+                          role="button"
+                          aria-label={favSig.value.includes(p.slug) ? '取消收藏' : '收藏'}
+                          onClick$={(ev) => {
+                            ev.stopPropagation();
+                            toggleFav(p.slug);
+                            favSig.value = getFavs();
+                          }}
+                        >
+                          {favSig.value.includes(p.slug) ? '★' : '☆'}
+                        </span>
                         <span class="notes-card-title">{p.title}</span>
                         {p.description && <span class="notes-card-desc">{p.description}</span>}
                         <span class="notes-card-meta">
@@ -920,6 +1137,15 @@ export const NotesShell = component$(() => {
         </div>
       )}
       <NotesDataVersion index={state.index} />
+      <button
+        type="button"
+        class={{ 'notes-backtop': true, 'is-show': backTopVisible.value }}
+        data-testid="notes-backtop"
+        aria-label="回到顶端"
+        onClick$={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      >
+        ↑
+      </button>
     </section>
   );
 });
