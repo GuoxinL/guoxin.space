@@ -8,9 +8,9 @@
 |---|---|
 | `/` | 工作台首页：Hero（QWIK · 像素基因）、终端命令框、区块导航卡片 |
 | `/skills`（含 `/skills/<dir>`） | Skills 技能夹：浏览 GitHub 仓库中的技能目录，frontmatter 元数据、GitHub 风格 Markdown 渲染、文件树抽屉、收藏（proxy / mirror）与通道管理 |
-| `/toolbox/json` | 万能工具箱 · JSON：解析 / 格式化 / 对比 / JSONPath / 历史 / Schema 推断 / 小工具集（Base64·URL·时间戳·JWT·CSV）/ 语义 diff，纯前端本地计算 |
+| `/toolbox/json` | 万能工具箱 · JSON：解析 / 格式化 / 对比 / JSONPath / 历史 / Schema 推断 / 小工具集（Base·URL·时间戳·JWT·CSV）/ 语义 diff，纯前端本地计算 |
 | `/toolbox/calendar` | 万能工具箱 · 日历：农历、法定节假日与调休、二十四节气、年视图、距下一假期倒计时 |
-| `/toolbox/base64` | 小工具 · Base64 编解码（经页头 Toolbox 悬浮子菜单进入，独立路由、URL 可分享） |
+| `/toolbox/base64` | 小工具 · Base 家族编解码（Base16(Hex) / 32 / 58 / 64 / 64URL / 85 六合一，单页双框体 + 编码/解码方向 + 填充/换行开关 + 复制/交换；独立路由 /toolbox/base64，经页头 Toolbox 子导航进入） |
 | `/toolbox/url` | 小工具 · URL 编码 / 解码 |
 | `/toolbox/timestamp` | 小工具 · 时间戳（秒 / 毫秒）与日期互转 |
 | `/toolbox/jwt` | 小工具 · JWT 解码查看 header / payload（不校验签名） |
@@ -70,6 +70,8 @@ npm run lint / fmt / type-check
 - **2026-09-17（下午）**：TODO 模块上线——GitHub OAuth 保护、独立数据仓 `GuoxinL/todo-data`（经 Worker `/api/todo/*` 代理，env `TODO_REPO`/`TODO_PATH`/`TODO_BRANCH`）、子任务 / 标签 / 双层进度 / 周报 / 日历融合进度线条；单测增至 21 文件 / 308 用例，新增 `e2e/todo.spec.ts`（9 例，mock Worker）。
 - **2026-09-17（晚）**：TODO 入口上移 + 日历任务线连续化——① TODO 由 Toolbox 子导航（8→7 个 tab）上移为**主导航项**（桌面与移动端一致，`isAdmin()` 登录后才显示，登录/登出经 `authSubscribe` 即时增删）；② 日历月视图的 TODO 进度线改为**按行（周）分配通道**（`lib/calendar/todo-line.ts` 纯函数，≤3 条 lane + 溢出计数），同一任务跨日连成一条（格内固定槽位对齐、负 margin 消除接缝，跨行处用贴边直角表达延续）；单元格 hover tooltip 仍列出全部命中任务与进度。单测增至 22 文件 / 329 用例（新增 16 条 lane 布局用例），e2e 新增日历连线几何断言 ×5 与主导航登录门控 ×3。
 - **2026-09-17（深夜）**：TODO 列表行式重构——① 卡片网格改**行式**，标题 / 日期点击即可原地编辑（无弹窗），行头 `+/−` 展开收起子任务，标题前方块勾选关闭 / 重新打开（关闭时子任务强制记 100%）；② 点标签弹浮层，可勾选已有标签或输入名称回车新建（先落盘 `tags.json` 再勾选）；③ 列表末尾「＋ 添加 TODO」草稿行，填标题回车落盘；④ 移除 TODO 修改弹窗，日历页点击改弹**只读卡片**（卡内按钮带 `?todo=<id>` 深链跳转）；⑤ 新增 `lib/todo/write-queue.ts`（400ms debounce 合并写盘），避免原地编辑高频触发 Worker 写数据仓；顺带修掉新建任务取 UTC 日期的偏差。单测增至 24 文件 / 356 用例（新增 `mutate` 17 + `write-queue` 10），`e2e/todo.spec.ts` 重写为 19 条。
+
+- **2026-09-19**：Base 家族工具落地 + Toolbox 页头重排——① Toolbox 区块标题（Toolbox / Small tools for everyday bytes.）上提到子导航上方，所有 `/toolbox/*` 页共享；② 删除冗余内层 `tools-panel-head` / `tools-tabs`，各小工具补自身简介；③ 新增 Base 家族在线工具（Base16(Hex)/32/58/64/64URL/85 六合一，单页双框体 + 编码/解码方向 + 填充/换行开关 + 复制/交换），Header 与 ToolboxTabs 入口标签统一为「Base」（路由 slug `/toolbox/base64` 不变）；④ `smalltools.ts` 新增 6 编码器/解码器与 `baseEncode`/`baseDecode` 纯函数（BigInt 处理溢出，`{ok}` 形态统一返回），补充 20 单测（含 RFC4648 权威向量）；单测增至 26 文件 / 379 用例，e2e 新增 Base 面板 + 页头重排用例；清理 `global.css` 死代码（弹窗版 `tools-box`/`tools-tabs` 等）。
 
 ## 文档
 

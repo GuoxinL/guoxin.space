@@ -6,7 +6,7 @@ import { PixelIcon, type PixelIconName } from "../pixel/PixelIcon";
 const TOOLS: { href: string; label: string; icon: PixelIconName }[] = [
   { href: "/toolbox/json", label: "JSON", icon: "scroll" },
   { href: "/toolbox/calendar", label: "日历", icon: "calendar" },
-  { href: "/toolbox/base64", label: "Base64", icon: "base64" },
+  { href: "/toolbox/base64", label: "Base", icon: "base64" },
   { href: "/toolbox/url", label: "URL", icon: "url" },
   { href: "/toolbox/timestamp", label: "时间戳", icon: "ts" },
   { href: "/toolbox/jwt", label: "JWT", icon: "jwt" },
@@ -20,21 +20,27 @@ export const ToolboxTabs = component$(() => {
     return norm(loc.url.pathname) === norm(href);
   };
   return (
-    <nav class="tb-tabs" aria-label="Toolbox 子导航">
-      <ul class="tb-tabs-list">
-        {TOOLS.map((t) => (
-          <li key={t.href}>
-            <Link
-              href={t.href}
-              aria-current={isActive(t.href) ? "page" : undefined}
-              class="tb-tab"
-            >
-              <PixelIcon name={t.icon} size={14} />
-              <span>{t.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <>
+      <div class="tb-head">
+        <h2>Toolbox</h2>
+        <p>Small tools for everyday bytes.</p>
+      </div>
+      <nav class="tb-tabs" aria-label="Toolbox 子导航">
+        <ul class="tb-tabs-list">
+          {TOOLS.map((t) => (
+            <li key={t.href}>
+              <Link
+                href={t.href}
+                aria-current={isActive(t.href) ? "page" : undefined}
+                class="tb-tab"
+              >
+                <PixelIcon name={t.icon} size={14} />
+                <span>{t.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </>
   );
 });

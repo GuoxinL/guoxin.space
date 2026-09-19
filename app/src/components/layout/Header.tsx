@@ -15,7 +15,7 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
 const TOOLBOX_MENU: { href: string; label: string; icon: PixelIconName }[] = [
   { href: "/toolbox/json", label: "JSON", icon: "scroll" },
   { href: "/toolbox/calendar", label: "日历", icon: "calendar" },
-  { href: "/toolbox/base64", label: "Base64", icon: "base64" },
+  { href: "/toolbox/base64", label: "Base", icon: "base64" },
   { href: "/toolbox/url", label: "URL", icon: "url" },
   { href: "/toolbox/timestamp", label: "时间戳", icon: "ts" },
   { href: "/toolbox/jwt", label: "JWT", icon: "jwt" },

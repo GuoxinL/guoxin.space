@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
 /**
  * Toolbox 悬浮子菜单 · 页面自动化（Playwright）
@@ -7,96 +7,155 @@ import { test, expect } from '@playwright/test';
  * 站点为纯静态预渲染，用例经 tools/serve-pages.mjs 起本地服务跑 Pages 语义。
  */
 
-const SUBMENU_LABELS = ['JSON', '日历', 'Base64', 'URL', '时间戳', 'JWT', 'CSV'];
+const SUBMENU_LABELS = ["JSON", "日历", "Base", "URL", "时间戳", "JWT", "CSV"];
 
-test.describe('Toolbox 悬浮子菜单（桌面）', () => {
-  test('悬浮 Toolbox 展开子菜单，含 7 个子项', async ({ page }) => {
-    await page.goto('/');
-    const group = page.locator('.mc-nav-group');
+test.describe("Toolbox 悬浮子菜单（桌面）", () => {
+  test("悬浮 Toolbox 展开子菜单，含 7 个子项", async ({ page }) => {
+    await page.goto("/");
+    const group = page.locator(".mc-nav-group");
     await expect(group).toBeVisible();
     // 默认隐藏
-    await expect(page.locator('.mc-submenu')).toBeHidden();
+    await expect(page.locator(".mc-submenu")).toBeHidden();
     await group.hover();
-    const sub = page.locator('.mc-submenu');
+    const sub = page.locator(".mc-submenu");
     await expect(sub).toBeVisible();
-    await expect(sub.locator('.mc-nav-item')).toHaveCount(7);
+    await expect(sub.locator(".mc-nav-item")).toHaveCount(7);
     for (const label of SUBMENU_LABELS) {
-      await expect(sub.locator('.mc-nav-item', { hasText: label })).toBeVisible();
+      await expect(
+        sub.locator(".mc-nav-item", { hasText: label }),
+      ).toBeVisible();
     }
   });
 
-  test('键盘 focus-within 也能展开（可达性）', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('.mc-nav-group > .mc-nav-item').focus();
-    await expect(page.locator('.mc-submenu')).toBeVisible();
+  test("键盘 focus-within 也能展开（可达性）", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(".mc-nav-group > .mc-nav-item").focus();
+    await expect(page.locator(".mc-submenu")).toBeVisible();
   });
 
-  test('点击子菜单项进入对应独立路由', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('.mc-nav-group').hover();
-    await page.locator('.mc-submenu .mc-nav-item', { hasText: 'Base64' }).click();
+  test("点击子菜单项进入对应独立路由", async ({ page }) => {
+    await page.goto("/");
+    await page.locator(".mc-nav-group").hover();
+    await page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" }).click();
     await expect(page).toHaveURL(/\/toolbox\/base64/);
-    await expect(page.locator('.tools-panel')).toBeVisible();
+    await expect(page.locator(".base-wrap")).toBeVisible();
   });
 
-  test('active 态：/toolbox/base64 下 Base64 子项与父栏目高亮', async ({ page }) => {
-    await page.goto('/toolbox/base64');
+  test("active 态：/toolbox/base64 下 Base64 子项与父栏目高亮", async ({
+    page,
+  }) => {
+    await page.goto("/toolbox/base64");
     await expect(
-      page.locator('.mc-submenu .mc-nav-item', { hasText: 'Base64' })
-    ).toHaveAttribute('aria-current', 'page');
+      page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" }),
+    ).toHaveAttribute("aria-current", "page");
     // 父栏目 Toolbox 因 /toolbox/* 前缀也高亮
-    await expect(page.locator('.mc-nav-group > .mc-nav-item')).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator(".mc-nav-group > .mc-nav-item")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
-  test('C-23 hover 色带：子项 hover 背景变 violet-0（#f7f3ff）', async ({ page }) => {
-    await page.goto('/');
-    const item = page.locator('.mc-submenu .mc-nav-item', { hasText: 'Base64' });
-    await page.locator('.mc-nav-group').hover();
+  test("C-23 hover 色带：子项 hover 背景变 violet-0（#f7f3ff）", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const item = page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" });
+    await page.locator(".mc-nav-group").hover();
     // 静止态（子项未 hover）背景应为白
-    const rest = await item.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const rest = await item.evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
     await item.hover();
     // 等 120ms 过渡动画结束再回读 hover 态（否则读到插值中间值）
     await page.waitForTimeout(250);
-    const hover = await item.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(hover).toBe('rgb(247, 243, 255)');
+    const hover = await item.evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
+    expect(hover).toBe("rgb(247, 243, 255)");
     expect(hover).not.toBe(rest);
   });
 });
 
-test.describe('小工具独立路由页', () => {
-  test('深链 /toolbox/jwt 直接打开且 JWT tab 激活', async ({ page }) => {
-    await page.goto('/toolbox/jwt');
-    await expect(page.locator('.tools-panel')).toBeVisible();
-    await expect(page.locator('.tools-tab.active', { hasText: 'JWT' })).toHaveCount(1);
+test.describe("Toolbox 子导航 + Base 编解码面板", () => {
+  test("深链 /toolbox/jwt 直接打开，JWT 子项 active", async ({ page }) => {
+    await page.goto("/toolbox/jwt");
+    await expect(page.locator(".tools-panel")).toBeVisible();
+    await expect(
+      page.locator('.tb-tab[aria-current="page"]', { hasText: "JWT" }),
+    ).toHaveCount(1);
   });
 
-  test('小工具页 tab 用 Link 切换路由（CSR 导航）', async ({ page }) => {
-    await page.goto('/toolbox/base64');
-    await page.locator('.tools-tab', { hasText: 'URL' }).click();
+  test("Toolbox 子导航（tb-tab）点击切换路由（CSR 导航）", async ({ page }) => {
+    await page.goto("/toolbox/base64");
+    await page.locator(".tb-tab", { hasText: "URL" }).click();
     await expect(page).toHaveURL(/\/toolbox\/url/);
-    await expect(page.locator('.tools-panel')).toBeVisible();
-    await expect(page.locator('.tools-tab.active', { hasText: 'URL' })).toHaveCount(1);
+    await expect(page.locator(".tools-panel")).toBeVisible();
+    await expect(
+      page.locator('.tb-tab[aria-current="page"]', { hasText: "URL" }),
+    ).toHaveCount(1);
   });
 
-  test('Base64 编码功能在独立路由页可用', async ({ page }) => {
-    await page.goto('/toolbox/base64');
-    await page.locator('.tools-in').fill('hello');
-    await page.locator('.tools-pane button', { hasText: '编码' }).click();
-    await expect(page.locator('.tools-out')).toHaveValue('aGVsbG8=');
+  test("Base 编码功能在独立路由页可用（默认 Base64）", async ({ page }) => {
+    await page.goto("/toolbox/base64");
+    await expect(page.locator(".base-wrap")).toBeVisible();
+    // 默认编码格式 Base64、方向编码，输入即实时转换
+    await expect(
+      page.locator(".btn.codec.active", { hasText: "Base64" }),
+    ).toHaveCount(1);
+    await page.locator(".base-box:not([readonly])").fill("hello");
+    await expect(page.locator(".base-box[readonly]")).toHaveValue("aGVsbG8=");
   });
 });
 
-test.describe('Toolbox 移动端嵌套', () => {
+test.describe("Base 编解码面板功能", () => {
+  test("页头 tb-head 显示概念标头，6 个编码按钮齐全（含 Base16 (Hex)）", async ({
+    page,
+  }) => {
+    await page.goto("/toolbox/base64");
+    await expect(page.locator(".tb-head")).toBeVisible();
+    await expect(page.locator(".tb-head h2")).toHaveText("Toolbox");
+    await expect(page.locator(".tb-head p")).toHaveText(
+      /Small tools for everyday bytes\./,
+    );
+    // 编码格式工具栏共有 6 个 codec 按钮
+    await expect(
+      page.locator(".base-toolbar").first().locator(".btn.codec"),
+    ).toHaveCount(6);
+    // 用户打磨要求：Base16 标签带 (Hex) 描述
+    await expect(page.locator(".btn.codec", { hasText: "Base16" })).toHaveCount(
+      1,
+    );
+  });
+
+  test("切换 Base16 编码 hello → 68656C6C6F", async ({ page }) => {
+    await page.goto("/toolbox/base64");
+    await page.locator(".btn.codec", { hasText: "Base16 (Hex)" }).click();
+    await expect(
+      page.locator(".btn.codec.active", { hasText: "Base16 (Hex)" }),
+    ).toHaveCount(1);
+    await page.locator(".base-box:not([readonly])").fill("hello");
+    await expect(page.locator(".base-box[readonly]")).toHaveValue("68656C6C6F");
+  });
+
+  test("切换解码方向可还原 Base64 文本", async ({ page }) => {
+    await page.goto("/toolbox/base64");
+    await page.locator(".btn.dir", { hasText: "← 解码" }).click();
+    await page.locator(".base-box:not([readonly])").fill("aGVsbG8=");
+    await expect(page.locator(".base-box[readonly]")).toHaveValue("hello");
+  });
+});
+
+test.describe("Toolbox 移动端嵌套", () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
-  test('汉堡菜单内 Toolbox 嵌套 7 个子项并可进入路由', async ({ page }) => {
-    await page.goto('/');
+  test("汉堡菜单内 Toolbox 嵌套 7 个子项并可进入路由", async ({ page }) => {
+    await page.goto("/");
     await page.locator('button[aria-label="打开菜单"]').click();
-    const sub = page.locator('.mc-nav-sub');
+    const sub = page.locator(".mc-nav-sub");
     await expect(sub).toBeVisible();
-    await expect(sub.locator('.mc-nav-item')).toHaveCount(7);
-    await page.locator('.mc-nav-sub .mc-nav-item', { hasText: 'CSV' }).click();
+    await expect(sub.locator(".mc-nav-item")).toHaveCount(7);
+    await page.locator(".mc-nav-sub .mc-nav-item", { hasText: "CSV" }).click();
     await expect(page).toHaveURL(/\/toolbox\/csv/);
-    await expect(page.locator('.tools-panel')).toBeVisible();
+    await expect(page.locator(".tools-panel")).toBeVisible();
   });
 });
