@@ -1,6 +1,6 @@
 /**
  * 本地示例数据（demo 阶段用，替代尚未创建的 GuoxinL/notes 数据仓）。
- * 结构严格对齐 writing-module-plan-refined.md §4 契约，便于日后无缝切换到运行时 fetch。
+ * 结构严格对齐 Notes 数据契约（types.ts），便于日后无缝切换到运行时 fetch。
  *
  * 本文件即「示例文章」：一篇文章覆盖写作模块计划支持的全部 Markdown 功能
  * （图 / 双链 / 代码高亮 / 公式 / 表格 / 列表 / 脚注 / Callout / 链接 / 分割线 / 内嵌 HTML）。

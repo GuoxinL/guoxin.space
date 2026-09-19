@@ -22,17 +22,13 @@ personal-homepage/
 ├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、技能卡省略号实机校验 tools/verify-skname-ellipsis.mjs、提交校验 scripts/ 等）
 ├── .harness/           # SOP 真源（AI 开发流程）
-│   ├── plans/          # 各任务目录（00-overview~08-review）；_template 模板；_done 存已结项归档（AI 不检索）
-│   └── docs/           # 现行规范：architecture / devops / coding-style / 单测·IT 等
-└── docs/               # 文档（与 .harness/docs 分工见下；外部 / 历史 / 报告）
-    ├── deploy/         # 现行有效：Worker 权限方案设计
-    ├── third-party/    # 第三方接入操作步骤（Pages / Worker / Server酱 / 行者，每组件一份）
-    ├── design/         # 现行有效设计稿（hero-art 等；伴生 PNG 同目录）
-    ├── reports/        # 自测 / 报告（TOOLBOX-SELFTEST 等）
-    └── archive/        # 历史 / 已落地过程稿；design / deploy / running 子目录 + 顶层旧计划
+│   ├── plans/          # 各任务目录（00-overview~08-review）；_template 模板；结项任务直接删，不归档 _done/
+│   └── docs/           # 现行规范：architecture / devops / coding-style / design / 单测·IT 等
+└── docs/               # 文档（外部接入类，与 .harness/docs 分工见下）
+    └── third-party/    # 第三方接入操作步骤（Pages / Worker / Server酱 / 行者 / Giscus，每组件一份）
 ```
 
-> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、单测·IT）；`docs/` 只放**外部 / 历史 / 报告**类文档——第三方组件的接入操作步骤在 `docs/third-party/`（每组件一份），Worker 权限方案设计在 `docs/deploy/`，设计稿在 `docs/design/`，历史过程稿全部归档到 `docs/archive/`（带「⚠️ 归档文档」声明）。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
+> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、视觉设计、单测·IT）；`docs/` 只放**外部接入类**文档——第三方组件的接入操作步骤在 `docs/third-party/`（每组件一份，含 Cloudflare Worker / Pages / Server酱 / 行者 / Giscus）。设计稿与历史过程稿已并入 `.harness/docs/` 或随 git 历史留存，不在 `docs/` 下维护。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
 
 > ⚠️ **历史段落提示**：下方「旧单文件站机制」一节描述 2026-09-09 Qwik 重构**前**的机制（`index.html` / `css/style.css` / `js/*.js` / `verify.js`，已在 P8 删除），仅作历史参考，**不得**按其操作。现行代码规范以 `.harness/docs/coding-style.md` 为准；改代码直接看 `app/src/`。
 
@@ -53,7 +49,7 @@ personal-homepage/
 > 本仓库定位「AI 亲和」：文件/目录体积直接决定 Agent 上下文成本。硬约束见 CONSTRAINTS **C-55**；以下为 Agent 操作时的上下文控制规矩（与「任务隔离」红线互为补充）。
 
 1. **活跃计划热路径精简**：`.harness/plans/` 下只保留进行中任务。结项后任务目录可直接删（全部内容已在 git 历史与代码中，git 为正统审计），或保留为 `✅` 标记；不再维护 `_done/` 归档目录。文档量随是否交 AGENT 缩放：solo 短平快改动以 git 历史为审计、不开任务目录；仅 AGENT 接手 / 复杂 / 多会话才起任务目录当简报包。
-2. **计划目录只读当前任务**：只处理 `.harness/plans/<当前任务>/`；其他已完成任务目录、`docs/archive/` 除非用户**显式**要求，否则不检索、不整读（避免历史记录灌入 context）。
+2. **计划目录只读当前任务**：只处理 `.harness/plans/<当前任务>/`；其他已完成任务目录除非用户**显式**要求，否则不检索、不整读（避免历史记录灌入 context）。
 3. **大文件禁止整读**：单文件 >600 行（如 `app/src/global.css` 5831 行、`lib/running.ts` 1561 行）编辑时**只用 Grep 定点取片段**，不把全文件塞进上下文；改 CSS 先按 `global.css` 内 `/* 页面N：xxx */` 分节定位。
 4. **重目录永不检索**：`running-private/`（独立仓 clone，82M 图片）、`node_modules/`、`app/dist/` 物理在盘上但**永不纳入 Agent 检索**（分别是独立仓 / 依赖 / 产物）。
 5. **按模块/功能拆分、按大小拆分**：新增或膨胀的代码按 CONSTRAINTS **C-55** 拆分目录与文件（源码首选 ≤400 行、>600 行必拆），从源头控制单文件体积。
@@ -147,7 +143,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 ## Qwik 重构（已完成，2026-09-09）
 
-- 权威方案：`docs/archive/QWIK-REFACTORING-PLAN.md`；包管理器统一 pnpm（禁用 npm / yarn，禁止提交 package-lock.json）。
+- 包管理器统一 pnpm（禁用 npm / yarn，禁止提交 package-lock.json）。Qwik 重构（2026-09-09 已完成）方案详见 git 历史，现行代码规范以 `.harness/docs/` 为准。
 - 新代码只进 app/src/；旧站静态文件（js/、css/、根 index.html/404.html、verify.js）已在 P8 删除，回滚基线改用 git 历史。
 - 构建：pnpm build 产出 app/dist/（vite root=app，static adapter 静态预渲染，Pages 直接托管）；构建（本地 + CI）必须 **Node ≥24**（undici@8 依赖 util.markAsUncloneable，Node 20/22 缺该 API，会令 pnpm build 失败）。
 - 部署：.github/workflows/deploy.yml；Pages Source 已切到 GitHub Actions（build_type=workflow），CNAME 由 CI `cp CNAME app/dist/CNAME` 注入，404.html 由 SSG 生成。

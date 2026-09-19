@@ -3,7 +3,7 @@ import type { SubProgress, Subtask, Todo } from "./types";
 
 /** 范围保护：把任意进度收敛到 [0,100] 的数值（防 NaN / 越界）。
  *  注意：仅做范围裁剪，不做五档吸附——加权计算公式按原始数值计算，
- *  与需求文档 §3.2 算例（60×50 参与加权 → 总进度 60%）一致。
+ *  与 TODO 进度加权算例（60×50 参与加权 → 总进度 60%）一致。
  *  五档吸附由 UI 滑块负责（见 clampProgress）。 */
 export function sanitizeProgress(v: unknown): number {
   const n = typeof v === "number" ? v : Number(v);

@@ -1,4 +1,4 @@
-/** TODO 模块数据模型（与需求文档 v2.0 对齐）。
+/** TODO 模块数据模型（字段定义见下方接口；实现以本文件与 progress.ts 为准）。
  *  存储按 createdAt 日期归档为 YYYY-MM-DD.json（日文件），每月一份 index/YYYY-MM.json 索引摘要。
  *  时间一律本地时间 ISO 8601（createdAt/updatedAt/lastOperatedAt/completedAt/子任务 updatedAt）；
  *  日期字段（startDate/endDate）为 YYYY-MM-DD 字符串。 */

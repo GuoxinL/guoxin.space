@@ -1,5 +1,5 @@
 /**
- * Notes 模块数据契约（对齐 writing-module-plan-refined.md §4）。
+ * Notes 模块数据契约（字段定义见下方接口；运行时取数见 app/src/lib/notes/source.ts）。
  *
  * 全部 JSON 带 schemaVersion: 1；网站仓运行时校验主版本不匹配即提示升级数据源。
  * v5 红线：数仓纯数据 —— AST 内不存在任何 HTML / hast / 内联样式；

@@ -1,7 +1,6 @@
 # Cloudflare Worker 接入操作步骤（guoxin-space）
 
-> 📁 本文档原位于 `docs/deploy/DEPLOY-WORKER.md`，2026-09-13 迁入 `docs/third-party/`（第三方接入文档集）。
-> 权限方案设计见 [`docs/deploy/AUTH-PERMISSION-DESIGN.md`](../deploy/AUTH-PERMISSION-DESIGN.md)。
+> 📁 本文档原位于 `docs/deploy/DEPLOY-WORKER.md`，2026-09-13 迁入 `docs/third-party/`（第三方接入文档集）；Worker 权限方案设计详见 git 历史。
 
 # guoxin-space — Cloudflare Worker 部署指引
 

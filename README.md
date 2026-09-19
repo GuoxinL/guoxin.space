@@ -81,6 +81,4 @@ npm run lint / fmt / type-check
 | [`.harness/docs/CONSTRAINTS.md`](.harness/docs/CONSTRAINTS.md) | 全部硬约束单一真相源（C-01 ~ C-51） |
 | [`.harness/docs/design.md`](./.harness/docs/design.md) | 视觉设计真源 |
 | [`.harness/docs/`](.harness/docs/) | 架构 / 编码规范 / 单测·IT 规范 / 部署运维 / 踩坑记录 |
-| [`docs/third-party/`](./docs/third-party/) | 第三方接入操作步骤（Pages / Worker / Server酱 / 行者） |
-| [`docs/deploy/`](./docs/deploy/) | Worker 权限方案设计 |
-| [`docs/archive/`](./docs/archive/) | 历史过程稿（已归档） |
+| [`docs/third-party/`](./docs/third-party/) | 第三方接入操作步骤（Pages / Worker / Server酱 / 行者 / Giscus） |
