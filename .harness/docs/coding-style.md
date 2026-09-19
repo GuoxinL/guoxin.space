@@ -36,7 +36,7 @@
 ### 2.2 样式（Tailwind + 设计系统）
 
 - 工具类：Tailwind 3.4（`tailwind.config.js` content 指向 `app/src/**/*.{ts,tsx,html}`）+ `app/src/global.css` 设计系统。
-- **设计真源 = 根目录 `DESIGN.md`**（9 章）：改视觉先改它，再同步 `global.css` 与组件类。
+- **设计真源 = 根目录 `.harness/docs/design.md`**（9 章）：改视觉先改它，再同步 `global.css` 与组件类。
 - 设计令牌用 CSS 变量（`--violet-*` / `--sky-*` / `--slate-*` / `--shadow-*`），组件不写死色值。
 - 圆角只取 `10 / 12 / 14 / 16 / 999`；阴影一律偏移实心 `Npx Npx 0`（N∈1/2/3/4/6/8，禁模糊半径）；动效 `120–160ms ease-out`。
 - 类前缀 `mc-*`（如 `.mc-container` / `.mc-card` / `.mc-nav` / `.mc-term`）。
@@ -161,7 +161,7 @@
 ## 参考
 
 - 仓库操作指南与红线全集：[AGENTS.md](../../AGENTS.md)（二/三/四章）
-- 设计真源（视觉令牌、组件样式、Do/Don't）：[DESIGN.md](../../DESIGN.md)
+- 设计真源（视觉令牌、组件样式、Do/Don't）：[design.md](./design.md)
 - 测试断言规范：[unittest/unittest.md](unittest/unittest.md)
 - Code Review 检查清单：[code-review.md](code-review.md)
 - Qwik 官方文档（设计参考基准）：next.qwik.dev

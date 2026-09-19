@@ -2,7 +2,7 @@
 
 > 状态：生效 | 维护者：仓库维护者 | 最后更新：2026-09-19 | 适用范围：纯文案 / 纯 CSS 微调 / 单文件 ≤10 行改动
 > **不是 8 步 SOP 的替代品**，而是其减重版：当 `00-overview.md` Meta「小需求模式」= ✅ 时，用本模板替代 01-08 全套。
-> 硬约束仍以 `.harness/docs/CONSTRAINTS.md` 为准；设计仍锚定根 `DESIGN.md`（不新建设计稿）；被委托 AGENT 须遵守 C-56 五道闸。
+> 硬约束仍以 `.harness/docs/CONSTRAINTS.md` 为准；设计仍锚定根 `.harness/docs/design.md`（不新建设计稿）；被委托 AGENT 须遵守 C-56 五道闸。
 
 ---
 
@@ -24,9 +24,9 @@
 
 - [ ] 
 
-## 4. 设计决策（默认沿用 DESIGN.md）
+## 4. 设计决策（默认沿用 .harness/docs/design.md）
 
-- [ ] 沿用 DESIGN.md（无新设计）；若涉及新视觉 / 新令牌 → 回写根 `DESIGN.md`（C-34~C-41），不另立设计稿
+- [ ] 沿用 .harness/docs/design.md（无新设计）；若涉及新视觉 / 新令牌 → 回写根 `.harness/docs/design.md`（C-34~C-41），不另立设计稿
 
 ## 5. 改动内容（diff 思路 / 关键点）
 
@@ -65,6 +65,6 @@
 - [ ] 目标一句话明确
 - [ ] 改动 ≤10 行 / 单文件（否则退回全套 8 步）
 - [ ] 约束自查覆盖触及的 C 条目
-- [ ] 设计沿用 DESIGN.md（或已回写，未另立设计稿）
+- [ ] 设计沿用 .harness/docs/design.md（或已回写，未另立设计稿）
 - [ ] 构建 / 单测 / E2E 通过（沙箱 e2e 走配方）
 - [ ] 收尾提交 + 推送（CI 策略正确）

@@ -35,10 +35,10 @@
 - [x] ➖ 不涉及（`docs/deploy/`）
 - [x] ➖ 不涉及（`docs/third-party/`）
 
-**操作文档对齐（AGENTS.md / README.md / DESIGN.md）**
+**操作文档对齐（AGENTS.md / README.md / .harness/docs/design.md）**
 - [x] `AGENTS.md`：① 静态预渲染页面数仍为 12（未增减路由）；②「单测 / 用例数」未变（无新增单测）；③ 线上 URL 列表无变化 → **无需改动**
 - [x] `README.md`：页面表 / 里程碑无变化 → **无需改动**
-- [x] `DESIGN.md`：本次两行卡片（`tb-menu-title` 13px/600、`tb-menu-desc` 11px/`--muted`、hover `--violet-0`）均复用既有设计令牌与去容器化发丝线规范，未引入新 token 或违背 Do/Don't → **➖ 不涉及**
+- [x] `.harness/docs/design.md`：本次两行卡片（`tb-menu-title` 13px/600、`tb-menu-desc` 11px/`--muted`、hover `--violet-0`）均复用既有设计令牌与去容器化发丝线规范，未引入新 token 或违背 Do/Don't → **➖ 不涉及**
 - [x] 一致性清扫：grep 旧计数无新增/减少项
 
 **全局**

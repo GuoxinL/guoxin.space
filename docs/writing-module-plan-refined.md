@@ -553,7 +553,7 @@ export const head: DocumentHead = { title: '笔记 — guoxin.space' };   // 静
 
 ---
 
-## 8. 样式规范（对齐 DESIGN.md / C-34–C-36）
+## 8. 样式规范（对齐 .harness/docs/design.md / C-34–C-36）
 
 新增样式 `.md-*` / `.notes-*` 前缀，追加到 `app/src/global.css` **文件末尾**（同特异性后出现者胜；段首注释：*此后禁止再追加 V1 旧规则*）。
 

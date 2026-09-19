@@ -23,13 +23,13 @@
 
 - **静态站**：构建期把 12 个页面预渲染为纯静态 HTML（`app/dist/`），运行时 Qwik resumability 按需激活，无后端、无数据库。
 - **数据链路**：Skills / Running 的私有数据全部经 **Cloudflare Worker**（[`worker.js`](./worker.js)）代理 GitHub OAuth 鉴权与私有仓库 `GuoxinL/running-private`，页面零凭证；数据生产（行者 OpenAPI 每小时同步 → 预览产物）在独立私有仓库完成。
-- **设计系统**：`DESIGN.md` 为唯一视觉真源（QWIK-INSPIRED v2，现代 SaaS 骨架 + 街机像素基因），同步到 `app/src/global.css`。
+- **设计系统**：`.harness/docs/design.md` 为唯一视觉真源（QWIK-INSPIRED v2，现代 SaaS 骨架 + 街机像素基因），同步到 `app/src/global.css`。
 
 ## 目录结构
 
 ```
 ├── AGENTS.md           # AI 操作指南 + 8 步 SOP 入口（CLAUDE.md / CODEBUDDY.md 为其符号链接）
-├── DESIGN.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
+├── .harness/docs/design.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
 ├── app/                # Qwik 应用源码（唯一改动区）
 │   ├── src/            # routes / components / lib（单测 21 文件 / 308 用例）
 │   ├── public/         # 静态资源（img/pickaxe.png、fonts/*、favicon.svg）
@@ -79,7 +79,7 @@ npm run lint / fmt / type-check
 |---|---|
 | [`AGENTS.md`](./AGENTS.md) | AI 开发入口：目录 / 数据流 / 红线速览 / 8 步 SOP |
 | [`.harness/docs/CONSTRAINTS.md`](.harness/docs/CONSTRAINTS.md) | 全部硬约束单一真相源（C-01 ~ C-51） |
-| [`DESIGN.md`](./DESIGN.md) | 视觉设计真源 |
+| [`.harness/docs/design.md`](./.harness/docs/design.md) | 视觉设计真源 |
 | [`.harness/docs/`](.harness/docs/) | 架构 / 编码规范 / 单测·IT 规范 / 部署运维 / 踩坑记录 |
 | [`docs/third-party/`](./docs/third-party/) | 第三方接入操作步骤（Pages / Worker / Server酱 / 行者） |
 | [`docs/deploy/`](./docs/deploy/) | Worker 权限方案设计 |

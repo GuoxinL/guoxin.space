@@ -16,7 +16,7 @@
 > | 07 Docs | 前端文档（组件 / 路由 / 设计令牌）与代码同步 |
 > | 08 Review | 前端质量（样式回归 / 可访问性 / 控制台 / 线上复验） |
 
-> 🛡️ **SOP 绝对权威声明**：guoxin.space 所有开发动作以 `.harness/plans/_template/` 的 8 步 SOP 为准；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若 `AGENTS.md` / `DESIGN.md` / `.harness/docs/*` 与本声明/约束冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文件（任务级总览）只管单个任务的进度与决策，**不**承载跨任务硬约束。
+> 🛡️ **SOP 绝对权威声明**：guoxin.space 所有开发动作以 `.harness/plans/_template/` 的 8 步 SOP 为准；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若 `AGENTS.md` / `.harness/docs/.harness/docs/design.md` / `.harness/docs/*` 与本声明/约束冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文件（任务级总览）只管单个任务的进度与决策，**不**承载跨任务硬约束。
 
 > **本文件是本任务的单一真相源（Single Source of Truth）**：任务元信息、进度、当前步骤、关键决策全部在这里。
 > 会话恢复时，先读本文件定位当前步骤，再按需加载对应阶段文件。
@@ -52,7 +52,7 @@
 **五道约束闸**（委托 AGENT 的指令模板见下方「AGENT 指令（示例）」）：
 
 1. **装备最小化** — 指令只引用本步文件 + `CONSTRAINTS.md` + 对应规范（`unittest.md` / `integration_test.md`）；文件作用域限 `app/src/`（C-02）。
-2. **运行禁令** — 禁止 `git push` / `git commit`；禁止改 `CONSTRAINTS.md` / `AGENTS.md` / `DESIGN.md`；禁止越步界；外部依赖全 mock（C-15）；单文件 >600 行只 Grep（C-55）。
+2. **运行禁令** — 禁止 `git push` / `git commit`；禁止改 `CONSTRAINTS.md` / `AGENTS.md` / `.harness/docs/.harness/docs/design.md`；禁止越步界；外部依赖全 mock（C-15）；单文件 >600 行只 Grep（C-55）。
 3. **自验门禁** — UT：`npm run test` + `lint` + `type-check` 全绿；IT：`build` + `test:e2e`，断言关键交互态（`getComputedStyle` 回读，C-14）；失败不关用例蒙混（C-13 / C-14）。
 4. **交回契约** — 必须按下方**固定回填块**返回（缺项视为未完成）；IT 附关键断言 / 截图；**人审报告 + diff 后才进 Deploy**。
 5. **CI 兜底** — AGENT 不 push 就触不到生产；人审后 push 由 `deploy.yml` 双门禁（vitest + Playwright）拦截。
@@ -98,8 +98,8 @@
 | 创建日期 | YYYY-MM-DD |
 | 负责人 |  |
 | 预期完成 | YYYY-MM-DD |
-| 开发模式 | 独立开发 / 协同开发（design.md 驱动） |
-| 测试环境 | （协同开发 / design.md 指定环境名时填写；**本项目个人仓库、静态站无环境概念，恒留空**） |
+| 开发模式 | 独立开发 / 协同开发（.harness/docs/design.md 驱动） |
+| 测试环境 | （协同开发 / .harness/docs/design.md 指定环境名时填写；**本项目个人仓库、静态站无环境概念，恒留空**） |
 | 预估代码改动行数 | （Plan 阶段填入；不含测试 / 文档） |
 | 小需求模式 | ⬜ 否 / ✅ 是（`预估代码改动行数 ≤ 10` 时勾选） |
 

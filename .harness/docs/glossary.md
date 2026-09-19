@@ -19,12 +19,12 @@
 
 | 术语 | 英文/缩写 | 别名（旧称） | 定义（本项目语境） | 出处/代码路径 |
 |------|-----------|-------------|-------------------|--------------|
-| 像素基因 | Arcade DNA | 街机像素基因 | 本站设计语言代号：Qwik 官网现代 SaaS 骨架 + 街机像素品牌基因（水晶镐、像素字、偏移实心阴影、shimmer 流光）。改视觉须围绕此体系，不得回到 V1 圆角盒子风。 | DESIGN.md §1；AGENTS.md「设计系统 v2」 |
+| 像素基因 | Arcade DNA | 街机像素基因 | 本站设计语言代号：Qwik 官网现代 SaaS 骨架 + 街机像素品牌基因（水晶镐、像素字、偏移实心阴影、shimmer 流光）。改视觉须围绕此体系，不得回到 V1 圆角盒子风。 | .harness/docs/design.md §1；AGENTS.md「设计系统 v2」 |
 | PixelIcon | PixelIcon | — | `app/src/components/pixel/PixelIcon.tsx` 的 16×16 像素图标基因集：纯矩形 path、`shape-rendering: crispEdges`、单色 `currentColor` + `opacity` 分层。新增图标往 `ICONS` 对象加，**禁止引图标库**。 | app/src/components/pixel/PixelIcon.tsx |
 | mc-* 类名前缀 | mc- | — | 本站全局 CSS 约定前缀（mc-nav / mc-card / mc-hero-* / mc-container / mc-tag / mc-term 等），标识由设计系统统管的组件类，区别于 Tailwind 工具类。 | app/src/global.css（.mc-container 等） |
 | .btn 基类 | .btn | — | 全站共用按钮基类（Skills/JSON/Running 三页 28 处引用）。页面差异样式只能在作用域内覆盖（如 `.mc-hero-cta .btn`），**不得改动基类**，否则三页按钮视觉一致性破坏。 | app/src/global.css:253；AGENTS.md 红线 2 |
 | --container-w | --container-w | — | 版面宽度单点开关变量（当前 1280px，宽板）。Header/main/Footer 共用 `.mc-container` 取此值；改整站宽度只改这一处，禁止在多处写 `max-w-*`。 | app/src/global.css:92；AGENTS.md 核心约定 2 |
-| DESIGN.md（设计真源） | DESIGN.md | — | 唯一视觉真源文档（9 章）。改视觉先改它，再同步 `app/src/global.css` 与组件；`global.css` 不得自行成为视觉真相源。 | 根目录 DESIGN.md；AGENTS.md「设计系统 v2」 |
+| .harness/docs/design.md（设计真源） | .harness/docs/design.md | — | 唯一视觉真源文档（9 章）。改视觉先改它，再同步 `app/src/global.css` 与组件；`global.css` 不得自行成为视觉真相源。 | 根目录 .harness/docs/design.md；AGENTS.md「设计系统 v2」 |
 | Cloudflare Worker（Running 数据代理） | Worker | running-proxy | Running 数据的服务端代理：读私有仓库 `GuoxinL/running-private` 的轨迹产物，经白名单 `TRACKS_FILES` 暴露给前端；承载 OAuth 鉴权与收藏写通道。独立源码 `worker.js`，不属本静态站。 | AGENTS.md「数据流」；worker.js；docs/third-party/cloudflare-worker.md |
 | Toolbox（万能工具箱） | Toolbox | JSON 工具 / 旧 /json | JSON 工具页现名，路由 `/toolbox/json`；旧名「JSON 工具」、旧路由 `/json` 已由 meta 刷新跳转弃用。 | app/src/routes/toolbox/json/index.tsx；AGENTS.md 路由说明 |
 | Skills / Running（内容区块） | — | — | 本站两大内容区块：Skills=技能夹（列表/详情/文件树/收藏/通道配置）；Running=骑行·跑步运动数据（地图/统计/轨迹回放，数据经 Worker 代理）。 | app/src/routes/；AGENTS.md 目录结构 |
@@ -60,7 +60,7 @@
 |--------|----------|--------|------|
 | JSON 工具 / 旧路由 /json | 2026-09（v2 重构） | Toolbox / `/toolbox/json` | 路由重命名，旧 /json 由 meta 刷新跳转 |
 | GuoxinL/running（公开仓库，数据生产） | 2026-09（Qwik 重构） | running-private（GuoxinL/running-private） | 数据生产迁至私有仓，公开仓不再承担 |
-| QWIK-INSPIRED v1 像素版（Minecraft 风） | 2026-09-10 | v2 设计系统（DESIGN.md） | v1 圆角盒子风被「去容器化」否弃 |
+| QWIK-INSPIRED v1 像素版（Minecraft 风） | 2026-09-10 | v2 设计系统（.harness/docs/design.md） | v1 圆角盒子风被「去容器化」否弃 |
 
 ## 不收录清单（提醒）
 

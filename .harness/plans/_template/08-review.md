@@ -47,7 +47,7 @@
 - [ ] 边界条件覆盖
 - [ ] 状态管理无竞态（SPA 组件状态 / 全局变量）
 - [ ] 幂等 / 重试 / 超时（Worker 调用、外部资源）
-- [ ] DOM / 交互态正确（`:hover` / `:focus-visible` 按 DESIGN.md 表现）
+- [ ] DOM / 交互态正确（`:hover` / `:focus-visible` 按 .harness/docs/design.md 表现）
 - [ ] 兼容性（旧静态页 / 旧 Worker 契约仍可用）
 
 ### 2.3 可观测 / 质量
@@ -60,7 +60,7 @@
 - [ ] UT 覆盖率已记录（当前无强制阈值，见 `unittest.md` §5；新逻辑须有对应用例）
 - [ ] 命名清晰
 - [ ] 无重复代码
-- [ ] 文档同步（AGENTS.md / README.md / DESIGN.md / `.harness/docs/` / plans 产物）：操作文档计数 / 路由清单与代码实测一致，无旧数字残留
+- [ ] 文档同步（AGENTS.md / README.md / .harness/docs/design.md / `.harness/docs/` / plans 产物）：操作文档计数 / 路由清单与代码实测一致，无旧数字残留
 
 ## 2.5 生产复测（确凿上线验证）
 

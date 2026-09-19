@@ -34,7 +34,7 @@
    颜色一律走变量，Tailwind 只出布局 / 间距工具类，保证与旧站视觉一致。
    --fg / --muted / --accent 为早期别名，保留以兼容首页。
    ========================================================== */
-/* QWIK-INSPIRED 色板 v2 —— 设计真源见 DESIGN.md（色值对齐 next.qwik.dev 生产环境） */
+/* QWIK-INSPIRED 色板 v2 —— 设计真源见 .harness/docs/design.md（色值对齐 next.qwik.dev 生产环境） */
 :root {
   /* 紫罗兰主色 */
   --violet-0: #f7f3ff;
@@ -108,7 +108,7 @@
     "Press Start 2P", "Fusion Pixel 12px", -apple-system, sans-serif;
   --font-pixel:
     "Press Start 2P", "Fusion Pixel 12px", -apple-system, sans-serif;
-  /* 正文可读性优先：不用像素字（见 DESIGN.md §3） */
+  /* 正文可读性优先：不用像素字（见 .harness/docs/design.md §3） */
   --font:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -259,7 +259,7 @@ a {
 }
 
 /* ================= 通用按钮 ================= */
-/* 按钮：大圆角 + 偏移实心阴影，轻快短促反馈（DESIGN.md §4） */
+/* 按钮：大圆角 + 偏移实心阴影，轻快短促反馈（.harness/docs/design.md §4） */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -2306,7 +2306,7 @@ body[data-theme="dark"] .rk-act-tag {
 }
 
 /* ==========================================================
-   QWIK-INSPIRED 组件层 v2（设计真源：DESIGN.md）
+   QWIK-INSPIRED 组件层 v2（设计真源：.harness/docs/design.md）
    参考 next.qwik.dev：淡紫分区 / 大圆角 / 偏移实心阴影 / shimmer 标题
    ========================================================== */
 

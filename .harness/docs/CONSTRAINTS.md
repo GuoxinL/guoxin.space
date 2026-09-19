@@ -10,12 +10,12 @@
 > **本文件（`.harness/docs/CONSTRAINTS.md`）是 guoxin.space 全部开发约束的单一真相源（Single Source of Truth）。**
 >
 > - **后续以 SOP 为主**：任何开发动作都按 `.harness/plans/_template/` 的 8 步 SOP 走，约束以本文件为准。
-> - **冲突裁决**：若 `AGENTS.md` / `DESIGN.md` / `.harness/docs/*` 中某条约束与本文件不一致，**以本文件（及引用它的 SOP 步骤）为准**；本文件是权威，其它文档为上下文 / 设计真源 / 历史说明。
+> - **冲突裁决**：若 `AGENTS.md` / `.harness/docs/design.md` / `.harness/docs/*` 中某条约束与本文件不一致，**以本文件（及引用它的 SOP 步骤）为准**；本文件是权威，其它文档为上下文 / 设计真源 / 历史说明。
 > - **职责划分**：
 >   - `AGENTS.md` = AI 操作入口与项目上下文（目录、数据流、红线速览）。
->   - `DESIGN.md` = 视觉设计真源（色板 / 字体 / 组件样式细节）。
+>   - `.harness/docs/design.md` = 视觉设计真源（色板 / 字体 / 组件样式细节）。
 >   - 本文件 = **硬约束注册表**（什么能做、什么禁止、违反后果、由哪个 SOP 步骤强制执行）。
-> - **改动本文件** = 改项目红线，必须经用户确认，并同步回 `AGENTS.md` / `DESIGN.md` / 对应 `.harness/docs/*` 的镜像条目。
+> - **改动本文件** = 改项目红线，必须经用户确认，并同步回 `AGENTS.md` / `.harness/docs/design.md` / 对应 `.harness/docs/*` 的镜像条目。
 
 ---
 
@@ -70,11 +70,11 @@
 | C-20 | 禁止 AI 主动读/参考其他 `.harness/plans/<其他任务>/` 的 md（任务隔离，单一真相源） | 设计判断被污染 | 全步骤 | AGENTS.md 红线1 |
 | C-21 | 禁止改全局 `.btn` 基类（Skills/JSON/Running 三页 28 处共用）；首页差异只在 `.mc-hero-cta .btn` 作用域内覆盖 | 三页按钮视觉不一致 | Implement / Review | AGENTS.md 红线2 / coding-style §2.2 |
 | C-22 | 禁止全局 `img, canvas { image-rendering: pixelated }`；只给显式 `.pixelated` 类 | 精绘素材 / 缩略图锯齿 | Implement / Review | AGENTS.md 红线3 / coding-style §2.3 |
-| C-23 | 改 CSS 必须 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读（防同特异性后置覆盖） | 发版后才发现样式回退 | Implement / IT / Review | AGENTS.md 红线4 / DESIGN.md |
+| C-23 | 改 CSS 必须 `getComputedStyle` 在 `:hover`/`:focus-visible` 态回读（防同特异性后置覆盖） | 发版后才发现样式回退 | Implement / IT / Review | AGENTS.md 红线4 / .harness/docs/design.md |
 | C-24 | 本地构建必须 Node ≥24 + `CODEBUDDY_SAFE_DELETE_ENABLED=0`；CI 两 workflow Node 24 且不写死 pnpm version | build 失败 / `ERR_PNPM_BAD_PM_VERSION` | Build / Deploy | （同 C-05/06/07） |
 | C-25 | 部署全自动：push `main` 即上线，无需手动 `gh workflow run` | 双轨冲突 | Deploy | （同 C-16） |
 | C-26 | 禁止提交 `package-lock.json` / 用 npm 安装 | 与 `packageManager` 冲突 | Commit | （同 C-08） |
-| C-27 | 换 Hero 主图必须同步 `index.tsx` 的 `width/height`（CLS 占位匹配真实宽高比；当前 880×986 → 显示 400×448） | 布局抖动 / CLS | Implement / Review | AGENTS.md 红线8 / DESIGN.md |
+| C-27 | 换 Hero 主图必须同步 `index.tsx` 的 `width/height`（CLS 占位匹配真实宽高比；当前 880×986 → 显示 400×448） | 布局抖动 / CLS | Implement / Review | AGENTS.md 红线8 / .harness/docs/design.md |
 | C-28 | 禁止新增 `/favicon.ico`（用 `app/public/favicon.svg`） | 404 控制台报错 | Implement | AGENTS.md 红线9 |
 | C-29 | 改 Running 数据链路改 `running-private` 仓库，非本仓库 | 数据生产链路错位 | Implement / Plan | AGENTS.md 红线10 / architecture.md |
 | C-30 | 禁止 `any`（strict 模式）；必要时 `unknown` + 类型守卫；数字 ID（run_id）按**字符串**精确处理，禁 `Number()` 转换（超 `MAX_SAFE_INTEGER`） | 精度丢失 / 类型漏洞 | Implement / UT | coding-style §8 |
@@ -82,20 +82,20 @@
 | C-32 | 错误必须处理或显式忽略（`void`/理由），禁止静默吞；禁止 `throw` 控流程；外部输入（JSON/URL）校验后使用，输出按场景转义 | 安全隐患 / 隐性 bug | Implement / Review | coding-style §5 / §10 |
 | C-33 | 资源管理：事件监听 / 定时器 / 订阅须在 `useTask$`/`useVisibleTask$` 返回的清理函数解绑 | 内存泄漏 | Implement / Review | coding-style §6 |
 | C-55 | **文件/目录按模块·功能拆分，单文件不得过大（AI 亲和）**：① 目录按业务模块/功能划分（`components/<module>/`、`lib/<module>/`），禁止"万能目录/万能文件"；单文件承载单一明确职责，跨多职责逻辑拆子目录 + 多文件；② 源码 `.ts/.tsx` **首选 ≤400 行、硬上限 >600 行必须拆分**（或在文件头加 `// @no-split: <理由>` 显式豁免，须 Reviewer 确认）；③ 测试 `.test.*` ≤1200 行（超则按 `describe` 块拆文件）；④ CSS `global.css` 不得无限增长，按"页面/组件"用 `@import` 分片或迁移 `useStylesScoped$`，单分片 ≤400 行；⑤ 单文件 >600 行的编辑，**禁止整文件读入 Agent 上下文**，用 Grep 定点取片段 | 上下文爆炸（Agent 读全文件污染 context）/ 改动牵连面失控 | Implement / Review | 用户 2026-09-19 拍板（AI 亲和：文件不能太大） |
-| C-56 | **自治 AGENT 委托护栏（单一真相源）**：本 SOP 允许把「自包含、可验证、非破坏性」的步骤委托给独立 AGENT 执行；各步委托标记（✅ 首选 / ⚠️ 条件 / ❌ 人专有）以 `00-overview.md`《自治 AGENT 委托规范》为准：**✅** 04 UT / 06 IT，**⚠️** 02 Plan / 03 Implement / 07 Docs，**❌** 01 Clarify / 05 Deploy / 08 Review。被委托 AGENT 必须受**五道闸**约束：① 装备最小化（只读本步文件 + 本文件 + 对应规范，作用域限 `app/src/`（C-02））；② 运行禁令（禁 `git push`/`git commit`、禁改本文件/`AGENTS.md`/`DESIGN.md`、禁越步界、依赖全 mock（C-15）、单文件 >600 行只 Grep（C-55））；③ 自验门禁（UT: `test`+`lint`+`type-check` 全绿；IT: `build`+`test:e2e` 断言关键交互态（C-14），本地沙箱走「同 shell 起 `node tools/serve-pages.mjs 4399 app/dist` + `BASE_URL=http://127.0.0.1:4399 npx playwright test`」配方，勿直跑 `npm run test:e2e` 卡 4321 超时）；④ 交回契约（必须按 `00-overview.md` 固定回填块返回 {改动文件, 测试结果, 未覆盖行, 失败定位, 阻塞项}，IT 附断言/截图）；⑤ CI 兜底（AGENT 不 push 触不到生产）。越界（缺 Plan 设计/需改方案/红线冲突）AGENT 必须**立刻停下回报**，不擅自扩权 | 护栏漂移 → 委托失控 / 生产被误触 / 上下文爆炸 | 03 / 04 / 06 / 07（委托前核对） | 用户 2026-09-19 拍板（委托护栏升格为硬约束） |
+| C-56 | **自治 AGENT 委托护栏（单一真相源）**：本 SOP 允许把「自包含、可验证、非破坏性」的步骤委托给独立 AGENT 执行；各步委托标记（✅ 首选 / ⚠️ 条件 / ❌ 人专有）以 `00-overview.md`《自治 AGENT 委托规范》为准：**✅** 04 UT / 06 IT，**⚠️** 02 Plan / 03 Implement / 07 Docs，**❌** 01 Clarify / 05 Deploy / 08 Review。被委托 AGENT 必须受**五道闸**约束：① 装备最小化（只读本步文件 + 本文件 + 对应规范，作用域限 `app/src/`（C-02））；② 运行禁令（禁 `git push`/`git commit`、禁改本文件/`AGENTS.md`/`.harness/docs/design.md`、禁越步界、依赖全 mock（C-15）、单文件 >600 行只 Grep（C-55））；③ 自验门禁（UT: `test`+`lint`+`type-check` 全绿；IT: `build`+`test:e2e` 断言关键交互态（C-14），本地沙箱走「同 shell 起 `node tools/serve-pages.mjs 4399 app/dist` + `BASE_URL=http://127.0.0.1:4399 npx playwright test`」配方，勿直跑 `npm run test:e2e` 卡 4321 超时）；④ 交回契约（必须按 `00-overview.md` 固定回填块返回 {改动文件, 测试结果, 未覆盖行, 失败定位, 阻塞项}，IT 附断言/截图）；⑤ CI 兜底（AGENT 不 push 触不到生产）。越界（缺 Plan 设计/需改方案/红线冲突）AGENT 必须**立刻停下回报**，不擅自扩权 | 护栏漂移 → 委托失控 / 生产被误触 / 上下文爆炸 | 03 / 04 / 06 / 07（委托前核对） | 用户 2026-09-19 拍板（委托护栏升格为硬约束） |
 
-### 1.6 设计系统硬约束（DESIGN.md「违反即不合格」汇集）
+### 1.6 设计系统硬约束（.harness/docs/design.md「违反即不合格」汇集）
 
 | ID | 规则 | 违反后果 | 执行步骤 | 来源 |
 |----|------|---------|---------|------|
-| C-34 | **去容器化**（V2 起）：首页不用「圆角+描边+偏移阴影」的框；分块靠 `1px solid var(--slate-5)` 发丝线 + 留白；hover 用 `--violet-0` 色带 | 视觉语言不一致 | Implement / Review | DESIGN.md §1 / MEMORY 设计系统 |
-| C-35 | 圆角只取 `10/12/14/16/999`；**容器一律 0**；圆角只给交互控件（按钮/终端框 10px） | 违反设计令牌 | Implement / Review | DESIGN.md / coding-style §2.2 |
-| C-36 | 阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁模糊半径）；**仅用于按钮等强调控件**，不铺满页面 | 视觉噪声 | Implement / Review | DESIGN.md §1 / coding-style §2.2 |
-| C-37 | 动效 `120–160ms ease-out`；禁止零圆角硬边、纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms | 动效/视觉违规 | Implement / Review | DESIGN.md / coding-style §2.2 |
+| C-34 | **去容器化**（V2 起）：首页不用「圆角+描边+偏移阴影」的框；分块靠 `1px solid var(--slate-5)` 发丝线 + 留白；hover 用 `--violet-0` 色带 | 视觉语言不一致 | Implement / Review | .harness/docs/design.md §1 / MEMORY 设计系统 |
+| C-35 | 圆角只取 `10/12/14/16/999`；**容器一律 0**；圆角只给交互控件（按钮/终端框 10px） | 违反设计令牌 | Implement / Review | .harness/docs/design.md / coding-style §2.2 |
+| C-36 | 阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁模糊半径）；**仅用于按钮等强调控件**，不铺满页面 | 视觉噪声 | Implement / Review | .harness/docs/design.md §1 / coding-style §2.2 |
+| C-37 | 动效 `120–160ms ease-out`；禁止零圆角硬边、纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms | 动效/视觉违规 | Implement / Review | .harness/docs/design.md / coding-style §2.2 |
 | C-38 | 设计令牌用 CSS 变量（`--violet-*`/`--sky-*`/`--slate-*`/`--shadow-*`），组件不写死色值；类前缀 `mc-*` | 主题割裂 | Implement | coding-style §2.2 |
 | C-39 | **版面宽度单点开关**：`Header / main / Footer` 三处共用 `.mc-container` + `--container-w`（当前 1280px）；改宽度只改变量，页面内区块不设自身宽度上限 | 宽度不一致 | Implement / Review | MEMORY 设计系统 |
 | C-40 | 像素图标统一 `PixelIcon.tsx`（16×16 纯矩形 path，`crispEdges`，`currentColor`）；新增往 `ICONS` 加并扩展 `PixelIconName`，**禁止引图标库** | 品牌基因丢失 | Implement | coding-style §2.3 |
-| C-41 | Hero 主图 `app/public/img/pickaxe.png`（880×986/133KB，去光效版）；**不**加 `image-rendering: pixelated`（源图本身像素方块风格）；换图同步 `index.tsx` width/height | CLS / 锯齿 | Implement / Review | DESIGN.md §1 / MEMORY |
+| C-41 | Hero 主图 `app/public/img/pickaxe.png`（880×986/133KB，去光效版）；**不**加 `image-rendering: pixelated`（源图本身像素方块风格）；换图同步 `index.tsx` width/height | CLS / 锯齿 | Implement / Review | .harness/docs/design.md §1 / MEMORY |
 
 ### 1.7 数据流不变量
 
@@ -154,7 +154,7 @@
 ## 3. 源文档索引（上下文，非权威）
 
 - 项目操作入口 / 红线速览：`AGENTS.md`（二/三/四章）
-- 视觉设计真源（色板/字体/组件样式细节）：`DESIGN.md`
+- 视觉设计真源（色板/字体/组件样式细节）：`.harness/docs/design.md`
 - 编码规范（TS/Qwik 全量）：`coding-style.md`
 - 架构 / 模块 / 数据流：`architecture.md`
 - 本地开发 / 构建 / 部署运维：`devops/{env,development,deployment}.md`

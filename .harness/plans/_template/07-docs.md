@@ -11,7 +11,7 @@
 
 > 本步骤结束确认前逐条核对；冲突以 `.harness/docs/CONSTRAINTS.md` 为准。完整规则查 `CONSTRAINTS.md`。
 > **本步相关约束**：C-01（文档须与代码一致）。
-> ⚠️ **若本次改动新增 / 删除 / 修改了任一硬约束（C-xx）**，必须在 07 同步更新 `.harness/docs/CONSTRAINTS.md` 及对应镜像（`AGENTS.md` / `DESIGN.md`），否则 SOP 权威失效。
+> ⚠️ **若本次改动新增 / 删除 / 修改了任一硬约束（C-xx）**，必须在 07 同步更新 `.harness/docs/CONSTRAINTS.md` 及对应镜像（`AGENTS.md` / `.harness/docs/design.md`），否则 SOP 权威失效。
 
 ---
 
@@ -38,10 +38,10 @@
 - [ ] `docs/deploy/`（Worker 权限方案变化）
 - [ ] `docs/third-party/`（第三方组件接入变化：Pages / Worker / Server酱 / 行者）
 
-**操作文档对齐（AGENTS.md / README.md / DESIGN.md）**
+**操作文档对齐（AGENTS.md / README.md / .harness/docs/design.md）**
 - [ ] `AGENTS.md` 操作指南：① 静态预渲染页面数与 `app/src/routes/**/index.tsx` 实际路由一致（含 `/toolbox/calendar` 等子页）；②「单测 N 文件 / M 用例」与 `npm run test` 实测一致；③「线上页面 URL」列全所有顶层路由，详情页注明纯 CSR
 - [ ] `README.md`：① 页面表含全部顶层路由（含 `/notes`、`/toolbox/*`）；②「N 个顶层页面预渲染」「单测 N 文件 / M 用例」与实测一致；③ 里程碑补本次变更
-- [ ] `DESIGN.md`：本次新增可视化组件 / 交互模式若引入新设计 token 或违背现有 Do/Don't，须同步；否则 ➖ 不涉及
+- [ ] `.harness/docs/design.md`：本次新增可视化组件 / 交互模式若引入新设计 token 或违背现有 Do/Don't，须同步；否则 ➖ 不涉及
 - [ ] 一致性清扫：grep 文档旧计数（`5 页` / `4 个顶层` / `9 文件` / `136 用例` 等）应清零；新增路由在所有相关文档均有出现
 
 **全局**
@@ -93,7 +93,7 @@
 ## 完成标志
 
 - [ ] 必检清单每项已明确"已更新"或"不涉及"
-- [ ] 操作文档对齐清单（AGENTS.md / README.md / DESIGN.md）已打钩
+- [ ] 操作文档对齐清单（AGENTS.md / README.md / .harness/docs/design.md）已打钩
 - [ ] 所有改动明细已标 ✅
 - [ ] 一致性抽查全部通过
 - [ ] 已在 `00-overview.md` Progress 勾选 07.

@@ -17,7 +17,7 @@
 ## 开发模式判断
 
 - [ ] 独立开发（本项目常态）：直接 push `main` 触发自动部署
-- [ ] 协同开发（design.md 驱动）：同样 push `main`；本步骤无额外环境操作
+- [ ] 协同开发（.harness/docs/design.md 驱动）：同样 push `main`；本步骤无额外环境操作
 
 ---
 

@@ -61,7 +61,7 @@
 ## 建议项（低严重度）
 
 - [ ] 注释说明「为什么」而非「是什么」
-- [ ] 文档同步更新（`AGENTS.md` / `DESIGN.md` / `.harness/docs/` 对应文件 / plans 产物）
+- [ ] 文档同步更新（`AGENTS.md` / `.harness/docs/design.md` / `.harness/docs/` 对应文件 / plans 产物）
 - [ ] 测试数据逼真；新图标进 `PixelIcon` 的 `ICONS`（不引图标库）
 
 ---

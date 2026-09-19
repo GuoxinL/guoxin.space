@@ -30,9 +30,9 @@
 
 > 小需求（纯文案 / 纯 CSS 微调 / 单文件 ≤10 行）用 `MINI.md` 替代全套 8 步；判定口径见 `00-overview.md` Meta「小需求模式」。
 
-- **用 MINI**：改动 ≤10 行、单文件、无需 UT/IT 全套、无新设计（沿用 DESIGN.md）。
-- **不用 MINI（退回全套 8 步）**：跨文件、>10 行、新增 `lib` 逻辑（需 TDD）、新视觉 / 新交互需回写 `DESIGN.md`、涉及 Worker 契约。
-- MINI 仍须遵守硬约束（`CONSTRAINTS.md`）+ 设计锚定根 `DESIGN.md` + 自验（build / test / e2e）+ 收尾提交（CI 策略正确）；被委托 AGENT 执行时填 C-56 交回契约。
+- **用 MINI**：改动 ≤10 行、单文件、无需 UT/IT 全套、无新设计（沿用 .harness/docs/design.md）。
+- **不用 MINI（退回全套 8 步）**：跨文件、>10 行、新增 `lib` 逻辑（需 TDD）、新视觉 / 新交互需回写 `.harness/docs/design.md`、涉及 Worker 契约。
+- MINI 仍须遵守硬约束（`CONSTRAINTS.md`）+ 设计锚定根 `.harness/docs/design.md` + 自验（build / test / e2e）+ 收尾提交（CI 策略正确）；被委托 AGENT 执行时填 C-56 交回契约。
 
 ---
 
@@ -57,7 +57,7 @@
    - macOS / Linux：`date "+%Y-%m-%d %H:%M:%S"`
 5. **跳过步骤**（仅以下两种场景；普通步骤一律不允许跳过）：
    - Clarify 用户预置：开始 / 结束时间填同一时间戳，备注列写「跳过：用户预置」
-   - 协同开发（design.md 驱动）跳过 Clarify / Plan：开始 / 结束时间填同一时间戳，备注列写「跳过：design.md 驱动」
+   - 协同开发（.harness/docs/design.md 驱动）跳过 Clarify / Plan：开始 / 结束时间填同一时间戳，备注列写「跳过：.harness/docs/design.md 驱动」
    - 跳过的步骤耗时一律填 `0s`
 6. **重做 / 回滚**：若某步骤被打回重做，**不要清空**已有时间，改为在备注列追加 `重做 N 次（最近 YYYY-MM-DD HH:MM:SS）`，结束时间以最近一次完成为准。
 7. ⚠️ **严禁回填编造时间**：所有时间必须在事件发生当下用 `date` 命令读取后写入；漏记的步骤备注列写「漏记」并保持空白，不要事后猜测时间戳（哪怕只差几分钟）。

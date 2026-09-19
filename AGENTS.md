@@ -9,7 +9,7 @@
 ```
 personal-homepage/
 ├── AGENTS.md           # 本文档（AI 操作指南，根目录固定；CLAUDE.md / CODEBUDDY.md 为其符号链接）
-├── DESIGN.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
+├── .harness/docs/design.md # 设计真源（QWIK-INSPIRED v2，9 章节）
 ├── README.md           # 项目简介（GitHub 展示用）
 ├── package.json        # Qwik 项目；packageManager: pnpm@9.15.0（禁用 npm / yarn，禁止提交 package-lock.json）
 ├── vite.config.ts / tsconfig*.json
@@ -42,7 +42,7 @@ personal-homepage/
 
 2. **版面宽度只有一处开关**：`Header / main / Footer` 三处容器统一用 `.mc-container` 类（定义在 `app/src/global.css`），宽度取自 `--container-w`（当前 **1280px**，宽板）。改版面宽度**只改这个变量**，不要在三个文件里各写 `max-w-*`（历史上是 `max-w-5xl`，已废弃）。页面内所有区块（Hero / Card / Terminal 等）**不设自己的宽度上限**，一律跟随 `main` 容器。
 
-3. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md`。
+3. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `.harness/docs/design.md`。
 
 4. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
 
@@ -52,8 +52,8 @@ personal-homepage/
 
 > 本仓库定位「AI 亲和」：文件/目录体积直接决定 Agent 上下文成本。硬约束见 CONSTRAINTS **C-55**；以下为 Agent 操作时的上下文控制规矩（与「任务隔离」红线互为补充）。
 
-1. **活跃计划热路径精简**：`.harness/plans/` 下只保留进行中任务。结项后**不再 `git mv` 进 `_done/`**（既有 `_done/` 保留为历史、不检索）；任务目录可直接删（全部内容已在 git 历史与代码中，git 为正统审计），或保留为 `✅` 标记。文档量随是否交 AGENT 缩放：solo 短平快改动以 git 历史为审计、不开任务目录；仅 AGENT 接手 / 复杂 / 多会话才起任务目录当简报包。
-2. **计划目录只读当前任务**：只处理 `.harness/plans/<当前任务>/`；`.harness/plans/_done/`、`docs/archive/` 除非用户**显式**要求，否则不检索、不整读（避免把 ~1.8 万行历史记录灌入 context）。
+1. **活跃计划热路径精简**：`.harness/plans/` 下只保留进行中任务。结项后任务目录可直接删（全部内容已在 git 历史与代码中，git 为正统审计），或保留为 `✅` 标记；不再维护 `_done/` 归档目录。文档量随是否交 AGENT 缩放：solo 短平快改动以 git 历史为审计、不开任务目录；仅 AGENT 接手 / 复杂 / 多会话才起任务目录当简报包。
+2. **计划目录只读当前任务**：只处理 `.harness/plans/<当前任务>/`；其他已完成任务目录、`docs/archive/` 除非用户**显式**要求，否则不检索、不整读（避免历史记录灌入 context）。
 3. **大文件禁止整读**：单文件 >600 行（如 `app/src/global.css` 5831 行、`lib/running.ts` 1561 行）编辑时**只用 Grep 定点取片段**，不把全文件塞进上下文；改 CSS 先按 `global.css` 内 `/* 页面N：xxx */` 分节定位。
 4. **重目录永不检索**：`running-private/`（独立仓 clone，82M 图片）、`node_modules/`、`app/dist/` 物理在盘上但**永不纳入 Agent 检索**（分别是独立仓 / 依赖 / 产物）。
 5. **按模块/功能拆分、按大小拆分**：新增或膨胀的代码按 CONSTRAINTS **C-55** 拆分目录与文件（源码首选 ≤400 行、>600 行必拆），从源头控制单文件体积。
@@ -62,12 +62,12 @@ personal-homepage/
 
 > Agent 启动 / 接任务时，**先读 `AGENTS.md`（本文件）**，其余按需加载；**禁止**把 `.harness/docs/` 全量读入 context。按任务类型只取下列文件：
 
-- **纯前端 / 页面 / 组件改动**：`AGENTS.md` + `DESIGN.md` + 对应 `components/<module>/`；改 CSS 只读 `global.css` 内 `/* 页面N：xxx */` 分节，**禁止整读**（5831 行）。
+- **纯前端 / 页面 / 组件改动**：`AGENTS.md` + `.harness/docs/design.md` + 对应 `components/<module>/`；改 CSS 只读 `global.css` 内 `/* 页面N：xxx */` 分节，**禁止整读**（5831 行）。
 - **改 `app/src/lib/` 逻辑**：`AGENTS.md` + `CONSTRAINTS.md`（相关 C 条目）+ 对应 `lib/<module>/`；改完跑 `npm run test`。
 - **新功能 / Bug 修复（走 SOP）**：`AGENTS.md` + `plans/_template/` + `CONSTRAINTS.md` + `coding-style.md`；严格按 8 步。
 - **部署 / CI / Worker 问题**：`AGENTS.md` + `devops/{env,development,deployment}.md` + `worker.js`。
 - **Notes / 数据仓问题**：`AGENTS.md` + Notes 相关约束（C-03 / C-4y / C-4z / C-4w）+ `lib/notes/`；动 `scripts/` 或示例文档须同步 `example` 分支（C-54）。
-- **设计视觉**：`AGENTS.md` + `DESIGN.md` + `global.css` 相关分节。
+- **设计视觉**：`AGENTS.md` + `.harness/docs/design.md` + `global.css` 相关分节。
 - **不确定查什么**：先看 `.harness/INDEX.md`（一页导航图），再定点读对应文档，不广扫。
 
 ## 旧单文件站机制（历史存档，2026-09-09 前有效，文件已在 P8 删除）
@@ -158,7 +158,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 ## 设计系统 QWIK-INSPIRED v2（2026-09-10 起，取代 v1 像素版）
 
-- **设计真源 = 根目录 `DESIGN.md`**（9 章节，唯一真源、**不保留历史稿**）。参考基准 `https://next.qwik.dev/`；v1 像素版 / v2 演进稿均已废弃，演进与交付说明统一以 `DESIGN.md` 为准。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`（零漂移是底线）。
+- **设计真源 = `.harness/docs/design.md`**（9 章节，唯一真源、**不保留历史稿**）。参考基准 `https://next.qwik.dev/`；v1 像素版 / v2 演进稿均已废弃，演进与交付说明统一以 `.harness/docs/design.md` 为准。改视觉**先改 `.harness/docs/design.md`**，再同步 `app/src/global.css`（零漂移是底线）。
 - 视觉规则（违反即不合格）：圆角只取 `10/12/14/16/999`；阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁止模糊半径）；描边 `1.6px`（分隔/顶栏）或 `2px`（输入/弹窗等交互控件，容器不画边框）；动效 120–160ms `ease-out`；**禁止**纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms。
 - 主题变量：`--violet-*`（主色 `#A053FE`）/ `--sky-*`（强调 `#00B5F1`）/ `--slate-*`（中性 `#293749`）/ `--shadow-*`（偏移阴影）。旧的 `--bg/--surface/--text/--primary/--radius/--shadow` 等为**兼容别名**，Skills / JSON / Running 三页零改动继承皮肤。暗色主题只覆盖变量，不写组件选择器。
 - 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图图标保留 `image-rendering: pixelated`。
@@ -179,7 +179,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 ### 上下文恢复（每次会话/clear/compact 必做）
 
-> 1. 读 `AGENTS.md` → 2. `git branch --show-current` 确认在 `main` → 3. 遍历 `.harness/plans/*/00-overview.md`（**排除 `_done/` 与 `_template/`**），定位**状态 ≠ ✅** 的任务目录 → 4. 读该任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
+> 1. 读 `AGENTS.md` → 2. `git branch --show-current` 确认在 `main` → 3. 遍历 `.harness/plans/*/00-overview.md`（**排除 `_template/`**），定位**状态 ≠ ✅** 的任务目录 → 4. 读该任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
 > 匹配不到 → 按「SOP 启动前置」处理。
 
 ### 任务隔离（强制）
@@ -198,11 +198,11 @@ gh run list --workflow=deploy.yml --limit 5
 >
 > **一个任务目录只允许对应一个任务**；多人协作期如需分支隔离，恢复 feature 分支模式再执行 SOP。
 
-### 协同开发检测（design.md 驱动）
+### 协同开发检测（.harness/docs/design.md 驱动）
 
-> 触发：用户**显式提供** `.harness/design.md`（既有设计稿驱动场景，与分支无关）。
-> - design.md 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 design.md 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同）→ 自检后删除 design.md → 从 Step 3 开始
-> - design.md 不存在 → 标准流程
+> 触发：用户**显式提供** `.harness/docs/design.md`（既有设计稿驱动场景，与分支无关）。
+> - `.harness/docs/design.md` 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 `.harness/docs/design.md` 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同）→ 自检后删除该 design.md → 从 Step 3 开始
+> - `.harness/docs/design.md` 不存在 → 标准流程
 
 ### 8 步骤定义
 
@@ -214,7 +214,7 @@ gh run list --workflow=deploy.yml --limit 5
 | 4 | **UT** | `04-ut.md` | 用例与 Plan §6 逐条对齐、覆盖率、未覆盖行 |
 | 5 | **Deploy** | `05-deploy.md` | 本任务**代码 commit**（首次仅一次，= **边界点 A**）+ push `main` 触发 GitHub Pages 自动部署；IT 修复的 amend 流程定义于此 |
 | 6 | **IT** | `06-it.md` | 每条用例贴关键 Playwright 断言 / 失败截图；失败 → 修复 → 回 05 amend 重部署，**循环直到全绿**；协同模式不跳过 |
-| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` 与操作文档（AGENTS.md / README.md / DESIGN.md）对齐代码现状（页面数 / 单测规模 / 路由清单 / URL 列表），md 变更累积在工作区，随收尾 commit 入库 |
+| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` 与操作文档（AGENTS.md / README.md / `.harness/docs/design.md`）对齐代码现状（页面数 / 单测规模 / 路由清单 / URL 列表），md 变更累积在工作区，随收尾 commit 入库 |
 | 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（含 07 文档同步核对）→ **收尾 commit** 入库 → **边界点 B** 冻结） |
 
 > 状态机：`Deploy(代码 commit+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾 commit = 边界点 B)`。
@@ -284,7 +284,7 @@ gh run list --workflow=deploy.yml --limit 5
 - 语言：TypeScript 5.5，严格模式
 - 运行时：Node **≥24**（本地与 CI 一致——否则 `undici@8` 缺 `util.markAsUncloneable` 令 build 失败；`engines` 已标 `>=24` 强制）
 - 包管理：**pnpm 9.15.0**（禁用 npm / yarn，禁止提交 `package-lock.json`；本地无全局 pnpm 时用 `npm run build` 代替，不生成 lock）
-- 样式：Tailwind 3.4 + PostCSS + 自托管字体；**设计真源 `DESIGN.md`**（改视觉先改它，再同步 `app/src/global.css`）
+- 样式：Tailwind 3.4 + PostCSS + 自托管字体；**设计真源 `.harness/docs/design.md`**（改视觉先改它，再同步 `app/src/global.css`）
 
 ### 安全基线
 
@@ -299,7 +299,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 | # | 红线 | 后果 |
 |---|------|------|
-| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `00-overview.md`、`01-clarify.md` … `08-review.md`、`.harness/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
+| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `00-overview.md`、`01-clarify.md` … `08-review.md`、`.harness/docs/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
 | 2 | **禁止改动全局 `.btn` 基类**（Skills/JSON/Running 三页 28 处共用）；首页差异样式只能在 `.mc-hero-cta .btn` 作用域内覆盖。 | 三页按钮视觉一致性被破坏 |
 | 3 | **禁止写全局 `img, canvas { image-rendering: pixelated }`**；只给显式 `.pixelated` 类。 | 精绘素材 / 缩略图产生锯齿 |
 | 4 | **改 CSS 必须 `getComputedStyle` 在目标交互态（`:hover`/`:focus-visible`）下回读**，不只测静止态。 | 同特异性后置规则静默覆盖，发版后才发现 |

@@ -4,7 +4,7 @@
 > 让新接手者 / AI Agent 在 10 分钟内形成本项目的心智模型。
 > 架构级变更（模块拆分、入口替换、并发模型变化、关键依赖增减）时同步更新。
 
-> Source: `app/src/`（root.tsx / entry.ssr.tsx / entry.dev.tsx / routes/ / components/ / lib/）、`vite.config.ts`、`package.json`、`.github/workflows/deploy.yml`、`DESIGN.md`
+> Source: `app/src/`（root.tsx / entry.ssr.tsx / entry.dev.tsx / routes/ / components/ / lib/）、`vite.config.ts`、`package.json`、`.github/workflows/deploy.yml`、`.harness/docs/design.md`
 > Last-verified: 2026-09-12
 
 ---
@@ -50,7 +50,7 @@ flowchart LR
 |------|------|---------|---------|
 | 应用外壳 / 路由 | Qwik City 根组件、布局、页面路由、Service Worker 注册 | `app/src/root.tsx`、`app/src/routes/layout.tsx`、`app/src/routes/*` | `@builder.io/qwik-city` |
 | 视觉组件 | 像素图标基因集、终端命令框、Header / Footer / RouterHead | `app/src/components/pixel/PixelIcon.tsx`、`app/src/components/pixel/TerminalBox.tsx`、`app/src/components/layout/*`、`app/src/components/skills/*`、`app/src/components/running/*`、`app/src/components/json/*`、`app/src/components/auth/*` | Tailwind 3.4 + `global.css` |
-| 全局样式 / 设计系统 | `--container-w` 版面宽度开关、`.btn` 基类、主题变量、偏移实心阴影规范 | `app/src/global.css`（设计真源为根 `DESIGN.md`） | Tailwind + PostCSS + 自托管字体 |
+| 全局样式 / 设计系统 | `--container-w` 版面宽度开关、`.btn` 基类、主题变量、偏移实心阴影规范 | `app/src/global.css`（设计真源为根 `.harness/docs/design.md`） | Tailwind + PostCSS + 自托管字体 |
 | 业务逻辑库 | auth（OAuth 态判定）、json 工具（解析/格式化/对比/jsonpath/history）、running（轨迹解析/统计）、skills（技能夹解析/渲染）、worker 通道封装、storage、clipboard、format、html | `app/src/lib/*.ts`（含 `json/` 子目录） | `@ltd/j-toml`、`fast-xml-parser`、`js-yaml`、`json5`、`jsonpath-plus`、`marked` |
 | 构建配置 | Vite root=app、Qwik optimizer、static adapter（origin=guoxin.space）、manifest 注入（规避本机临时 manifest 未落盘导致 SSG 空壳） | `vite.config.ts` | `@builder.io/qwik/optimizer`、`@builder.io/qwik-city/adapters/static/vite` |
 | 页面入口 | SSR 渲染入口、dev 渲染入口、preview 入口 | `app/src/entry.ssr.tsx`、`app/src/entry.dev.tsx`、`app/src/entry.preview.tsx` | `@builder.io/qwik/server` |
@@ -152,7 +152,7 @@ app/dist/<route>.html   ← 含真实预渲染内容 + q: 属性 + 脚本引用
 | 2 | **SSG 静态预渲染**（static adapter，origin=guoxin.space） | 5 个页面构建期产出纯 HTML（`/`、`/skills`、`/toolbox/json`、`/running`、`/notes` 列表页），可直接被 GitHub Pages / 任意静态托管；零服务器成本、CDN 友好、SEO 友好。`/notes/<中文标题>` 与 `/skills/<dir>` 详情为**纯 CSR**（无预渲染产物，经 `404.html` 引导页接管并还原 URL，见 CONSTRAINTS C-03 / C-52 / C-53）。 |
 | 3 | **无后端 / 无数据库** | 个人站点内容静态即可承载；任何需服务端的能力（鉴权、私有数据代理）外移到 Cloudflare Worker，避免维护服务器。 |
 | 4 | Vite `root` 指向 `app/`，与旧站根 `index.html` 隔离 | 重构期彻底隔离旧静态文件，新代码只进 `app/src/`。 |
-| 5 | 设计真源 = 根 `DESIGN.md`，同步到 `app/src/global.css` | 单一视觉真相源，避免组件各自写死样式；`.btn` 基类全局共用（Skills/JSON/Running 28 处），版面宽度只改 `--container-w` 一处。 |
+| 5 | 设计真源 = 根 `.harness/docs/design.md`，同步到 `app/src/global.css` | 单一视觉真相源，避免组件各自写死样式；`.btn` 基类全局共用（Skills/JSON/Running 28 处），版面宽度只改 `--container-w` 一处。 |
 | 6 | 像素图标用 `PixelIcon.tsx`（16×16 纯矩形 path）取代图标库 | 品牌"街机像素基因"，零第三方图标依赖，明暗靠 opacity 层次。 |
 | 7 | Running 数据走 Worker 代理 + 白名单，不直连 raw URL | 私有仓库隔离 + 鉴权（游客/游客截断数据 vs admin 完整轨迹），前端不从公开 URL 拉数据。 |
 | 8 | 包管理统一 **pnpm 9.15**（禁用 npm/yarn，禁提交 lock 外的 `package-lock.json`） | 与 `packageManager: pnpm@9.15.0` 一致，避免 CI `ERR_PNPM_BAD_PM_VERSION`。 |

@@ -54,7 +54,7 @@
 - [x] UT 覆盖率：本次无新增 lib 逻辑，既有 Vitest suite 不受影响（04-ut.md 已记录）
 - [x] 命名清晰（`tbOpen` / `tb-menu-title` / `tb-menu-desc` / `tb-caret` 语义明确）
 - [x] 无重复代码（桌面 / 移动端子项渲染结构一致，仅父容器不同）
-- [x] 文档同步（07-docs.md：纯表现层改动，AGENTS.md/README.md/DESIGN.md 均不涉及；路由数 / 页面数未变）
+- [x] 文档同步（07-docs.md：纯表现层改动，AGENTS.md/README.md/.harness/docs/design.md 均不涉及；路由数 / 页面数未变）
 
 ## 2.5 生产复测（确凿上线验证）
 
