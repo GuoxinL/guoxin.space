@@ -1,6 +1,6 @@
 # 约束总纲（CONSTRAINTS · SOP 绝对权威）
 
-> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html + C-53 CSR 深链统一口径 + **C-54 Notes 数仓双分支基线同步** / C-10 用例基线更新）
+> **状态**：生效（权威） | 维护者：仓库维护者 | 最后更新：2026-09-15（C-03 修订 + 新增 C-4y/C-4z/C-4w Notes 模块红线 + C-52 SPA fallback 404.html + C-53 CSR 深链统一口径 + **C-54 Notes 数仓双分支基线同步** / C-10 用例基线更新） | 2026-09-19 新增 **C-55** 文件/目录按模块·功能拆分 + 单文件体积硬上限（AI 亲和）
 > **适用范围**：guoxin.space（Qwik + Qwik City SSG 静态站，GitHub Pages 托管）
 
 ---
@@ -81,6 +81,7 @@
 | C-31 | Qwik 原语：组件用 `component$()`；状态用 `useSignal`/`useStore`；副作用用 `useTask$`，`useVisibleTask$` 仅必要时；禁止 React 心智（`useEffect`/`useState`） | 水合负担 / tsc 报错 | Implement | coding-style §2.1 |
 | C-32 | 错误必须处理或显式忽略（`void`/理由），禁止静默吞；禁止 `throw` 控流程；外部输入（JSON/URL）校验后使用，输出按场景转义 | 安全隐患 / 隐性 bug | Implement / Review | coding-style §5 / §10 |
 | C-33 | 资源管理：事件监听 / 定时器 / 订阅须在 `useTask$`/`useVisibleTask$` 返回的清理函数解绑 | 内存泄漏 | Implement / Review | coding-style §6 |
+| C-55 | **文件/目录按模块·功能拆分，单文件不得过大（AI 亲和）**：① 目录按业务模块/功能划分（`components/<module>/`、`lib/<module>/`），禁止"万能目录/万能文件"；单文件承载单一明确职责，跨多职责逻辑拆子目录 + 多文件；② 源码 `.ts/.tsx` **首选 ≤400 行、硬上限 >600 行必须拆分**（或在文件头加 `// @no-split: <理由>` 显式豁免，须 Reviewer 确认）；③ 测试 `.test.*` ≤1200 行（超则按 `describe` 块拆文件）；④ CSS `global.css` 不得无限增长，按"页面/组件"用 `@import` 分片或迁移 `useStylesScoped$`，单分片 ≤400 行；⑤ 单文件 >600 行的编辑，**禁止整文件读入 Agent 上下文**，用 Grep 定点取片段 | 上下文爆炸（Agent 读全文件污染 context）/ 改动牵连面失控 | Implement / Review | 用户 2026-09-19 拍板（AI 亲和：文件不能太大） |
 
 ### 1.6 设计系统硬约束（DESIGN.md「违反即不合格」汇集）
 
@@ -140,12 +141,12 @@
 |---------|------------------|
 | 01 Clarify | C-01, C-42（范围是否触后端/running-private） |
 | 02 Plan | C-01, C-02, C-04, C-29, C-42, C-43（影响范围/调用链终点=静态产物或 Worker） |
-| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-53, **C-54**（动到 notes 数仓脚本/示例文档 → 同步 `example` 分支）, C-4y, C-4z, C-4w |
+| 03 Implement | C-02, C-05, C-06, C-08, C-21, C-22, C-23, C-27, C-28, C-30, C-31, C-32, C-33, C-34~C-41, C-43, C-49~C-51, C-53, **C-54**（动到 notes 数仓脚本/示例文档 → 同步 `example` 分支）, C-4y, C-4z, C-4w, **C-55**（目录/文件按模块拆分 + 单文件体积上限） |
 | 04 UT | C-10, C-15 |
 | 05 Deploy | C-05, C-06, C-07, C-09, C-16, C-17, C-18, C-19, C-44, C-45, C-46, C-47, C-48, C-4y, C-52 |
 | 06 IT | C-11, C-12, C-13, C-14 |
 | 07 Docs | C-01（文档与代码一致）, **C-54**（数仓脚本/示例文档类改动 → 同步 `example` 分支 + 更新数据仓 README 分支表） |
-| 08 Review | C-20~C-54（全量红线 + 设计 + 安全；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
+| 08 Review | C-20~C-55（全量红线 + 设计 + 安全 + 文件拆分；核对 05 已满足 C-44~C-48 后执行收尾 commit → 边界点 B） |
 
 ---
 

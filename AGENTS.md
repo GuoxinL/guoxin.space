@@ -22,7 +22,7 @@ personal-homepage/
 ├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、技能卡省略号实机校验 tools/verify-skname-ellipsis.mjs、提交校验 scripts/ 等）
 ├── .harness/           # SOP 真源（AI 开发流程）
-│   ├── plans/          # 各任务目录（00-overview ~ 08-review）；_template 为模板
+│   ├── plans/          # 各任务目录（00-overview~08-review）；_template 模板；_done 存已结项归档（AI 不检索）
 │   └── docs/           # 现行规范：architecture / devops / coding-style / 单测·IT 等
 └── docs/               # 文档（与 .harness/docs 分工见下；外部 / 历史 / 报告）
     ├── deploy/         # 现行有效：Worker 权限方案设计
@@ -47,6 +47,16 @@ personal-homepage/
 4. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
 
 5. **改 CSS 必须防「同特异性后置覆盖」**：`global.css` 按「页面 → 组件」顺序堆叠，同一选择器（如 `.mc-card:hover`）若在文件后半被 V1 旧规则重复定义，**会静默覆盖前面的新规则**（同特异性、后出现者胜）。改完务必用 `getComputedStyle` 在**目标状态**（尤其 `:hover` / `:focus-visible`）下回读，**不能只测静止态**。2026-09-11 的 V2 改造中，正是靠 hover 态回读才发现卡片长回了 V1 的 `box-shadow: 6px 6px 0`。
+
+## AI 上下文最小化（红线外约束，AI 亲和）
+
+> 本仓库定位「AI 亲和」：文件/目录体积直接决定 Agent 上下文成本。硬约束见 CONSTRAINTS **C-55**；以下为 Agent 操作时的上下文控制规矩（与「任务隔离」红线互为补充）。
+
+1. **已完成计划归档**：结项任务的 `.harness/plans/<YYYY-MM-DD_*>/*` 一律 `git mv` 进 `.harness/plans/_done/`，保持活跃计划热路径精简；`_template/` 留在原地作模板。
+2. **计划目录只读当前任务**：只处理 `.harness/plans/<当前任务>/`；`.harness/plans/_done/`、`docs/archive/` 除非用户**显式**要求，否则不检索、不整读（避免把 ~1.8 万行历史记录灌入 context）。
+3. **大文件禁止整读**：单文件 >600 行（如 `app/src/global.css` 5831 行、`lib/running.ts` 1561 行）编辑时**只用 Grep 定点取片段**，不把全文件塞进上下文；改 CSS 先按 `global.css` 内 `/* 页面N：xxx */` 分节定位。
+4. **重目录永不检索**：`running-private/`（独立仓 clone，82M 图片）、`node_modules/`、`app/dist/` 物理在盘上但**永不纳入 Agent 检索**（分别是独立仓 / 依赖 / 产物）。
+5. **按模块/功能拆分、按大小拆分**：新增或膨胀的代码按 CONSTRAINTS **C-55** 拆分目录与文件（源码首选 ≤400 行、>600 行必拆），从源头控制单文件体积。
 
 ## 旧单文件站机制（历史存档，2026-09-09 前有效，文件已在 P8 删除）
 
@@ -157,7 +167,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 ### 上下文恢复（每次会话/clear/compact 必做）
 
-> 1. 读 `AGENTS.md` → 2. `git branch --show-current` 确认在 `main` → 3. 遍历 `.harness/plans/*/00-overview.md`，定位**状态 ≠ ✅** 的任务目录 → 4. 读该任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
+> 1. 读 `AGENTS.md` → 2. `git branch --show-current` 确认在 `main` → 3. 遍历 `.harness/plans/*/00-overview.md`（**排除 `_done/` 与 `_template/`**），定位**状态 ≠ ✅** 的任务目录 → 4. 读该任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
 > 匹配不到 → 按「SOP 启动前置」处理。
 
 ### 任务隔离（强制）

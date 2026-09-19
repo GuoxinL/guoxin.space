@@ -16,7 +16,7 @@
 | 5 | 缩进 | 2 空格；**禁止**空格与制表符混用 | prettier 默认 |
 | 6 | 未使用 import | 禁止 | `@typescript-eslint/no-unused-vars`（`recommended` 集） |
 | 7 | 文件编码 | UTF-8；允许中文注释 | 团队默认语言 |
-| 8 | 文件长度 | ≤800 行（测试 ≤1600 行） | 非工具强制，建议拆分 |
+| 8 | 文件长度 | 源码 `.ts/.tsx` **首选 ≤400 行、>600 行必须拆分**（或文件头 `// @no-split: <理由>` 经 Reviewer 确认豁免）；测试 `.test.*` ≤1200 行（超则按 `describe` 拆文件）；CSS `global.css` 单分片 ≤400 行 | 硬约束（CONSTRAINTS **C-55**）；单文件 >600 行 Agent 编辑禁止整读，用 Grep 取片段 |
 | 9 | 函数长度 | ≤80 行（测试 ≤160 行） | 非工具强制，建议拆分 |
 | 10 | 嵌套深度 | ≤4 层 | 非工具强制，建议早返回 |
 
@@ -51,6 +51,16 @@
 ### 2.4 路径别名
 
 - `tsconfig` `paths`: `~/*` → `src/*`；import 用 `~/` 别名，禁止凌乱相对路径穿越。
+
+### 2.5 模块/功能拆分（目录与文件组织，AI 亲和）
+
+> 本仓库定位「AI 亲和」：文件/目录体积直接决定 Agent 上下文成本。硬约束见 CONSTRAINTS **C-55**，以下为落地细则。
+
+- **目录按业务模块/功能组织**：页面组件放 `components/<module>/`（如 `components/json/`、`components/notes/`），纯逻辑放 `lib/<module>/`（如 `lib/running/`、`lib/notes/`）；禁止扁平堆放或"万能目录"。
+- **单一职责**：一个文件只承载一类明确职责；当某 `lib/<module>.ts` 跨多个子职责（类型定义 / 取数 / 派生计算 / 校验 / 渲染辅助）且 >600 行时，拆为 `lib/<module>/{types,fetch,derive,validate}.ts` 子文件。
+- **禁止"万能文件"**：`common.ts` / `utils.ts` / `misc.ts` 已在 §3 禁用；任何"什么都往里塞"的文件都是拆分信号。
+- **CSS 不无限增长**：`app/src/global.css` 已 5831 行，须按"页面/组件"用 `@import` 拆分片（如 `css/page-json.css`）或迁移到组件级 `useStylesScoped$`；Agent 编辑时按文件内 `/* 页面N：xxx */` 分节定位，**禁止整文件读入上下文**。
+- **现状待拆（参考基线，随功能迭代顺手拆）**：`lib/running.ts`(1561) → `lib/running/`；`global.css`(5831) → 分片；`components/notes/NotesShell.tsx`(1142)、`components/json/JsonWorkbench.tsx`(944)、`lib/skills.ts`(815) 在下一轮对应功能任务中拆分。体积硬上限见 **C-55**。
 
 ## 3. 命名规范
 
