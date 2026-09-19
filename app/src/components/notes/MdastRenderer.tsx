@@ -216,8 +216,33 @@ const MermaidBlock = component$<{ code: string }>(({ code }) => {
         });
         init.ready = true;
       }
-      const { svg } = await mermaid.render(uid.value, code);
-      ref.value.innerHTML = svg;
+      // 规避：Qwik 会在 <html>/<body> 注入 `qwik.state.$containerEl$` 环形引用属性
+      // （且为不可配置/不可写，无法 delete）。mermaid 部分图（如 block）渲染时会
+      // JSON.stringify 文档元素，命中该环形引用抛 "Converting circular structure to JSON"。
+      // 渲染前把环形末端 `$containerEl$` 临时置 null 并即时还原，不动属性本身，不影响 Qwik 恢复。
+      type QwikHost = { qwik?: { state?: Record<string, unknown> } };
+      const neutralizeContainer = (el: QwikHost | null): (() => void) | null => {
+        const state = el?.qwik?.state;
+        if (state && '$containerEl$' in state) {
+          const saved = state.$containerEl$;
+          state.$containerEl$ = null;
+          return () => { state.$containerEl$ = saved; };
+        }
+        return null;
+      };
+      const restoreFns = [
+        neutralizeContainer(document.documentElement as unknown as QwikHost),
+        neutralizeContainer(document.body as unknown as QwikHost),
+      ].filter(Boolean) as Array<() => void>;
+      let svg = '';
+      try {
+        ({ svg } = await mermaid.render(uid.value, code));
+      } catch (e) {
+        ref.value.innerHTML = `<pre class="md-mermaid-error">Mermaid 渲染失败：${String(e)}</pre>`;
+      } finally {
+        restoreFns.forEach((fn) => fn());
+      }
+      if (svg) ref.value.innerHTML = svg;
     } catch (e) {
       ref.value.innerHTML = `<pre class="md-mermaid-error">Mermaid 渲染失败：${String(e)}</pre>`;
     }
