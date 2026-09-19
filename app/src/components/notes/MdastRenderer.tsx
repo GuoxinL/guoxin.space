@@ -216,31 +216,17 @@ const MermaidBlock = component$<{ code: string }>(({ code }) => {
         });
         init.ready = true;
       }
-      // 规避：Qwik 会在 <html>/<body> 注入 `qwik.state.$containerEl$` 环形引用属性
-      // （且为不可配置/不可写，无法 delete）。mermaid 部分图（如 block）渲染时会
-      // JSON.stringify 文档元素，命中该环形引用抛 "Converting circular structure to JSON"。
-      // 渲染前把环形末端 `$containerEl$` 临时置 null 并即时还原，不动属性本身，不影响 Qwik 恢复。
-      type QwikHost = { qwik?: { state?: Record<string, unknown> } };
-      const neutralizeContainer = (el: QwikHost | null): (() => void) | null => {
-        const state = el?.qwik?.state;
-        if (state && '$containerEl$' in state) {
-          const saved = state.$containerEl$;
-          state.$containerEl$ = null;
-          return () => { state.$containerEl$ = saved; };
-        }
-        return null;
-      };
-      const restoreFns = [
-        neutralizeContainer(document.documentElement as unknown as QwikHost),
-        neutralizeContainer(document.body as unknown as QwikHost),
-      ].filter(Boolean) as Array<() => void>;
+      // 说明：历史上曾在此处临时改写 Qwik 注入在 <html>/<body> 的 `qwik.state.$containerEl$`
+      //（环形引用）以规避 mermaid Block 图渲染时的 "Converting circular structure to JSON"。
+      // 但实测该改动会破坏 Qwik 对根容器引用的一致性：详情视图在 mermaid 渲染后、再进行任何
+      // 响应式更新（如切字号、Esc 返回列表）时，Qwik 重渲染会读到 null 容器并抛
+      // `getAttribute(null)` 崩溃。当前 mermaid/Qwik 版本下该环形 JSON 错误已不复现，
+      // 故移除这段 workaround；保留下方 try/catch 兜底，任何 mermaid 渲染异常仍优雅降级为错误提示。
       let svg = '';
       try {
         ({ svg } = await mermaid.render(uid.value, code));
       } catch (e) {
         ref.value.innerHTML = `<pre class="md-mermaid-error">Mermaid 渲染失败：${String(e)}</pre>`;
-      } finally {
-        restoreFns.forEach((fn) => fn());
       }
       if (svg) ref.value.innerHTML = svg;
     } catch (e) {
