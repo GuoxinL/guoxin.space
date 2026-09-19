@@ -26,6 +26,46 @@
 
 ---
 
+## 自治 AGENT 委托规范
+
+> 本 SOP 允许把**自包含、可验证、非破坏性**的步骤委托给独立 AGENT 执行（主会话只等结论）。委托≠放权：AGENT 受五道闸约束，且**永不触碰生产**（不 `git push`）。
+
+**各步委托标记**（✅ 首选 / ⚠️ 条件 / ❌ 人专有）：
+
+| 步 | 标记 | 说明 |
+|----|------|------|
+| 01 Clarify | ❌ | 需人定意图 / 消歧 |
+| 02 Plan | ⚠️ | AI 可起草，需人拍板 |
+| 03 Implement | ⚠️ | Plan 明确后可自治写码；**禁 push** |
+| 04 UT | ✅ | 由 Plan §6 驱动，机械可验证 |
+| 05 Deploy | ❌ | push main 触发上线，人专有 |
+| 06 IT | ✅ | 由 Plan §7 + Playwright 驱动，长耗时 |
+| 07 Docs | ⚠️ | 清单式文档同步，需对照代码准确 |
+| 08 Review | ❌ | 边界点 B 需用户签字收尾 |
+
+**五道约束闸**（委托 AGENT 的指令模板见下方「AGENT 指令（示例）」）：
+
+1. **装备最小化** — 指令只引用本步文件 + `CONSTRAINTS.md` + 对应规范（`unittest.md` / `integration_test.md`）；文件作用域限 `app/src/`（C-02）。
+2. **运行禁令** — 禁止 `git push` / `git commit`；禁止改 `CONSTRAINTS.md` / `AGENTS.md` / `DESIGN.md`；禁止越步界；外部依赖全 mock（C-15）；单文件 >600 行只 Grep（C-55）。
+3. **自验门禁** — UT：`npm run test` + `lint` + `type-check` 全绿；IT：`build` + `test:e2e`，断言关键交互态（`getComputedStyle` 回读，C-14）；失败不关用例蒙混（C-13 / C-14）。
+4. **交回契约** — 必须返回 `{改动文件, 测试结果, 未覆盖行, 失败定位, 阻塞项}`，IT 附断言 / 截图；**人审报告 + diff 后才进 Deploy**。
+5. **CI 兜底** — AGENT 不 push 就触不到生产；人审后 push 由 `deploy.yml` 双门禁（vitest + Playwright）拦截。
+
+> ⚠️ 越界（缺 Plan 设计 / 需改方案 / 红线冲突）AGENT 必须**立刻停下回报**，不擅自扩权。
+
+**AGENT 指令（示例，04-UT）**：
+
+```
+你是 guoxin.space（Qwik 前端）的 04-UT 执行 AGENT，只负责本步。
+【只读】04-ut.md + CONSTRAINTS.md（冲突以它为准）+ unittest.md；代码范围仅 app/src/{lib,components}/**。
+【禁令】禁止 git push/commit；禁止改 CONSTRAINTS/AGENTS/DESIGN；改动只进 app/src/（C-02）；依赖全 mock（C-15）；>600 行只 Grep（C-55）。
+【自验】npm run test + lint + type-check 全绿；未覆盖行列出并说明。
+【交回】返回 {改动文件, 测试结果:"X/Y passed", 未覆盖行, 失败定位, 阻塞项}。
+越界（缺 Plan §6 设计 / 需改方案 / 红线冲突）立刻停下回报，不擅自扩权。
+```
+
+---
+
 ## Meta
 
 | 项 | 值 |
