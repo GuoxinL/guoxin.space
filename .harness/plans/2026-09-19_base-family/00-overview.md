@@ -1,7 +1,7 @@
 # [2026-09-19] Base 家族工具落地 + Toolbox 页头重排
 
 > 🛡️ **SOP 绝对权威声明**：guoxin.space 所有开发动作以 `.harness/plans/_template/` 的 8 步 SOP 为准；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。本文件是任务级单一真相源。
-> 本文件的 Progress / 时间记录 / 字段规则见 `.harness/plans/_template/00-overview.md`（精简不重复）。
+> 本文件的 Progress / 时间记录 / 字段规则见 `.harness/plans/_template/SOP.md`（精简不重复）。
 
 ---
 

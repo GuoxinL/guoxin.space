@@ -28,7 +28,7 @@
 ## 目录结构
 
 ```
-├── AGENTS.md           # AI 操作指南 + 8 步 SOP 入口（CLAUDE.md / CODEBUDDY.md 为其符号链接）
+├── AGENTS.md           # AI 操作指南 + SOP 轻量检查清单入口（CLAUDE.md / CODEBUDDY.md 为其符号链接）
 ├── .harness/docs/design.md           # 设计真源（QWIK-INSPIRED v2，9 章节）
 ├── app/                # Qwik 应用源码（唯一改动区）
 │   ├── src/            # routes / components / lib（单测 21 文件 / 308 用例）
@@ -37,7 +37,7 @@
 ├── worker.js           # Cloudflare Worker：OAuth 鉴权 + Skills 写通道 + Running 轨迹代理 + TODO 数据代理（`/api/todo/*`）
 ├── e2e/                # Playwright 页面自动化（强制门禁）
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染、提交校验、实机校验等）
-└── .harness/           # SOP 真源：8 步开发流程模板 + 现行工程规范文档
+└── .harness/           # SOP 真源：轻量检查清单（SOP.md）+ MINI.md + 现行工程规范文档
 ```
 
 > 硬约束（部署 / 测试门禁 / 编码红线 / 提交协作）的单一真相源在 [`.harness/docs/CONSTRAINTS.md`](.harness/docs/CONSTRAINTS.md)。
@@ -77,7 +77,7 @@ npm run lint / fmt / type-check
 
 | 文档 | 说明 |
 |---|---|
-| [`AGENTS.md`](./AGENTS.md) | AI 开发入口：目录 / 数据流 / 红线速览 / 8 步 SOP |
+| [`AGENTS.md`](./AGENTS.md) | AI 开发入口：目录 / 数据流 / 红线速览 / SOP 检查清单 |
 | [`.harness/docs/CONSTRAINTS.md`](.harness/docs/CONSTRAINTS.md) | 全部硬约束单一真相源（C-01 ~ C-51） |
 | [`.harness/docs/design.md`](./.harness/docs/design.md) | 视觉设计真源 |
 | [`.harness/docs/`](.harness/docs/) | 架构 / 编码规范 / 单测·IT 规范 / 部署运维 / 踩坑记录 |

@@ -9,7 +9,7 @@
 
 > **本文件（`.harness/docs/CONSTRAINTS.md`）是 guoxin.space 全部开发约束的单一真相源（Single Source of Truth）。**
 >
-> - **后续以 SOP 为主**：任何开发动作都按 `.harness/plans/_template/` 的 8 步 SOP 走，约束以本文件为准。
+> - **后续以 SOP 为主**：任何开发动作都按 `.harness/plans/_template/SOP.md` 的轻量检查清单走，约束以本文件为准。
 > - **冲突裁决**：若 `AGENTS.md` / `.harness/docs/design.md` / `.harness/docs/*` 中某条约束与本文件不一致，**以本文件（及引用它的 SOP 步骤）为准**；本文件是权威，其它文档为上下文 / 设计真源 / 历史说明。
 > - **职责划分**：
 >   - `AGENTS.md` = AI 操作入口与项目上下文（目录、数据流、红线速览）。
@@ -160,6 +160,6 @@
 - 本地开发 / 构建 / 部署运维：`devops/{env,development,deployment}.md`
 - 单测 / 页面自动化规范：`unittest/unittest.md` · `integration_test/integration_test.md`
 - Code Review 清单：`code-review.md` · `.harness/review.md`
-- SOP 8 步模板：`.harness/plans/_template/{00-overview,01-clarify,02-plan,03-implement,04-ut,05-deploy,06-it,07-docs,08-review}.md`
+- SOP 轻量检查清单：`.harness/plans/_template/SOP.md`（配套 `MINI.md` 小需求模板 + `DEPLOY-LOOP.md` 部署循环附录）
 
 > ⚠️ 上述文档为**上下文与设计真源**；凡约束冲突，**以本文件（CONSTRAINTS.md）及引用它的 SOP 步骤为准**。

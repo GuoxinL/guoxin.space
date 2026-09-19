@@ -33,4 +33,4 @@
 
 ## 三、AI 上下文最小化（红线外约束）
 
-见仓库根 `AGENTS.md` 的「AI 上下文最小化」+「按任务类型的最小上下文入口」两节：结项计划归档、`_done/` 与 `docs/archive/` 不检索、单文件 >600 行只 Grep 不整读、`running-private/`·`node_modules/`·`app/dist/` 永不检索。
+见仓库根 `AGENTS.md` 的「AI 上下文最小化」+「按任务类型的最小上下文入口」两节：结项任务目录直接删（git 历史为审计），不再归档 `_done/`（`docs/archive/` 已删）；单文件 >600 行只 Grep 不整读；`running-private/`·`node_modules/`·`app/dist/` 永不检索。

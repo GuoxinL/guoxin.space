@@ -34,10 +34,10 @@ git push --force-with-lease   # ✅ 必用；禁止裸 --force
 
 ## §3 边界点 B —— 收尾 commit 冻结
 
-> 用户确认收尾（08 Review §5）后执行，触发 **边界点 B**。
+> 用户确认收尾（SOP.md §1 Review / `.harness/review.md`）后执行，触发 **边界点 B**。
 
 ```bash
-git add plans/<task> .harness/docs   # 05 之后的 md 产物 + 00-overview.md 终态
+git add plans/<task> .harness/docs   # 部署之后的 md 产物 + 任务目录终态
 git commit -m "docs(plans): <任务名> 收尾产物 [skip ci]"   # 纯 md 变更，[skip ci] 跳过 CI
 git push origin main                 # 普通 push；站点产物不变
 ```

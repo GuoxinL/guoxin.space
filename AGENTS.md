@@ -2,7 +2,7 @@
 
 个人主页「工作台」单页应用（Qwik + Qwik City SSG 静态预渲染），托管于 GitHub Pages（域名 `guoxin.space`）。零第三方运行时依赖；源码在 `app/src/`，`npm run build` 产出 `app/dist/`（12 页静态预渲染：`/`、`/skills`、`/running`、`/notes` 列表页、`/toolbox/json`、`/toolbox/calendar`、`/todo`（纯 CSR，GitHub OAuth 登录门禁）、以及 5 个小工具独立路由 `/toolbox/{base64,url,timestamp,jwt,csv}`；`/skills/<dir>`、`/notes/<中文标题>` 与 `/todo` 详情/模块为纯 CSR 运行时取数，TODO 数据经 Worker `/api/todo/*` 代理独立仓 `GuoxinL/todo-data`），推送 `main` 即 GitHub Actions 自动构建并上线。
 
-> 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：AI 开发动作一律走 `.harness/plans/_template/` 的 8 步 SOP；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若本文档（操作指南 / 上下文）与 CONSTRAINTS.md / 对应 SOP 步骤冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文档定位 = AI 操作入口与项目上下文（目录 / 数据流 / 红线速览），非硬约束真源。
+> 🛡️ **开发流程约束以 `.harness/` 为绝对权威**：AI 开发动作一律走 `.harness/plans/_template/SOP.md` 的轻量检查清单；全部硬约束以 `.harness/docs/CONSTRAINTS.md` 为单一真相源。若本文档（操作指南 / 上下文）与 CONSTRAINTS.md / 对应 SOP 步骤冲突，**以 CONSTRAINTS.md 及引用它的 SOP 步骤为准**。本文档定位 = AI 操作入口与项目上下文（目录 / 数据流 / 红线速览），非硬约束真源。
 
 ## 目录结构
 
@@ -22,7 +22,7 @@ personal-homepage/
 ├── running-private/    # 私有数据仓 GuoxinL/running-private 的本地 clone（gitignore）：Running 数据与预生成产物（≈DB），运行时经 Worker 代理读取，本仓库构建不依赖
 ├── tools/ scripts/     # 辅助脚本（英雄图渲染 tools/pixel-art、技能卡省略号实机校验 tools/verify-skname-ellipsis.mjs、提交校验 scripts/ 等）
 ├── .harness/           # SOP 真源（AI 开发流程）
-│   ├── plans/          # 各任务目录（00-overview~08-review）；_template 模板；结项任务直接删，不归档 _done/
+│   ├── plans/          # 任务目录（仅委托/复杂/多会话才建，内含一个 <task>.md）；_template 模板（SOP.md + MINI.md + DEPLOY-LOOP.md）；结项目录直接删
 │   └── docs/           # 现行规范：architecture / devops / coding-style / design / 单测·IT 等
 └── docs/               # 文档（外部接入类，与 .harness/docs 分工见下）
     └── third-party/    # 第三方接入操作步骤（Pages / Worker / Server酱 / 行者 / Giscus，每组件一份）
@@ -60,7 +60,7 @@ personal-homepage/
 
 - **纯前端 / 页面 / 组件改动**：`AGENTS.md` + `.harness/docs/design.md` + 对应 `components/<module>/`；改 CSS 只读 `global.css` 内 `/* 页面N：xxx */` 分节，**禁止整读**（5831 行）。
 - **改 `app/src/lib/` 逻辑**：`AGENTS.md` + `CONSTRAINTS.md`（相关 C 条目）+ 对应 `lib/<module>/`；改完跑 `npm run test`。
-- **新功能 / Bug 修复（走 SOP）**：`AGENTS.md` + `plans/_template/` + `CONSTRAINTS.md` + `coding-style.md`；严格按 8 步。
+- **新功能 / Bug 修复（走 SOP）**：`AGENTS.md` + `plans/_template/SOP.md` + `CONSTRAINTS.md` + `coding-style.md`；按轻量检查清单推进。
 - **部署 / CI / Worker 问题**：`AGENTS.md` + `devops/{env,development,deployment}.md` + `worker.js`。
 - **Notes / 数据仓问题**：`AGENTS.md` + Notes 相关约束（C-03 / C-4y / C-4z / C-4w）+ `lib/notes/`；动 `scripts/` 或示例文档须同步 `example` 分支（C-54）。
 - **设计视觉**：`AGENTS.md` + `.harness/docs/design.md` + `global.css` 相关分节。
@@ -170,96 +170,51 @@ gh run list --workflow=deploy.yml --limit 5
 - **本地构建踩坑**：WorkBuddy 的 safe-delete guard 会拦截 vite 清空 `app/dist/`（文件数 > 50），构建前需 `export CODEBUDDY_SAFE_DELETE_ENABLED=0`；本机无全局 pnpm，可用 `npm run build` 代替（不生成 lock 文件），Node 必须用 ≥24（`export PATH="$HOME/.nvm/versions/node/v24.20.0/bin:$PATH"`）。
 ## 二、SOP（标准开发流程）
 
-> **触发**：用户描述需求 / 说「开始 SOP」「新建任务：<描述>」时自动进入，从 Step 1 Clarify 逐步推进。
-> **入口判定**：建立/定位任务目录后，若 `01-clarify.md` 已有有效内容 → 跳过 Clarify 直接进 Plan（需用户确认 + 在 `00-overview.md` 标记跳过）。
+> **触发**：用户描述需求 / 说「开始 SOP」「新建任务：<描述>」时进入。
+> **入口**：先读 `AGENTS.md` → `git branch --show-current` 确认在 `main` → 查 `.harness/plans/` 是否有进行中任务（见下方「任务目录」）。
+> **硬约束真源**：`.harness/docs/CONSTRAINTS.md`（冲突以它为准）。本 SOP（`.harness/plans/_template/SOP.md`）是其执行层。
 
-### 上下文恢复（每次会话/clear/compact 必做）
+### 流程形态：清单而非重仪式
 
-> 1. 读 `AGENTS.md` → 2. `git branch --show-current` 确认在 `main` → 3. 遍历 `.harness/plans/*/00-overview.md`（**排除 `_template/`**），定位**状态 ≠ ✅** 的任务目录 → 4. 读该任务 `00-overview.md` → 5. Lazy-load 当前阶段 md → 6. 向用户汇报进展。
-> 匹配不到 → 按「SOP 启动前置」处理。
+本仓库的 SOP 是一份**轻量检查清单**（`.harness/plans/_template/SOP.md`），不是交接文档。单人仓库、无 Reviewer 签字、无 MR/PR 评审流——因此：
 
-### 任务隔离（强制）
+- **不写交接式进度报告**：文档量随是否交 AGENT 缩放。
+- **solo 短平快改动**（含小需求 ≤10 行）：**不建任务目录**，按 `SOP.md` 心流执行，git 历史即审计。
+- **仅三种情况才建 `plans/<task>/` 目录**（当简报包 / 接手上下文）：① 委托独立 AGENT 接手；② 复杂 / 多会话 / 跨文件 >10 行；③ 用户显式要求留痕。目录内只放**一个 `<task>.md`**（目标 / 改动 / 自验结果），不必套多文件模板。
+- **小需求**（≤10 行、单文件、无新 lib 逻辑 / 新设计）：直接走 `.harness/plans/_template/MINI.md`。
 
-> **严禁** AI 主动读取/参考**其他**任务目录 `.harness/plans/<其他任务>/` 下的任何 md。任务之间物理隔离、互为独立真相源，跨任务参考会污染设计判断。
-> **唯一例外**：用户**显式**说「参考任务 X」→ 仅读指定目录，内容只留对话上下文，**禁止**自动写回当前任务产物。
+### 八步关注点（顺序即生命周期）
 
-### SOP 启动前置：任务定位与创建
+| # | 步骤 | 门禁 / 关键动作 |
+|---|------|----------------|
+| 1 | **Clarify 澄清** | 仅新 / 模糊需求；用户预置则跳过 |
+| 2 | **Plan 方案** | 改动文件 / 影响范围 / 设计决策（协同开发由 `.harness/docs/design.md` 驱动可跳过） |
+| 3 | **Implement 实现** | TDD：先红后绿；约束自查（CONSTRAINTS.md） |
+| 4 | **UT 单测** | 改 `app/src/lib/` 必跑 `npm run test` |
+| 5 | **Deploy 提交+部署** | push `main` 触发 Pages 自动部署；**边界点 A**（代码 commit 定稿） |
+| 6 | **IT 页面自动化** | 改页面 / 交互 / CSS 必跑 `npm run test:e2e`；本地沙箱配方见 SOP.md §4 |
+| 7 | **Docs 文档同步** | 代码改动同步 `AGENTS.md` / `README.md` / `.harness/docs/design.md` / `.harness/docs/*`；一致性清扫 |
+| 8 | **Review 自检+确认** | AI 按 `.harness/review.md` 自检 + 用户确认收尾；**边界点 B**（收尾 commit 冻结）；生产复测见 SOP.md §5 |
 
-> **SOP 一律在 `main` 上直接进行**（不拉任务分支）；单人仓库 + 双门禁 + 微信告警 + `git revert` 秒级回滚，分支隔离为冗余仪式。
-> 1. `git branch --show-current` 确认在 `main`
-> 2. 在 `.harness/plans/` 定位任务：
->    - **有「状态 ≠ ✅」的任务目录** → 按 `00-overview.md` 继续
->    - **无** → 全新需求：`cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` → **精简注释**（见下方 ③）→ 填 Meta → 进入入口判定
-> 3. **复制 _template/ 后必须精简注释**（全新需求 / 协同开发通用，**AI 必执行**）：打开新建的 `plans/<task>/00-overview.md`，把所有 `<!-- TEMPLATE-ONLY-DO-NOT-COPY: -->` 标记的 HTML 注释块**整段删除**（含标记行），替换为单行指针指向 `_template/00-overview.md`；**头部 "⚠️ TEMPLATE ONLY" 段也整段删除**。SOP 规则只在 `_template/` 维护，**禁止**在每个任务文件里重复 ~30 行规则（噪音 + 版本漂移）。详见 `_template/00-overview.md` 顶部说明。
->
-> **一个任务目录只允许对应一个任务**；多人协作期如需分支隔离，恢复 feature 分支模式再执行 SOP。
+> 状态机：`Deploy(代码commit+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾commit = 边界点 B)`。
+> ⚠️ **Deploy（环境副作用）/ IT（真实链路核验）是 SOP 最易错环节，执行前须与用户显式确认。**
 
-### 协同开发检测（.harness/docs/design.md 驱动）
+### 任务目录（仅委托 / 复杂 / 多会话才建）
 
-> 触发：用户**显式提供** `.harness/docs/design.md`（既有设计稿驱动场景，与分支无关）。
-> - `.harness/docs/design.md` 存在且用户确认使用 → 创建任务目录（同样按上方 ③ 精简 _template/ 注释）→ 从 `.harness/docs/design.md` 完整派生 `01-clarify.md` + `02-plan.md`（禁止只写「详见 design.md」）→ 填 Meta（`开发模式`=协同）→ 自检后删除该 design.md → 从 Step 3 开始
-> - `.harness/docs/design.md` 不存在 → 标准流程
+- **一律在 `main` 上直接进行**（不拉任务分支）；单人仓库 + 双门禁 + `git revert` 秒级回滚，分支隔离为冗余仪式。
+- 新建：`cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>` 后，删掉 `SOP.md` 之外的模板残留，只留一个 `<task>.md`。
+- **任务隔离（强制）**：严禁 AI 主动读取 / 参考**其他**任务目录的 md；仅当用户显式指定「参考任务 X」才可读那一个，且禁止自动写回当前任务。
 
-### 8 步骤定义
+### 提交规范（边界点 A / B + 双 commit）
 
-| # | 步骤 | 产物 | 说明 |
-|---|------|------|------|
-| 1 | **Clarify** | `01-clarify.md` | `skill: clarify` 澄清需求，产出背景/目标/待确认问题 |
-| 2 | **Plan** | `02-plan.md` | 改动文件、调用链、**§6 UT 用例（TDD 必填）**、IT 用例、风险 |
-| 3 | **Implement** | `03-implement.md` | 按 Plan §6 红绿循环：先写 UT 跑红 → 最小实现转绿 → 重构 |
-| 4 | **UT** | `04-ut.md` | 用例与 Plan §6 逐条对齐、覆盖率、未覆盖行 |
-| 5 | **Deploy** | `05-deploy.md` | 本任务**代码 commit**（首次仅一次，= **边界点 A**）+ push `main` 触发 GitHub Pages 自动部署；IT 修复的 amend 流程定义于此 |
-| 6 | **IT** | `06-it.md` | 每条用例贴关键 Playwright 断言 / 失败截图；失败 → 修复 → 回 05 amend 重部署，**循环直到全绿**；协同模式不跳过 |
-| 7 | **Docs** | `07-docs.md` | 增量更新 `.harness/docs/` 与操作文档（AGENTS.md / README.md / `.harness/docs/design.md`）对齐代码现状（页面数 / 单测规模 / 路由清单 / URL 列表），md 变更累积在工作区，随收尾 commit 入库 |
-| 8 | **Review** | `08-review.md` | AI 自检 + 用户确认收尾（含 07 文档同步核对）→ **收尾 commit** 入库 → **边界点 B** 冻结） |
+> 完整流程见 `.harness/plans/_template/DEPLOY-LOOP.md`；SOP 一律在 `main` 直接进行。
 
-> 状态机：`Deploy(代码 commit+push) → IT --失败, 修复+amend 重部署--> Deploy；--成功--> Docs → Review(收尾 commit = 边界点 B)`。
-
-### 任务规模分流
-
-> **触发条件**：02 Plan 阶段估算 `预估代码改动行数 ≤ 10` 时，在 `00-overview.md` Meta 把 `小需求模式` 设为 ✅。进入 03 起按下方规则执行。
-
-| # | 步骤 | 标准模式 | 小需求模式 |
-|---|------|----------|------------|
-| 1 | Clarify  | 确认 | **确认** |
-| 2 | Plan     | 确认 | **确认** |
-| 3 | Implement | 确认 | **自动**（与 04 合并跑，结束一次性汇报） |
-| 4 | UT       | 确认 | **自动**（与 03 合并跑，结束一次性汇报） |
-| 5 | Deploy   | 确认 | **确认**（环境敏感，必须显式确认） |
-| 6 | IT       | 确认 | **确认**（涉及真实链路 / 线上 DOM 核验，不允许跳过确认） |
-| 7 | Docs     | 确认 | **自动** |
-| 8 | Review   | 确认 | **自动**（含收尾 commit，仍按 `05-deploy.md` §2 部署前检查执行） |
-
-> "自动" ≠ 跳过产物：03-04 / 07-08 的 md 产物、`00-overview.md` 时间记录、Progress 勾选**仍然必须**按正常流程写完。"自动"仅指把该步骤的开始/结束两次确认合并为一次——AI 一次说完"我准备做 X-Y-Z"后开始跑，跑完一次性汇报"03-04 已完成（结论摘要）"，**中间不再打断用户**。
->
-> **05 Deploy / 06 IT 仍必须显式确认**：Deploy 涉及环境副作用，IT 涉及真实链路核验，是 SOP 中两个最易出错的环节，不纳入自动批次。
->
-> **批次时间记录**：`00-overview.md` 时间记录表对 03-04 / 07-08 这两批的每一行写**同一**开始时间和**同一**结束时间（批次起止那一刻），耗时也是同一值；备注列写「小需求模式批次：03-04」或「小需求模式批次：07-08」便于聚合归并。详见 `00-overview.md` 时间记录节规则 9。
->
-> **回退机制**：若进入 03 后发现实际改动 > 10 行（漏估），AI 应在汇报 03-04 结论时同步把 `小需求模式` 改回 ⬜，从 05 起按标准模式跑（05/06 仍确认，07-08 在新的判断下决定是否走自动）。已按批次写入的时间记录**不回填**——批次记录能正确反映实际工作窗口，跨任务统计靠「小需求模式批次」前缀识别即可。
-
-### 步骤执行规则
-
-> 每步遵循**五段式**：开始确认 → 记录开始时间 → 执行 → 记录结束时间 → 结束确认。
->
-> - **开始确认**：必须得到用户明确同意
-> - **时间记录**：开始/结束时间用 `date "+%Y-%m-%d %H:%M:%S"` 精确到秒写入 `00-overview.md`；禁止事后回填
-> - **结束确认**：展示「✅ 步骤完成 + 核心结论 + 耗时 + 下一步概览」→ 等用户回复同意/暂停/调整
-> - **禁止**未经确认自动跳步；**禁止**合并开始/结束为单次提问
-> - **小需求模式例外**：03-04、07-08 的开始/结束确认可合并为单次提问（"我准备做 03-04，做完一次性汇报"），但产物文件 + 时间记录 + Progress 勾选**不豁免**
-
-### 提交规范（并入 Step 5 Deploy 与 Step 8 Review）
-
-> **SOP 一律在 `main` 上直接进行**（不拉任务分支）；提交分两类，完整清单与流程见 `05-deploy.md` / `08-review.md`。
-
-- commit message 采用 **Conventional Commits**：`<type>(<scope>): <subject>`（允许的 type 见 `code-review.md` §2；不要求 `--story` / `--bug` 等外部单号脚注）。本项目不使用 TAPD / 其他外部需求跟踪系统。
-- **代码 commit（Step 5 Deploy）**：实现代码 + 当时的 plans 产物快照，push 触发部署；完成即 **边界点 A**（message 定稿冻结，此后只 `--amend --no-edit`）。
-- **IT 代码修复（Step 6 循环）**：仍 `--amend` 进代码 commit + `git push --force-with-lease`（禁裸 `--force`）——这是全程**唯一**的 force-push 场景。
-- **收尾 commit（Step 8 Review）**：05 之后产生的全部 md 产物（06/07/08 + `00-overview.md` 终态）一次性**普通提交**，message 格式 `docs(plans): <任务名> 收尾产物 [skip ci]`（纯 md 变更，`[skip ci]` 跳过无意义的 CI 重跑）；无 force。
-- **一个任务最多这两个 commit**，禁止把无关变更混入。
+- commit message：**Conventional Commits** `<type>(<scope>): <subject>`（type 见 `code-review.md` §2；不要求外部单号脚注）；本项目不用 TAPD 等外部系统。
+- **代码 commit（Deploy）**：实现代码 + 当时的 plans 产物快照，push 触发部署；完成即 **边界点 A**（message 定稿，此后只 `--amend --no-edit`）。
+- **IT 代码修复**：仍 `--amend` + `git push --force-with-lease`（禁裸 `--force`）——全程唯一 force-push 场景。
+- **收尾 commit（Review）**：部署之后全部 md 产物一次性**普通提交**，`docs(plans): <任务名> 收尾产物 [skip ci]`（纯 md 变更跳过 CI）；无 force。
+- **一个任务最多这两个 commit**，禁止混入无关变更。
 - **边界点 B**（收尾 commit push 完成 + 用户确认收尾）：任务全冻结，再改动另开任务。
-
----
 
 ## 三、开发准则
 
@@ -295,7 +250,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 | # | 红线 | 后果 |
 |---|------|------|
-| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `00-overview.md`、`01-clarify.md` … `08-review.md`、`.harness/docs/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
+| 1 | **严禁 AI 主动读取/参考其它 `.harness/plans/<其他任务目录>/` 下的 md 产物**（含 `<task>.md`、`.harness/docs/design.md`）；仅当用户**显式**指定「参考任务 X」时才可读指定的那一个任务目录，且参考内容禁止自动写回当前任务。详见上文「任务隔离原则（强制）」章节。 | 任务单一真相源被污染；跨任务上下文干扰当前任务设计 |
 | 2 | **禁止改动全局 `.btn` 基类**（Skills/JSON/Running 三页 28 处共用）；首页差异样式只能在 `.mc-hero-cta .btn` 作用域内覆盖。 | 三页按钮视觉一致性被破坏 |
 | 3 | **禁止写全局 `img, canvas { image-rendering: pixelated }`**；只给显式 `.pixelated` 类。 | 精绘素材 / 缩略图产生锯齿 |
 | 4 | **改 CSS 必须 `getComputedStyle` 在目标交互态（`:hover`/`:focus-visible`）下回读**，不只测静止态。 | 同特异性后置规则静默覆盖，发版后才发现 |
