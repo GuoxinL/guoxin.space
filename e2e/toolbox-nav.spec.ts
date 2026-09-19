@@ -10,35 +10,43 @@ import { test, expect } from "@playwright/test";
 const SUBMENU_LABELS = ["JSON", "日历", "Base", "URL", "时间戳", "JWT", "CSV"];
 
 test.describe("Toolbox 悬浮子菜单（桌面）", () => {
-  test("悬浮 Toolbox 展开子菜单，含 7 个子项", async ({ page }) => {
+  test("点击 Toolbox 展开子菜单，含 7 个子项且每项含标题+描述", async ({
+    page,
+  }) => {
     await page.goto("/");
     const group = page.locator(".mc-nav-group");
     await expect(group).toBeVisible();
-    // 默认隐藏
+    // 默认隐藏（状态驱动，无 is-open）
     await expect(page.locator(".mc-submenu")).toBeHidden();
-    await group.hover();
+    await page.locator(".mc-nav-group > .mc-nav-item").click();
     const sub = page.locator(".mc-submenu");
     await expect(sub).toBeVisible();
     await expect(sub.locator(".mc-nav-item")).toHaveCount(7);
     for (const label of SUBMENU_LABELS) {
-      await expect(
-        sub.locator(".mc-nav-item", { hasText: label }),
-      ).toBeVisible();
+      const item = sub
+        .locator(".mc-nav-item")
+        .filter({ has: page.locator(".tb-menu-title", { hasText: label }) });
+      await expect(item).toBeVisible();
+      await expect(item.locator(".tb-menu-title")).toHaveText(label);
+      await expect(item.locator(".tb-menu-desc")).toBeVisible();
     }
   });
 
-  test("键盘 focus-within 也能展开（可达性）", async ({ page }) => {
+  test("键盘 Enter 也能展开（可达性）", async ({ page }) => {
     await page.goto("/");
     await page.locator(".mc-nav-group > .mc-nav-item").focus();
+    await page.keyboard.press("Enter");
     await expect(page.locator(".mc-submenu")).toBeVisible();
   });
 
-  test("点击子菜单项进入对应独立路由", async ({ page }) => {
+  test("点击子菜单项进入对应独立路由，且悬浮窗自动收起", async ({ page }) => {
     await page.goto("/");
-    await page.locator(".mc-nav-group").hover();
+    await page.locator(".mc-nav-group > .mc-nav-item").click();
     await page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" }).click();
     await expect(page).toHaveURL(/\/toolbox\/base64/);
     await expect(page.locator(".base-wrap")).toBeVisible();
+    // 修复回归：点击后悬浮窗自动收起（不再因 focus-within 残留常驻）
+    await expect(page.locator(".mc-submenu")).toBeHidden();
   });
 
   test("active 态：/toolbox/base64 下 Base64 子项与父栏目高亮", async ({
@@ -59,8 +67,9 @@ test.describe("Toolbox 悬浮子菜单（桌面）", () => {
     page,
   }) => {
     await page.goto("/");
+    await page.locator(".mc-nav-group > .mc-nav-item").click();
     const item = page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" });
-    await page.locator(".mc-nav-group").hover();
+    await expect(item).toBeVisible();
     // 静止态（子项未 hover）背景应为白
     const rest = await item.evaluate(
       (el) => getComputedStyle(el).backgroundColor,
@@ -154,6 +163,10 @@ test.describe("Toolbox 移动端嵌套", () => {
     const sub = page.locator(".mc-nav-sub");
     await expect(sub).toBeVisible();
     await expect(sub.locator(".mc-nav-item")).toHaveCount(7);
+    // 移动端子项同样含标题 + 描述两行
+    const first = sub.locator(".mc-nav-item").first();
+    await expect(first.locator(".tb-menu-title")).toBeVisible();
+    await expect(first.locator(".tb-menu-desc")).toBeVisible();
     await page.locator(".mc-nav-sub .mc-nav-item", { hasText: "CSV" }).click();
     await expect(page).toHaveURL(/\/toolbox\/csv/);
     await expect(page.locator(".tools-panel")).toBeVisible();

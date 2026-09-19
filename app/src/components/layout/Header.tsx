@@ -12,20 +12,26 @@ const NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: "/notes", label: "Notes", icon: "note" },
 ];
 
-const TOOLBOX_MENU: { href: string; label: string; icon: PixelIconName }[] = [
-  { href: "/toolbox/json", label: "JSON", icon: "scroll" },
-  { href: "/toolbox/calendar", label: "日历", icon: "calendar" },
-  { href: "/toolbox/base64", label: "Base", icon: "base64" },
-  { href: "/toolbox/url", label: "URL", icon: "url" },
-  { href: "/toolbox/timestamp", label: "时间戳", icon: "ts" },
-  { href: "/toolbox/jwt", label: "JWT", icon: "jwt" },
-  { href: "/toolbox/csv", label: "CSV", icon: "csv" },
+const TOOLBOX_MENU: {
+  href: string;
+  label: string;
+  icon: PixelIconName;
+  desc: string;
+}[] = [
+  { href: "/toolbox/json", label: "JSON", icon: "scroll", desc: "格式化、压缩、对比、树形浏览与历史记录，纯前端实现。" },
+  { href: "/toolbox/calendar", label: "日历", icon: "calendar", desc: "在线日历：农历、法定节假日与调休、二十四节气。" },
+  { href: "/toolbox/base64", label: "Base", icon: "base64", desc: "Base16/32/58/64/64URL/85 六合一编解码，实时互转。" },
+  { href: "/toolbox/url", label: "URL", icon: "url", desc: "URL 百分号编解码，处理查询参数与中文等。" },
+  { href: "/toolbox/timestamp", label: "时间戳", icon: "ts", desc: "时间戳 ↔ 日期毫秒 / 秒互转，UTC + 本地双视角。" },
+  { href: "/toolbox/jwt", label: "JWT", icon: "jwt", desc: "JWT 解码查看 header 与 payload（不校验签名）。" },
+  { href: "/toolbox/csv", label: "CSV", icon: "csv", desc: "CSV ↔ JSON 表格与数组互转（首行为表头）。" },
 ];
 
 export const Header = component$(() => {
   const loc = useLocation();
   const dark = useSignal(false);
   const menuOpen = useSignal(false);
+  const tbOpen = useSignal(false);
   const showTodo = useSignal(false);
 
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -44,6 +50,33 @@ export const Header = component$(() => {
     const unsub = authSubscribe(sync);
     cleanup(unsub);
     sync();
+  });
+
+  // 桌面 Toolbox 子菜单（悬浮窗）：路由变更 / 外部点击 / Escape 关闭。
+  // 根因：原依赖 CSS :focus-within 显隐，SPA 导航后焦点残留于被点 <a>，
+  // focus-within 持续为真 → 子菜单不收起（触屏无 hover 兜底，永远不收）。
+  // 改为 signal 状态驱动，显式可控。
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track, cleanup }) => {
+    track(() => loc.url.pathname);
+    tbOpen.value = false;
+    menuOpen.value = false;
+    const onDocClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && !t.closest(".mc-nav-group")) tbOpen.value = false;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        tbOpen.value = false;
+        menuOpen.value = false;
+      }
+    };
+    document.addEventListener("click", onDocClick);
+    document.addEventListener("keydown", onKey);
+    cleanup(() => {
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    });
   });
 
   const isActive = (href: string) => {
@@ -73,17 +106,31 @@ export const Header = component$(() => {
             {NAV.map((item) =>
               item.href === "/toolbox/json" ? (
                 <li key={item.href} class="mc-nav-group">
-                  <Link
-                    href={item.href}
-                    aria-haspopup="true"
-                    aria-expanded={isActive(item.href) ? "true" : "false"}
-                    aria-current={isActive(item.href) ? "page" : undefined}
+                  <button
+                    type="button"
                     class="mc-nav-item"
+                    aria-haspopup="true"
+                    aria-expanded={tbOpen.value}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                    onClick$={() => (tbOpen.value = !tbOpen.value)}
                   >
                     <PixelIcon name={item.icon} size={14} />
                     <span class="hidden sm:inline">{item.label}</span>
-                  </Link>
-                  <ul class="mc-submenu" role="menu">
+                    <svg
+                      class="tb-caret"
+                      width="8"
+                      height="8"
+                      viewBox="0 0 8 8"
+                      aria-hidden="true"
+                      fill="currentColor"
+                    >
+                      <path d="M1 2h6l-3 4z" />
+                    </svg>
+                  </button>
+                  <ul
+                    role="menu"
+                    class={{ "mc-submenu": true, "is-open": tbOpen.value }}
+                  >
                     {TOOLBOX_MENU.map((m) => (
                       <li key={m.href}>
                         <Link
@@ -91,9 +138,13 @@ export const Header = component$(() => {
                           role="menuitem"
                           aria-current={isExact(m.href) ? "page" : undefined}
                           class="mc-nav-item"
+                          onClick$={() => (tbOpen.value = false)}
                         >
-                          <PixelIcon name={m.icon} size={14} />
-                          <span>{m.label}</span>
+                          <PixelIcon name={m.icon} size={16} />
+                          <span class="tb-menu-text">
+                            <span class="tb-menu-title">{m.label}</span>
+                            <span class="tb-menu-desc">{m.desc}</span>
+                          </span>
                         </Link>
                       </li>
                     ))}
@@ -195,8 +246,11 @@ export const Header = component$(() => {
                             class="mc-nav-item"
                             onClick$={() => (menuOpen.value = false)}
                           >
-                            <PixelIcon name={m.icon} size={14} />
-                            <span>{m.label}</span>
+                            <PixelIcon name={m.icon} size={16} />
+                            <span class="tb-menu-text">
+                              <span class="tb-menu-title">{m.label}</span>
+                              <span class="tb-menu-desc">{m.desc}</span>
+                            </span>
                           </Link>
                         </li>
                       ))}
