@@ -7,14 +7,10 @@
 
 ---
 
-## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+## 0. 约束自查（强制）
 
-> 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。
-
-| 约束 | 规则 | 自查要点 |
-|------|------|---------|
-| C-01 | 本仓库是 Qwik SSG 静态站：无后端 / DB / MQ / 独立测试环境；服务端能力走独立部署的 Cloudflare Worker | 需求若要求「后端 / 数据库 / 常驻服务」，必须在本阶段指出并改为 Worker 方案或否掉 |
-| C-42 | Running 数据链路的生产端在 `running-private` 子仓库；本仓库只持 Worker 源码 + 前端封装 | 需求涉及 Running 数据时，先确认改动落在哪个仓库，避免范围错位 |
+> 本步骤结束确认前须逐条核对以下约束；冲突以 `.harness/docs/CONSTRAINTS.md` 为准。完整规则查 `CONSTRAINTS.md`。
+> **本步相关约束**：C-01（无后端/DB/MQ，服务端走 Worker）、C-42（Running 数据生产在 `running-private` 子仓库）。
 
 ---
 

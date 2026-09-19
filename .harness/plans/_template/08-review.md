@@ -143,15 +143,7 @@
 
 ## 6. 收尾 commit（用户确认后执行，触发边界点 B）
 
-> 用户确认收尾后，把 05 Deploy 之后产生的全部 md 变更（06/07/08 产物 + `00-overview.md` 终态）一次性**普通提交**（无 force、无 amend）：
-
-```bash
-git add plans/<task> .harness/docs   # 05 之后的 md 产物 + 00-overview.md 终态
-git commit -m "docs(plans): <任务名> 收尾产物 [skip ci]"   # 纯 md 变更，[skip ci] 跳过 CI
-git push origin main                 # 普通 push；站点产物不变
-```
-
-> 若 05 之后无 md 变更则跳过。完成后进入**边界点 B——收尾冻结**：本任务所有产物（代码 + md）不再改动，新需求另开任务。
+> 用户确认收尾后，按 `DEPLOY-LOOP.md` §收尾 commit 把 05 Deploy 之后产生的全部 md 变更（06/07/08 产物 + `00-overview.md` 终态）**一次性普通提交**（`[skip ci]`）；若 05 之后无 md 变更则跳过。完成后进入**边界点 B——收尾冻结**：本任务所有产物（代码 + md）不再改动，新需求另开任务。
 
 ---
 

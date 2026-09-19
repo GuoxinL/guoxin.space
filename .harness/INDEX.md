@@ -23,7 +23,10 @@
 
 ## 二、SOP 流程文件
 
-- `plans/_template/` —— 8 步 SOP 模板（新任务复制源，1193 行 / 9 文件）；规则只在模板维护，任务目录不重复。
+- `plans/_template/` —— 8 步 SOP 模板（新任务复制源）；规则只在模板维护，任务目录不重复。
+  - `00-overview.md` 任务总览（渲染结构）；`01-clarify` ~ `08-review` 八步。
+  - `COPY.md`（附录）── 复制/裁剪操作说明 + Progress / 时间记录 SOP 规则（单一真相源，不复制到任务目录）。
+  - `DEPLOY-LOOP.md`（附录）── 部署/回滚/修复循环共用规范（边界点 A/B、amend 循环、收尾 commit），05/06/08 共用，不复制到任务目录。
 - `plans/` —— 当前 / 活跃任务目录（`YYYY-MM-DD_<title>/`，00-overview ~ 08-review）。
 - `plans/_done/` —— 已结项任务归档（Agent **不检索**，仅人工回溯）。
 

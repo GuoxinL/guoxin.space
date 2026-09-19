@@ -8,17 +8,10 @@
 
 ---
 
-## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+## 0. 约束自查（强制）
 
-> 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。**调用链终点必须是「静态产物」或「Cloudflare Worker」，不得引入后端。**
-
-| 约束 | 规则 | 自查要点 |
-|------|------|---------|
-| C-01 | 无后端 / DB / MQ / 独立测试环境 | 方案中不出现 DB、服务端接口、队列、常驻进程设计 |
-| C-02 | 代码只进 `app/src/` | 改动清单不含根 `index.html` / 旧静态文件 |
-| C-04 | Running 数据全部经 Worker 代理，白名单在 `worker.js` 的 `TRACKS_FILES` | 新数据源须进白名单，不直连公开 raw URL |
-| C-29 / C-42 | Running 数据生产链路改 `running-private` 仓库 | 数据生产类改动明确落在 `running-private`，非本仓库 |
-| C-43 | 静态站零后端运行时依赖 | 依赖清单无后端框架 |
+> 本步骤结束确认前须逐条核对；冲突以 `.harness/docs/CONSTRAINTS.md` 为准。**调用链终点必须是「静态产物」或「Cloudflare Worker」，不得引入后端。** 完整规则查 `CONSTRAINTS.md`。
+> **本步相关约束**：C-01、C-02（只改 `app/src/`）、C-04（Running 走 Worker 代理白名单）、C-29 / C-42（Running 生产在 `running-private`）、C-43（零后端运行时依赖）。
 
 ---
 

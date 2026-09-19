@@ -7,13 +7,10 @@
 > ⚠️ 本项目**无独立测试环境**：CI（GitHub Pages）即生产环境；部署全自动——`push main` 即 `deploy.yml` 自动 build + deploy，**无需**手动 `gh workflow run deploy.yml`，也**无**「团队环境管理 Skill / 热更 / 进程重启 / 日志 tail」等后端流程。回滚见 §6。
 > ⚠️ **提交（原独立 Commit 步骤）已并入本步骤**：本任务「代码 commit」在此创建；IT 失败修复的 amend 循环见 §5，md 产物的收尾 commit 见 `08-review.md` §6。
 
-## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+## 0. 约束自查（强制）
 
-> 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。
-- 构建：C-05（Node≥24）、C-06（safe-delete guard）、C-07（CI 不写死 pnpm version）、C-09（client→ssr 顺序）
-- 部署：C-16（push main 全自动，禁手动 gh workflow run）、C-17（Pages Source=Actions）、C-18（回滚方式）、C-19（用 gh run list 判上线）
-- 提交协作：C-44（Conventional Commits）、C-45（代码 commit / IT 修复 amend / `--force-with-lease`）、C-46（直推 main，无 PR 评审流）、C-47（边界点 A/B 冻结规则）、C-48（提交前四项全绿）
-- 门禁：C-12（CI 双门禁已落地）
+> 本步骤结束确认前逐条核对；冲突以 `.harness/docs/CONSTRAINTS.md` 为准。完整规则查 `CONSTRAINTS.md`。
+> **本步相关约束**：构建 C-05（Node≥24）/ C-06（safe-delete guard）/ C-07 / C-09；部署 C-16（push main 全自动）/ C-17 / C-18（回滚）/ C-19（gh run list 判上线）；提交协作 C-44（Conventional Commits）/ C-45（amend + `--force-with-lease`）/ C-46（直推 main）/ C-47（边界点 A/B）/ C-48（四项全绿）；门禁 C-12（双门禁）。部署 / 回滚 / 修复循环见 `DEPLOY-LOOP.md`。
 
 ---
 
@@ -73,15 +70,7 @@ BASE_URL=https://guoxin.space npx playwright test
 
 ## 5. IT 失败修复循环（与 06-it.md 联动）
 
-> 06 IT 用例失败且定位为**代码问题**时，循环执行直到 06 全部用例通过，再进入 07 Docs：
-> ① 修复代码（必要时回 03-implement 补记偏离）→ ② amend 重推 → ③ 重新走 §4 确认部署成功 → ④ 复测 06 失败用例（必要时重跑 UT）。
-> 循环期间：**不改 commit message**（`--amend --no-edit`）；md 产物（06/07/08 + `00-overview.md` 终态）的更新**不在此循环提交**，统一随 08 Review 的收尾 commit 入库。
-
-```bash
-git add <修复的代码>
-git commit --amend --no-edit
-git push --force-with-lease   # ✅ 必用；禁止裸 --force
-```
+> 06 IT 用例失败且定位为**代码问题**时，按 `DEPLOY-LOOP.md` §修复循环 执行（修复代码 → `--amend --no-edit` + `--force-with-lease` 重推 → 复测），**md 产物不在此循环提交**，统一随 08 Review 收尾 commit 入库。循环直到 06 全部用例通过，再进入 07 Docs。
 
 ## 6. 回滚方案（必填）
 

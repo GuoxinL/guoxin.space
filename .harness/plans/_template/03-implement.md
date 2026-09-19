@@ -7,14 +7,15 @@
 
 ---
 
-## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+## 0. 约束自查（强制）
 
-> 本步骤结束确认前，逐条核对以下约束；冲突以 CONSTRAINTS.md 为准。
-- 架构：C-01（无后端/DB/MQ）、C-02（只改 `app/src`）、C-04（Running 走 Worker 代理）、C-43（需服务端走 Cloudflare Worker）
-- 构建：C-05（Node≥24）、C-06（`CODEBUDDY_SAFE_DELETE_ENABLED=0`）、C-08（pnpm，禁 `package-lock.json`）
-- 编码红线：C-21（`.btn` 基类不可改）、C-22（`.pixelated` 类限定）、C-23（改 CSS 须 hover 态回读）、C-27（换 Hero 主图同步 width/height）、C-28（禁新增 `/favicon.ico`）、C-30（禁 `any` / `run_id` 按字符串）、C-31（Qwik 原语）、C-32（错误处理/输入校验）、C-33（资源清理）
-- 设计系统：C-34（去容器化）、C-35（圆角令牌 10/12/14/16/999，容器 0）、C-36（偏移实心阴影）、C-37（动效 120–160ms）、C-38（CSS 变量 / `mc-` 前缀）、C-39（版面宽度单点 `--container-w`）、C-40（PixelIcon 禁图标库）、C-41（Hero 主图 `pickaxe.png`）
-- 安全：C-49（无硬编码密钥）、C-50（输入校验/输出转义）、C-51（标准库加密）
+> 本步骤结束确认前逐条核对；冲突以 `.harness/docs/CONSTRAINTS.md` 为准。完整规则查 `CONSTRAINTS.md`。
+> **本步相关约束**（按类）：
+> - 架构：C-01、C-02（只改 `app/src`）、C-04、C-43
+> - 构建：C-05（Node≥24）、C-06（safe-delete guard）、C-08（pnpm）
+> - 编码红线：C-21（`.btn` 不可改）、C-22、C-23（改 CSS 须 hover 回读）、C-27、C-28（禁 favicon.ico）、C-30（禁 `any`/`run_id` 字符串）、C-31、C-32、C-33
+> - 设计系统：C-34~C-41（去容器化 / 圆角 / 阴影 / 动效 / CSS 变量 / `--container-w` / PixelIcon / Hero 主图）
+> - 安全：C-49、C-50、C-51
 
 ---
 

@@ -6,15 +6,11 @@
 
 ---
 
-## 0. 约束自查（强制，详见 `.harness/docs/CONSTRAINTS.md`）
+## 0. 约束自查（强制）
 
-> 本步骤结束确认前逐条核对；冲突以 CONSTRAINTS.md 为准。
-
-| 约束 | 规则 | 自查要点 |
-|------|------|---------|
-| C-01 | 文档须与代码一致（无后端 / DB / MQ 的 SSG 静态站定位） | 改动若触及项目性质 / 环境 / 流程约束，必须同步 `.harness/docs/CONSTRAINTS.md` 及对应镜像（`AGENTS.md` / `DESIGN.md`） |
-
-> ⚠️ **若本次改动新增 / 删除 / 修改了任一硬约束（C-xx）**，必须在 07 步骤同步更新 `.harness/docs/CONSTRAINTS.md`，否则 SOP 权威失效。
+> 本步骤结束确认前逐条核对；冲突以 `.harness/docs/CONSTRAINTS.md` 为准。完整规则查 `CONSTRAINTS.md`。
+> **本步相关约束**：C-01（文档须与代码一致）。
+> ⚠️ **若本次改动新增 / 删除 / 修改了任一硬约束（C-xx）**，必须在 07 同步更新 `.harness/docs/CONSTRAINTS.md` 及对应镜像（`AGENTS.md` / `DESIGN.md`），否则 SOP 权威失效。
 
 ---
 
