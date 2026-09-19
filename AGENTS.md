@@ -42,7 +42,7 @@ personal-homepage/
 
 2. **版面宽度只有一处开关**：`Header / main / Footer` 三处容器统一用 `.mc-container` 类（定义在 `app/src/global.css`），宽度取自 `--container-w`（当前 **1280px**，宽板）。改版面宽度**只改这个变量**，不要在三个文件里各写 `max-w-*`（历史上是 `max-w-5xl`，已废弃）。页面内所有区块（Hero / Card / Terminal 等）**不设自己的宽度上限**，一律跟随 `main` 容器。
 
-3. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md` 与 `docs/archive/design/style-proposal.md`。
+3. **视觉容器约定（V2 去容器化，2026-09-11 起）**：首页默认**不用**「圆角 + 描边 + 偏移阴影」的框。分块靠**发丝线**（`1px solid var(--slate-5)`）+ 留白；hover 用 `--violet-0` 色带。全站共用的 `.btn` 基类（Skills/JSON/Running 三页 28 处引用）**不得改动**，首页如需不同按钮样式，只能在 `.mc-hero-cta .btn` 这类作用域内覆盖。详见 `DESIGN.md`。
 
 4. **`image-rendering` 不做全局命中**：只有显式带 `.pixelated` 类的元素才用最近邻放大。禁止写 `img, canvas { image-rendering: pixelated }`——会误伤精绘素材与缩略图降采样，产生锯齿。
 
@@ -52,7 +52,7 @@ personal-homepage/
 
 > 本仓库定位「AI 亲和」：文件/目录体积直接决定 Agent 上下文成本。硬约束见 CONSTRAINTS **C-55**；以下为 Agent 操作时的上下文控制规矩（与「任务隔离」红线互为补充）。
 
-1. **已完成计划归档**：结项任务的 `.harness/plans/<YYYY-MM-DD_*>/*` 一律 `git mv` 进 `.harness/plans/_done/`，保持活跃计划热路径精简；`_template/` 留在原地作模板。
+1. **活跃计划热路径精简**：`.harness/plans/` 下只保留进行中任务。结项后**不再 `git mv` 进 `_done/`**（既有 `_done/` 保留为历史、不检索）；任务目录可直接删（全部内容已在 git 历史与代码中，git 为正统审计），或保留为 `✅` 标记。文档量随是否交 AGENT 缩放：solo 短平快改动以 git 历史为审计、不开任务目录；仅 AGENT 接手 / 复杂 / 多会话才起任务目录当简报包。
 2. **计划目录只读当前任务**：只处理 `.harness/plans/<当前任务>/`；`.harness/plans/_done/`、`docs/archive/` 除非用户**显式**要求，否则不检索、不整读（避免把 ~1.8 万行历史记录灌入 context）。
 3. **大文件禁止整读**：单文件 >600 行（如 `app/src/global.css` 5831 行、`lib/running.ts` 1561 行）编辑时**只用 Grep 定点取片段**，不把全文件塞进上下文；改 CSS 先按 `global.css` 内 `/* 页面N：xxx */` 分节定位。
 4. **重目录永不检索**：`running-private/`（独立仓 clone，82M 图片）、`node_modules/`、`app/dist/` 物理在盘上但**永不纳入 Agent 检索**（分别是独立仓 / 依赖 / 产物）。
@@ -158,7 +158,7 @@ gh run list --workflow=deploy.yml --limit 5
 
 ## 设计系统 QWIK-INSPIRED v2（2026-09-10 起，取代 v1 像素版）
 
-- **设计真源 = 根目录 `DESIGN.md`**（9 章节）。参考基准 `https://next.qwik.dev/`；v1 Minecraft 像素版已废弃（演进记录见 `docs/archive/design/BLOCKCRAFT-REDESIGN.md`，v2 交付说明见 `docs/archive/design/QWIK-REDESIGN.md`）。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`。
+- **设计真源 = 根目录 `DESIGN.md`**（9 章节，唯一真源、**不保留历史稿**）。参考基准 `https://next.qwik.dev/`；v1 像素版 / v2 演进稿均已废弃，演进与交付说明统一以 `DESIGN.md` 为准。改视觉**先改 DESIGN.md**，再同步 `app/src/global.css`（零漂移是底线）。
 - 视觉规则（违反即不合格）：圆角只取 `10/12/14/16/999`；阴影一律**偏移实心** `Npx Npx 0`（N∈1/2/3/4/6/8，禁止模糊半径）；描边 `1.6px`（分隔/顶栏）或 `2px`（输入/弹窗等交互控件，容器不画边框）；动效 120–160ms `ease-out`；**禁止**纯黑 `#000`、正文用像素字、大面积渐变、缓动 >200ms。
 - 主题变量：`--violet-*`（主色 `#A053FE`）/ `--sky-*`（强调 `#00B5F1`）/ `--slate-*`（中性 `#293749`）/ `--shadow-*`（偏移阴影）。旧的 `--bg/--surface/--text/--primary/--radius/--shadow` 等为**兼容别名**，Skills / JSON / Running 三页零改动继承皮肤。暗色主题只覆盖变量，不写组件选择器。
 - 字体（本地自托管，无第三方请求）：`app/public/fonts/press-start-2p-latin.woff2`（4.7KB，街机像素显示字，用于 Hero/H1-H3/导航/按钮，CSS 名 `Press Start 2P`）、`app/public/fonts/fusion-pixel-12px-zh_hans.woff2`（661KB，中文标题回退，CSS 名 `Fusion Pixel 12px`）。**正文用系统无衬线**（`--font`），不用像素字；位图图标保留 `image-rendering: pixelated`。
