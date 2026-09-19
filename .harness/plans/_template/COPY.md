@@ -10,7 +10,7 @@
 
 新任务起步：
 
-1. `cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>`
+1. `cp -r .harness/plans/_template .harness/plans/YYYY-MM-DD_<title>`（小需求改用 `MINI.md` 单文件模板，见「一·附：何时用 MINI 极简模板」）
 2. 打开新 `plans/<task>/00-overview.md`
 3. 删除顶部 `<!-- … -->` 指针注释块（仅提示用，不进任务文件）
 4. 找到 `00-overview.md` 中两处 `<!-- Progress 更新规则见 ./COPY.md … -->`、`<!-- 时间记录规则见 ./COPY.md … -->` 占位注释，整段替换为**单行指针**（出现 2 次就替换 2 次）：
@@ -23,6 +23,16 @@
 
 > **为什么精简**：任务文件若带完整规则，10 个任务 = 10 份副本、易版本漂移；规则只在 `_template/` 维护（本文件为附录），AI 查规则时只看 `_template/`。
 > ⚠️ 规则变更只改 `_template/`（含本文件），旧任务文件**不自动同步**——如需刷新旧任务，手动复制差异即可。
+
+---
+
+## 一·附：何时用 MINI 极简模板
+
+> 小需求（纯文案 / 纯 CSS 微调 / 单文件 ≤10 行）用 `MINI.md` 替代全套 8 步；判定口径见 `00-overview.md` Meta「小需求模式」。
+
+- **用 MINI**：改动 ≤10 行、单文件、无需 UT/IT 全套、无新设计（沿用 DESIGN.md）。
+- **不用 MINI（退回全套 8 步）**：跨文件、>10 行、新增 `lib` 逻辑（需 TDD）、新视觉 / 新交互需回写 `DESIGN.md`、涉及 Worker 契约。
+- MINI 仍须遵守硬约束（`CONSTRAINTS.md`）+ 设计锚定根 `DESIGN.md` + 自验（build / test / e2e）+ 收尾提交（CI 策略正确）；被委托 AGENT 执行时填 C-56 交回契约。
 
 ---
 
