@@ -20,6 +20,14 @@ const INTROS: Record<Tab, string> = {
   csv: "CSV ↔ JSON：表格与 JSON 数组互转（首行为表头），纯前端本地处理，数据不上传。",
 };
 
+/** 各 tab 主标题（与 ToolboxTabs 标签一致） */
+const TITLES: Record<Tab, string> = {
+  url: "URL",
+  ts: "时间戳",
+  jwt: "JWT",
+  csv: "CSV",
+};
+
 /** 小工具面板（非 modal）：tab 行用 Link 切换路由，body 渲染当前 tab。纯前端、零上传。 */
 export const SmallToolPanel = component$<{ tab: Tab }>(({ tab }) => {
   const toast = useSignal("");
@@ -122,6 +130,7 @@ export const SmallToolPanel = component$<{ tab: Tab }>(({ tab }) => {
           </div>
         )}
 
+        <h1 class="tools-h1">{TITLES[tab]}</h1>
         <p class="tools-intro">{INTROS[tab]}</p>
 
         {tab === "url" && (

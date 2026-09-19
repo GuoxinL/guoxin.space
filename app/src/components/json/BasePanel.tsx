@@ -91,6 +91,7 @@ export const BasePanel = component$(() => {
 
   return (
     <div class="base-wrap">
+      <h1 class="base-h1">Base</h1>
       <p class="base-intro">
         Base 编解码全家桶：Base16(Hex) / Base32 / Base58 / Base64 / Base64URL /
         Base85，纯前端本地处理，数据不上传。左侧输入、右侧输出，点上方按钮切换编解码。

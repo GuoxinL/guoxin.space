@@ -4208,17 +4208,172 @@ body[data-theme="light"] .md-pre {
 
 /* ---------- 日历（Toolbox · 日历） ---------- */
 /* V2 去容器化：月格仅用发丝线分隔，不出现圆角+描边+偏移阴影盒子；今日用主色 inset ring。 */
-.cal-h1 {
+/* Toolbox 各页统一「主标题 + 描述」样式（沿用日历视觉，跨页一致） */
+.cal-h1,
+.json-h1,
+.base-h1,
+.tools-h1 {
   font-family: var(--font-heading);
   font-weight: 400;
   font-size: 28px;
+  line-height: 1.2;
   color: var(--slate-95);
   margin: 0 0 0.4rem;
 }
-.cal-intro {
+.cal-intro,
+.json-intro,
+.base-intro,
+.tools-intro {
   color: var(--slate-50);
   font-size: 14px;
+  line-height: 1.6;
   margin: 0 0 1.6rem;
+  max-width: 720px;
+}
+/* JSON 页头内的 intro 不重复撑高（间距由 .json-head margin 控制） */
+.json-head .json-intro {
+  margin: 0;
+}
+
+/* ---------- Base 编解码（Toolbox · Base） ---------- */
+/* V2 去容器化：发丝线分块、跟随 .mc-container 宽度、hover 主色带；
+   .btn 基类不可改，codec/dir 选中态用更具体的 .base-toolbar .btn.active 覆盖。 */
+.base-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.base-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.base-toolbar + .base-toolbar {
+  margin-top: -2px;
+}
+.base-grp-label {
+  font-size: 12px;
+  color: var(--slate-50);
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+  min-width: 56px;
+}
+.base-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--slate-5);
+}
+.base-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.base-col-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--text3);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.base-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.base-box {
+  width: 100%;
+  min-height: 200px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  outline: none;
+  transition:
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+.base-box::placeholder {
+  color: var(--text3);
+}
+.base-box:focus {
+  border-color: var(--violet-65);
+  box-shadow: 0 0 0 3px var(--violet-0);
+}
+.base-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.base-options {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.base-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+}
+.base-opt input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--violet-65);
+  cursor: pointer;
+}
+.base-err {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  font-size: 13px;
+}
+.base-hint {
+  margin-top: 12px;
+  color: var(--slate-50);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.base-toast {
+  color: var(--success);
+  font-size: 12.5px;
+}
+/* codec / dir 选中态：更具体选择器覆盖 .btn 默认，hover 也保持选中色 */
+.base-toolbar .btn.active {
+  background: var(--violet-0);
+  border-color: var(--violet-65);
+  color: var(--violet-75);
+}
+@media (max-width: 720px) {
+  .base-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cal-head {

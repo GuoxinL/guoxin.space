@@ -765,9 +765,12 @@ export const JsonWorkbench = component$(() => {
   return (
     <div class="json-wrap">
       <div class="json-head">
-        <div class="json-intro">
-          JSON 在线工具：格式化、压缩、转义、修复、树形浏览、左右对比与 JSONPath
-          查询，纯前端本地处理，数据不上传。
+        <div class="json-head-text">
+          <h1 class="json-h1">JSON</h1>
+          <div class="json-intro">
+            JSON 在线工具：格式化、压缩、转义、修复、树形浏览、左右对比与 JSONPath
+            查询，纯前端本地处理，数据不上传。
+          </div>
         </div>
         <div class="toolbar">
           <select
