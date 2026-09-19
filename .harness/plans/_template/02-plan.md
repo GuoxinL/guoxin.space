@@ -3,7 +3,7 @@
 > **目的**：把 Clarify 的结论转化为可落地的技术方案。
 > **输入**：`01-clarify.md` 的目标与范围
 > **输出**：改动清单、调用链、数据结构、**UT 用例（TDD 先行）**、IT 用例
-> **项目性质**：本仓库是 Qwik SSG 静态站（GitHub Pages 托管），**无后端 / 无 DB / 无 MQ**，任何需要服务端的逻辑走独立部署的 Cloudflare Worker（`worker.js`）。因此 §3 的「DB schema」、§5.2 的「DB 表结构」在本项目恒为「跳过」——下方已标注。
+> **项目性质**：本仓库是 **Qwik + Qwik City 的 SSG 静态前端**（GitHub Pages 托管，**零后端运行时**）：页面经构建产出静态产物（`app/dist`），仅由独立的 Cloudflare Worker（`worker.js`）承担少量服务端代理。本 SOP 不含后端 / DB / MQ / 微服务概念——§3 的「DB schema」、§5.2 的「DB 表结构」在本项目恒为「跳过」。
 > **TDD 模式**：本阶段必须**先于 Implement** 设计完 UT 用例（§6）；UT/IT 边界与红绿循环约束详见 `04-ut.md` §0.5，本文件只列 UT 用例骨架，重复内容不复制。
 
 ---
@@ -38,7 +38,7 @@
 | 上下游服务（Cloudflare Worker / running-private 私库） |  |
 | 静态产物（app/dist 体积 / 404 fallback） |  |
 
-> ⚠️ **DB schema**：本项目无数据库，本行固定标记「无（跳过）」。若改动涉及 Worker 侧数据契约，改 `running-private` 仓库并只在「上下游服务」行说明，不在本节造 DB 概念。
+> ⚠️ **DB schema**：本项目是纯前端静态站，无数据库，本行固定标记「无（跳过）」。若改动涉及 Worker 侧数据契约，改 `running-private` 仓库并只在「上下游服务」行说明，不在本节造后端 DB 概念。
 
 ## 4. 调用链
 
