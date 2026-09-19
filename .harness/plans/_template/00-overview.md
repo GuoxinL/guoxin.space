@@ -28,7 +28,13 @@
 
 ## 自治 AGENT 委托规范
 
-> 本 SOP 允许把**自包含、可验证、非破坏性**的步骤委托给独立 AGENT 执行（主会话只等结论）。委托≠放权：AGENT 受五道闸约束，且**永不触碰生产**（不 `git push`）。
+> 本 SOP 允许把**自包含、可验证、非破坏性**的步骤委托给独立 AGENT 执行（主会话只等结论）。委托≠放权：AGENT 受五道闸约束，且**永不触碰生产**（不 `git push`）。**硬约束真源已升格为 `CONSTRAINTS.md` C-56**——本节的标记表与五道闸以 C-56 为准，本节为可读版说明。
+
+**委托前快检（人做，4 项）**——任一项不满足不得委托：
+- [ ] 目标步已标 ✅ 或 ⚠️（❌ 步一律人做）
+- [ ] 已在指令中指向对应步文件 + `CONSTRAINTS.md`（C-56）+ 规范（unittest/integration_test）
+- [ ] 已显式声明「禁 push / 禁改 CONSTRAINTS·AGENTS·DESIGN」
+- [ ] 已约定「交回契约」格式（下方固定块）
 
 **各步委托标记**（✅ 首选 / ⚠️ 条件 / ❌ 人专有）：
 
@@ -48,10 +54,25 @@
 1. **装备最小化** — 指令只引用本步文件 + `CONSTRAINTS.md` + 对应规范（`unittest.md` / `integration_test.md`）；文件作用域限 `app/src/`（C-02）。
 2. **运行禁令** — 禁止 `git push` / `git commit`；禁止改 `CONSTRAINTS.md` / `AGENTS.md` / `DESIGN.md`；禁止越步界；外部依赖全 mock（C-15）；单文件 >600 行只 Grep（C-55）。
 3. **自验门禁** — UT：`npm run test` + `lint` + `type-check` 全绿；IT：`build` + `test:e2e`，断言关键交互态（`getComputedStyle` 回读，C-14）；失败不关用例蒙混（C-13 / C-14）。
-4. **交回契约** — 必须返回 `{改动文件, 测试结果, 未覆盖行, 失败定位, 阻塞项}`，IT 附断言 / 截图；**人审报告 + diff 后才进 Deploy**。
+4. **交回契约** — 必须按下方**固定回填块**返回（缺项视为未完成）；IT 附关键断言 / 截图；**人审报告 + diff 后才进 Deploy**。
 5. **CI 兜底** — AGENT 不 push 就触不到生产；人审后 push 由 `deploy.yml` 双门禁（vitest + Playwright）拦截。
 
 > ⚠️ 越界（缺 Plan 设计 / 需改方案 / 红线冲突）AGENT 必须**立刻停下回报**，不擅自扩权。
+
+**交回契约回填块（AGENT 必须原样回填，缺项 = 未完成）**：
+
+```
+## 委托回报（<步：04-UT / 06-IT / …>）
+- 步：<步骤编号 + 名>
+- 改动文件：<相对 app/src/ 路径，逐行>
+- 测试结果：<UT: X/Y passed；IT: build ✓ / e2e Z/Z passed>
+- 未覆盖行：<文件:行 说明；无则填「无」>
+- 失败定位：<用例 → 根因 → 修复；无则填「无」>
+- 阻塞项：<需人决策 / 越界事项；无则填「无」>
+- 越界声明：<是 / 否；若是附说明>
+```
+
+> 🔗 **TDD 跨 AGENT 接力**：若 03 Implement（⚠️）与 04 UT（✅）拆成两个 AGENT，Red 测试由 Implement AGENT 落库（先写失败 UT），UT AGENT 只负责转绿 + 重构，**不重复写 Red**；两者经 Plan §6 用例表对齐，不另立基线。
 
 **AGENT 指令（示例，04-UT）**：
 
