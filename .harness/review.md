@@ -1,5 +1,6 @@
 # 代码 Review 指南
 
+> 状态：生效 | 维护者：仓库维护者 | 最后更新：2026-09-19 | 适用范围：08 Review / 收尾前检查
 > AI 与人类 Reviewer 共同遵守的检查清单。
 > **项目适配（guoxin.space）**：Qwik SSG 静态站——无后端 / DB / MQ，服务端能力走 Cloudflare Worker（`worker.js`，独立部署）。原通用模板中的 SQL / 事务 / trace_id / 监控告警等检查项已按静态站等价物替换。
 

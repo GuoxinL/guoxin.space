@@ -58,6 +58,18 @@ personal-homepage/
 4. **重目录永不检索**：`running-private/`（独立仓 clone，82M 图片）、`node_modules/`、`app/dist/` 物理在盘上但**永不纳入 Agent 检索**（分别是独立仓 / 依赖 / 产物）。
 5. **按模块/功能拆分、按大小拆分**：新增或膨胀的代码按 CONSTRAINTS **C-55** 拆分目录与文件（源码首选 ≤400 行、>600 行必拆），从源头控制单文件体积。
 
+### 按任务类型的最小上下文入口
+
+> Agent 启动 / 接任务时，**先读 `AGENTS.md`（本文件）**，其余按需加载；**禁止**把 `.harness/docs/` 全量读入 context。按任务类型只取下列文件：
+
+- **纯前端 / 页面 / 组件改动**：`AGENTS.md` + `DESIGN.md` + 对应 `components/<module>/`；改 CSS 只读 `global.css` 内 `/* 页面N：xxx */` 分节，**禁止整读**（5831 行）。
+- **改 `app/src/lib/` 逻辑**：`AGENTS.md` + `CONSTRAINTS.md`（相关 C 条目）+ 对应 `lib/<module>/`；改完跑 `npm run test`。
+- **新功能 / Bug 修复（走 SOP）**：`AGENTS.md` + `plans/_template/` + `CONSTRAINTS.md` + `coding-style.md`；严格按 8 步。
+- **部署 / CI / Worker 问题**：`AGENTS.md` + `devops/{env,development,deployment}.md` + `worker.js`。
+- **Notes / 数据仓问题**：`AGENTS.md` + Notes 相关约束（C-03 / C-4y / C-4z / C-4w）+ `lib/notes/`；动 `scripts/` 或示例文档须同步 `example` 分支（C-54）。
+- **设计视觉**：`AGENTS.md` + `DESIGN.md` + `global.css` 相关分节。
+- **不确定查什么**：先看 `.harness/INDEX.md`（一页导航图），再定点读对应文档，不广扫。
+
 ## 旧单文件站机制（历史存档，2026-09-09 前有效，文件已在 P8 删除）
 
 - `index.html` 底部按 `util → auth → json → skills → app → running` 顺序加载脚本；IIFE 移除后各文件顶层 `var`/`function` 共享全局作用域；各 js 顶部保留 `"use strict";`。
