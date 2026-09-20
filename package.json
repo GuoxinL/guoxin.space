@@ -21,6 +21,7 @@
     "fmt": "prettier --write app/src"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "@ltd/j-toml": "^1.38.0",
     "d3-force": "^3.0.0",
     "fast-xml-parser": "^5.11.1",

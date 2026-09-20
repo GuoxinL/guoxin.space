@@ -7,11 +7,8 @@ import {
   baseEncode,
   type BaseCodec,
   csvToJson,
-  dateToTs,
   jsonToCsv,
   jwtDecode,
-  parseTimestamp,
-  tsToDate,
   urlDecode,
   urlEncode,
 } from "./smalltools";
@@ -48,25 +45,6 @@ describe("URL", () => {
       expect(dec.ok).toBe(true);
       if (dec.ok) expect(dec.text).toBe("a b/中");
     }
-  });
-});
-
-describe("时间戳", () => {
-  it("毫秒与秒口径自动识别", () => {
-    const ms = parseTimestamp("1700000000000");
-    expect(ms.ok && ms.unit).toBe("ms");
-    const sec = parseTimestamp("1700000000");
-    expect(sec.ok && sec.unit).toBe("s");
-    expect(sec.ok && sec.ms).toBe(1700000000000);
-  });
-  it("毫秒时间戳转日期", () => {
-    const r = tsToDate(1700000000000);
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.iso.startsWith("2023-11-14")).toBe(true);
-  });
-  it("日期串转时间戳", () => {
-    const r = dateToTs("2023-11-14T22:13:20.000Z");
-    expect(r.ok && r.ms).toBe(1700000000000);
   });
 });
 

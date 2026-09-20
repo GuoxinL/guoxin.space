@@ -2,20 +2,16 @@ import { $, component$, useSignal } from "@builder.io/qwik";
 import { copyText } from "../../lib/clipboard";
 import {
   csvToJson,
-  dateToTs,
   jsonToCsv,
   jwtDecode,
-  parseTimestamp,
-  tsToDate,
   urlDecode,
   urlEncode,
 } from "../../lib/json";
 
-type Tab = "url" | "ts" | "jwt" | "csv";
+type Tab = "url" | "jwt" | "csv";
 
 const INTROS: Record<Tab, string> = {
   url: "URL 编解码：对查询参数与中文等做百分号编码 / 解码，纯前端本地处理，数据不上传。",
-  ts: "时间戳 ↔ 日期：毫秒 / 秒互转，双视角（UTC + 本地）展示，纯前端本地处理。",
   jwt: "JWT 解码：查看 header 与 payload（不校验签名），纯前端本地处理；注意勿粘贴含敏感信息的真实令牌。",
   csv: "CSV ↔ JSON：表格与 JSON 数组互转（首行为表头），纯前端本地处理，数据不上传。",
 };
@@ -23,7 +19,6 @@ const INTROS: Record<Tab, string> = {
 /** 各 tab 主标题（与 ToolboxTabs 标签一致） */
 const TITLES: Record<Tab, string> = {
   url: "URL",
-  ts: "时间戳",
   jwt: "JWT",
   csv: "CSV",
 };
@@ -35,9 +30,6 @@ export const SmallToolPanel = component$<{ tab: Tab }>(({ tab }) => {
   const urlIn = useSignal("");
   const urlOut = useSignal("");
   const urlErr = useSignal("");
-  const tsIn = useSignal("");
-  const tsOut = useSignal("");
-  const tsErr = useSignal("");
   const jwtIn = useSignal("");
   const jwtOut = useSignal("");
   const jwtErr = useSignal("");
@@ -58,27 +50,6 @@ export const SmallToolPanel = component$<{ tab: Tab }>(({ tab }) => {
     const r = dir === "enc" ? urlEncode(urlIn.value) : urlDecode(urlIn.value);
     if (r.ok) urlOut.value = r.text;
     else urlErr.value = r.err;
-  });
-  const doTs = $((dir: "todate" | "tots") => {
-    tsErr.value = "";
-    if (dir === "todate") {
-      const p = parseTimestamp(tsIn.value);
-      if (!p.ok) {
-        tsErr.value = p.err;
-        return;
-      }
-      const d = tsToDate(p.ms);
-      tsOut.value = d.ok
-        ? `输入口径：${p.unit === "s" ? "秒（已×1000）" : "毫秒"}\nUTC：${d.iso}\n本地：${d.local}`
-        : d.err;
-    } else {
-      const p = dateToTs(tsIn.value);
-      if (!p.ok) {
-        tsErr.value = p.err;
-        return;
-      }
-      tsOut.value = `毫秒：${p.ms}\n秒：${Math.floor(p.ms / 1000)}`;
-    }
   });
   const doJwt = $(() => {
     jwtErr.value = "";
@@ -154,33 +125,6 @@ export const SmallToolPanel = component$<{ tab: Tab }>(({ tab }) => {
             </div>
             {urlErr.value && <div class="tools-err">{urlErr.value}</div>}
             <textarea class="tools-out" readOnly value={urlOut.value} />
-          </div>
-        )}
-
-        {tab === "ts" && (
-          <div class="tools-pane">
-            <input
-              class="tools-in-line"
-              placeholder="时间戳（毫秒/秒）或日期 ISO 串…"
-              value={tsIn.value}
-              onInput$={(_e, el) => (tsIn.value = el.value)}
-            />
-            <div class="tools-actions">
-              <button class="btn" onClick$={() => doTs("todate")}>
-                转日期
-              </button>
-              <button class="btn" onClick$={() => doTs("tots")}>
-                转时间戳
-              </button>
-              <button class="btn ghost" onClick$={() => copy(tsOut.value)}>
-                复制结果
-              </button>
-            </div>
-            {tsErr.value && <div class="tools-err">{tsErr.value}</div>}
-            <textarea class="tools-out" readOnly value={tsOut.value} />
-            <p class="tools-hint">
-              提示：输入 ≤ 1e12 的整数按「秒」处理并自动×1000；其余按毫秒。
-            </p>
           </div>
         )}
 

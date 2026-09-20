@@ -62,59 +62,6 @@ export function urlDecode(
   }
 }
 
-/* ---------------- 时间戳 ↔ 日期 ---------------- */
-
-/** 把毫秒时间戳转可读日期（UTC + 本地双视角） */
-export function tsToDate(ms: number):
-  | {
-      ok: true;
-      iso: string;
-      local: string;
-      ms: number;
-    }
-  | { ok: false; err: string } {
-  if (!Number.isFinite(ms)) return { ok: false, err: "时间戳不是有效数字" };
-  const d = new Date(ms);
-  if (isNaN(d.getTime())) return { ok: false, err: "时间戳超出日期范围" };
-  return {
-    ok: true,
-    iso: d.toISOString(),
-    local: d.toString(),
-    ms,
-  };
-}
-
-/**
- * 解析用户输入的时间戳：支持毫秒与秒两种口径。
- * 规则：输入去空白后若 ≤ 1e12（约 2001 年），视为秒，自动 ×1000。
- */
-export function parseTimestamp(
-  input: string,
-): { ok: true; ms: number; unit: "ms" | "s" } | { ok: false; err: string } {
-  const s = input.trim();
-  if (!/^\d+(\.\d+)?$/.test(s))
-    return { ok: false, err: "请输入纯数字时间戳（毫秒或秒）" };
-  const n = Number(s);
-  if (!Number.isFinite(n)) return { ok: false, err: "时间戳不是有效数字" };
-  if (n <= 1e12 && Number.isInteger(n))
-    return { ok: true, ms: n * 1000, unit: "s" };
-  return { ok: true, ms: n, unit: "ms" };
-}
-
-/** 日期字符串 → 毫秒时间戳 */
-export function dateToTs(
-  input: string,
-): { ok: true; ms: number } | { ok: false; err: string } {
-  const s = input.trim();
-  const ms = Date.parse(s);
-  if (isNaN(ms))
-    return {
-      ok: false,
-      err: "无法解析该日期（建议 ISO 格式，如 2026-09-17T10:00:00）",
-    };
-  return { ok: true, ms };
-}
-
 /* ---------------- JWT 解码 ---------------- */
 
 function b64urlDecode(seg: string): string {

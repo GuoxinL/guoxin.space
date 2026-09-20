@@ -424,3 +424,11 @@ V2 去容器化：专栏卡片行置于 `/notes/` 列表页顶部（横向滚动
 8. 图标统一 16×16 网格；需要放大时按 4 的倍数。
 9. `image-rendering: pixelated` **只给显式带 `.pixelated` 类的元素**（如 `PixelIcon.tsx`，其 SVG 另用 `shape-rendering: crispEdges`）；**禁止全局写 `img, canvas { image-rendering: pixelated }`**——会误伤精绘素材与缩略图的降采样，产生锯齿。Hero 水晶镐**不要**加它。
 10. 改完跑构建验证，确认字体与图片进 `dist/`。
+
+### 时间戳工具（Toolbox /toolbox/timestamp）
+
+- 复用 Toolbox 既有 `.tools-panel`（max-width 680px）容器与「发丝线 + 留白」去容器化分区（V2 规范），不新增圆角+描边+阴影盒子。
+- 新增样式集中在 `global.css` 末尾 `/* 页面：时间戳工具 */` 一节，类名统一 `ts-*` 前缀：`.ts-cards`（双列网格，窄屏单列）、`.ts-card`、`.ts-nowbar`、`.ts-tzbar`、`.ts-adv`（手风琴）、`.ts-compare`/`.ts-period`/`.ts-interval`/`.ts-aijson` 等。
+- 数值一律等宽字（`var(--mono)`）；强调/倒计时用 `var(--violet-65)`；错误沿用 `.tools-err`、提示沿用 `.tools-hint`。
+- 组件层：`app/src/components/timestamp/TimestampTool.tsx`（主流程 + 高级区同文件内联，复用同一批 signal，避免 bigint 跨组件序列化）；Temporal 引擎经 `useVisibleTask$` 动态 `import("@js-temporal/polyfill")` 后挂 `globalThis.Temporal`，逻辑层 `getTemporal()` 只读该全局（SSG 期无 Temporal 时走 Date 兜底）。
+- 单测：`app/src/lib/timestamp.test.ts`（纯函数层，21 通过 / 2 个 DST 用例在无 Temporal 时 skip）；旧 `smalltools.ts` 的 `parseTimestamp/tsToDate/dateToTs` 已删除（由 `lib/timestamp.ts` 取代），`SmallToolPanel` 的 ts tab 已剥离为独立页面。
