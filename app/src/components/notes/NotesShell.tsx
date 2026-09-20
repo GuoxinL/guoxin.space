@@ -428,7 +428,7 @@ function seriesStatusLabel(status?: SeriesInfo['status']): string {
     case 'archived':
       return '已归档';
     default:
-      return '连载中';
+      return ''; // 不再展示「连载中」
   }
 }
 
@@ -439,7 +439,9 @@ const SeriesCards = component$<{ series: SeriesInfo[]; onOpen: QRL<(slug: string
     return (
       <section class="notes-series-cards" data-testid="notes-series-cards" aria-label="专栏">
         <div class="notes-series-cards-row">
-          {series.map((s) => (
+          {series.map((s) => {
+            const statusLabel = s.status ? seriesStatusLabel(s.status) : '';
+            return (
             <button
               type="button"
               key={s.slug}
@@ -448,17 +450,18 @@ const SeriesCards = component$<{ series: SeriesInfo[]; onOpen: QRL<(slug: string
               onClick$={() => onOpen(s.slug)}
             >
               {s.cover && <img class="notes-series-card-cover" src={s.cover} alt="" aria-hidden="true" />}
-              <span class="notes-series-card-badge">专栏 Column</span>
-              {s.status && (
+              <span class="notes-series-card-badge">专栏</span>
+              {statusLabel && (
                 <span class={`notes-series-card-status notes-series-card-status--${s.status}`}>
-                  {seriesStatusLabel(s.status)}
+                  {statusLabel}
                 </span>
               )}
               <span class="notes-series-card-name">{s.name}</span>
               {s.summary && <span class="notes-series-card-summary">{s.summary}</span>}
               <span class="notes-series-card-count">共 {s.count} 篇</span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
     );
@@ -471,7 +474,9 @@ const SeriesDetail = component$<{
   articles: ArticleSummary[];
   onBack: QRL<() => void>;
   onOpenArticle: QRL<(slug: string) => void>;
-}>(({ info, articles, onBack, onOpenArticle }) => (
+}>(({ info, articles, onBack, onOpenArticle }) => {
+  const statusLabel = info.status ? seriesStatusLabel(info.status) : '';
+  return (
   <div class="notes-series-detail" data-testid="notes-series-detail">
     <button type="button" class="notes-back" onClick$={onBack}>
       ← 返回列表
@@ -479,10 +484,10 @@ const SeriesDetail = component$<{
     <header class="notes-series-detail-head">
       {info.cover && <img class="notes-series-detail-cover" src={info.cover} alt="" aria-hidden="true" />}
       <div class="notes-series-detail-meta">
-        <span class="notes-series-card-badge">专栏 Column</span>
-        {info.status && (
+        <span class="notes-series-card-badge">专栏</span>
+        {statusLabel && (
           <span class={`notes-series-card-status notes-series-card-status--${info.status}`}>
-            {seriesStatusLabel(info.status)}
+            {statusLabel}
           </span>
         )}
         <h1 class="notes-series-detail-title">{info.name}</h1>
@@ -511,7 +516,8 @@ const SeriesDetail = component$<{
       <p class="notes-muted">该专栏暂未发布文章。</p>
     )}
   </div>
-));
+  );
+});
 
 /**
  * 数据版本页脚（N-T19）：展示数据来源（sourceRef）与生成时间（generatedAt）。
