@@ -17,6 +17,18 @@ test.describe("Toolbox · 时间戳 /toolbox/timestamp", () => {
     await expect(page.locator(".ts-input")).toBeVisible();
   });
 
+  test("默认加载即填入当前时间，6 张转换卡可见，「现在」按钮可回填", async ({ page }) => {
+    await page.goto("/toolbox/timestamp");
+    // 打开即应预填当前时间戳（非空），且 6 张格式卡直接可见
+    await expect(page.locator(".ts-input")).not.toHaveValue("");
+    await expect(page.locator(".ts-card")).toHaveCount(6);
+    await expect(page.locator(".ts-now-btn")).toBeVisible();
+    // 输入其他值后点「现在」应回填当前时间
+    await page.locator(".ts-input").fill("1700000000000000000");
+    await page.locator(".ts-now-btn").click();
+    await expect(page.locator(".ts-input")).not.toHaveValue("1700000000000000000");
+  });
+
   test("输入纳秒时间戳 → RFC3339 / 含亚秒(ns) 卡片即时更新", async ({ page }) => {
     await page.goto("/toolbox/timestamp");
     // 等 Temporal 引擎异步加载完成（避免首屏 Date 兜底用空格分隔）

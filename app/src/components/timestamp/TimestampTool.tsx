@@ -46,7 +46,7 @@ export const TimestampTool = component$(() => {
   const loc = useLocation();
   const q = loc.url.searchParams;
 
-  const raw = useSignal(q.get("ts") ?? "");
+  const raw = useSignal(q.get("ts") ?? String(Date.now()));
   const unitLock = useSignal<Unit>((q.get("unit") as Unit) || "auto");
   const zone = useSignal(q.get("tz") || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
   const nowNs = useSignal(BigInt(Date.now()) * 1_000_000n);
@@ -99,6 +99,17 @@ export const TimestampTool = component$(() => {
     } catch {
       /* SSR 下无 window，忽略 */
     }
+  });
+
+  // 回填「当前时间」：随当前单位(自动/秒/毫秒/微秒/纳秒)给出对应精度的值
+  const setNow = $(() => {
+    const ns = nowNs.value;
+    const u = unitLock.value;
+    if (u === "s") raw.value = String(Number(ns / 1_000_000_000n));
+    else if (u === "us") raw.value = String(Number(ns / 1_000_000n));
+    else if (u === "ns") raw.value = ns.toString();
+    else raw.value = String(Number(ns / 1_000_000n)); // auto / ms
+    syncUrl();
   });
 
   // 客户端：加载 Temporal 引擎 + 启动秒级时钟 + 读取历史
@@ -226,6 +237,9 @@ export const TimestampTool = component$(() => {
                 <option value="us">微秒</option>
                 <option value="ns">纳秒</option>
               </select>
+              <button class="btn ghost ts-now-btn" onClick$={() => setNow()}>
+                现在
+              </button>
             </div>
 
             {!parsed.ok && raw.value.trim() !== "" && (
@@ -244,8 +258,8 @@ export const TimestampTool = component$(() => {
                 <span class="ts-nowbar-tag">UTC</span>
                 <span class="ts-nowbar-time">{fmtNow("UTC", nowNs.value)}</span>
               </div>
-              <button class="btn ghost ts-nowbar-use" onClick$={() => (raw.value = String(Number(nowNs.value / 1_000_000n)))}>
-                用当前毫秒
+              <button class="btn ghost ts-nowbar-use" onClick$={() => setNow()}>
+                回到当前
               </button>
             </div>
 

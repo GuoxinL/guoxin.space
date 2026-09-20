@@ -6033,6 +6033,7 @@ body[data-theme="light"] .md-pre {
 }
 .ts-input-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }

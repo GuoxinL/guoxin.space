@@ -432,4 +432,5 @@ V2 去容器化：专栏卡片行置于 `/notes/` 列表页顶部（横向滚动
 - 新增样式集中在 `global.css` 末尾 `/* 页面：时间戳工具 */` 与 `/* 时间戳：主区 + 侧栏双栏 */` 两节，类名统一 `ts-*` 前缀：`.ts-cards`（响应式网格）、`.ts-card`（hover 给 `--violet-0` 色带）、`.ts-nowbar`、`.ts-tz-input`、`.ts-side`/`.ts-side-block`/`.ts-side-history`、`.ts-adv`（手风琴）、`.ts-compare`/`.ts-period`（行间 `border-top` 发丝线分块）/`.ts-interval`/`.ts-aijson` 等。
 - 数值一律等宽字（`var(--mono)`）；强调/倒计时用 `var(--violet-65)`；错误沿用 `.tools-err`、提示沿用 `.tools-hint`。
 - 组件层：`app/src/components/timestamp/TimestampTool.tsx`（主流程 + 高级区同文件内联，复用同一批 signal，避免 bigint 跨组件序列化）；Temporal 引擎经 `useVisibleTask$` 动态 `import("@js-temporal/polyfill")` 后挂 `globalThis.Temporal`，逻辑层 `getTemporal()` 只读该全局（SSG 期无 Temporal 时走 Date 兜底）。
+- 交互默认：无 `?ts` 时输入框预填当前毫秒时间戳，打开即见 6 张格式卡（第一眼可用）；输入行「现在」按钮按当前单位回填（auto/毫秒→ms、秒→s、微秒→us、纳秒→ns），时间条保留「回到当前」按钮做同义重置；输入行 `flex-wrap` 防窄屏挤压。
 - 单测：`app/src/lib/timestamp.test.ts`（纯函数层，21 通过 / 2 个 DST 用例在无 Temporal 时 skip）；旧 `smalltools.ts` 的 `parseTimestamp/tsToDate/dateToTs` 已删除（由 `lib/timestamp.ts` 取代），`SmallToolPanel` 的 ts tab 已剥离为独立页面。
