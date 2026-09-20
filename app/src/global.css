@@ -6260,6 +6260,56 @@ body[data-theme="light"] .md-pre {
   white-space: pre-wrap;
   word-break: break-all;
 }
+/* 时间戳：主区 + 侧栏双栏（等高） */
+.ts-cols {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+.ts-main {
+  min-width: 0;
+}
+.ts-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+}
+.ts-side-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ts-side-block + .ts-side-block {
+  border-top: 1px solid var(--border2);
+  padding-top: 12px;
+}
+.ts-side-block > label,
+.ts-side-label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.ts-side-block .ts-tz-input {
+  width: 100%;
+}
+.ts-side-history {
+  flex: 1 1 auto;
+}
+@media (max-width: 880px) {
+  .ts-cols {
+    grid-template-columns: 1fr;
+  }
+  .ts-side {
+    height: auto;
+  }
+}
 @media (max-width: 560px) {
   .ts-cards {
     grid-template-columns: 1fr;

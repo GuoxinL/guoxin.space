@@ -198,114 +198,124 @@ export const TimestampTool = component$(() => {
           开发者向时间戳工具：自动识别秒 / 毫秒 / 微秒 / 纳秒，多格式同屏输出，支持时区切换、相对时间、时段边界与区间生成。纯前端本地处理，数据不上传。
         </p>
 
-        {/* 主流程：输入即解析 */}
-        <div class="ts-input-row">
-          <input
-            class="tools-in-line ts-input"
-            placeholder="输入时间戳（10~19 位）或日期 ISO 串，如 1700000000000000000 / 2023-11-14T22:13:20Z"
-            value={raw.value}
-            onInput$={(_e, el) => {
-              raw.value = el.value;
-              syncUrl();
-            }}
-          />
-          <select
-            class="ts-unit"
-            value={unitLock.value}
-            onChange$={(_e, el) => {
-              unitLock.value = (el as HTMLSelectElement).value as Unit;
-              syncUrl();
-            }}
-          >
-            <option value="auto">自动</option>
-            <option value="s">秒</option>
-            <option value="ms">毫秒</option>
-            <option value="us">微秒</option>
-            <option value="ns">纳秒</option>
-          </select>
-        </div>
+        {/* 主区 + 侧栏双栏（等高） */}
+        <div class="ts-cols">
+          <div class="ts-main">
+            {/* 主流程：输入即解析 */}
+            <div class="ts-input-row">
+              <input
+                class="tools-in-line ts-input"
+                placeholder="输入时间戳（10~19 位）或日期 ISO 串，如 1700000000000000000 / 2023-11-14T22:13:20Z"
+                value={raw.value}
+                onInput$={(_e, el) => {
+                  raw.value = el.value;
+                  syncUrl();
+                }}
+              />
+              <select
+                class="ts-unit"
+                value={unitLock.value}
+                onChange$={(_e, el) => {
+                  unitLock.value = (el as HTMLSelectElement).value as Unit;
+                  syncUrl();
+                }}
+              >
+                <option value="auto">自动</option>
+                <option value="s">秒</option>
+                <option value="ms">毫秒</option>
+                <option value="us">微秒</option>
+                <option value="ns">纳秒</option>
+              </select>
+            </div>
 
-        {!parsed.ok && raw.value.trim() !== "" && (
-          <div class="tools-err">{parsed.err}</div>
-        )}
+            {!parsed.ok && raw.value.trim() !== "" && (
+              <div class="tools-err">{parsed.err}</div>
+            )}
 
-        {/* 当前时间条 */}
-        <div class="ts-nowbar">
-          <div class="ts-nowbar-item">
-            <span class="ts-nowbar-tag">当前（{zone.value}）</span>
-            <span class="ts-nowbar-time">
-              {fmtNow(zone.value, nowNs.value)}
-            </span>
-          </div>
-          <div class="ts-nowbar-item">
-            <span class="ts-nowbar-tag">UTC</span>
-            <span class="ts-nowbar-time">{fmtNow("UTC", nowNs.value)}</span>
-          </div>
-          <button class="btn ghost ts-nowbar-use" onClick$={() => (raw.value = String(Number(nowNs.value / 1_000_000n)))}>
-            用当前毫秒
-          </button>
-        </div>
+            {/* 当前时间条 */}
+            <div class="ts-nowbar">
+              <div class="ts-nowbar-item">
+                <span class="ts-nowbar-tag">当前（{zone.value}）</span>
+                <span class="ts-nowbar-time">
+                  {fmtNow(zone.value, nowNs.value)}
+                </span>
+              </div>
+              <div class="ts-nowbar-item">
+                <span class="ts-nowbar-tag">UTC</span>
+                <span class="ts-nowbar-time">{fmtNow("UTC", nowNs.value)}</span>
+              </div>
+              <button class="btn ghost ts-nowbar-use" onClick$={() => (raw.value = String(Number(nowNs.value / 1_000_000n)))}>
+                用当前毫秒
+              </button>
+            </div>
 
-        {/* 多格式输出卡片 */}
-        {fmt && fmt.ok && (
-          <div class="ts-cards">
-            {card("RFC 3339", fmt.formats.rfc3339, "rfc3339")}
-            {card("RFC 2822", fmt.formats.rfc2822, "rfc2822")}
-            {card("UTC ISO", fmt.formats.utcIso, "utc")}
-            {card("本地自定义", fmt.formats.custom, "custom")}
-            {card("含亚秒(ns)", fmt.formats.withSub, "sub")}
-            {card(
-              "偏移 / DST",
-              `${fmt.formats.offset}${fmt.formats.isDst ? " · 夏令时" : ""}`,
-              "off",
+            {/* 多格式输出卡片 */}
+            {fmt && fmt.ok && (
+              <div class="ts-cards">
+                {card("RFC 3339", fmt.formats.rfc3339, "rfc3339")}
+                {card("RFC 2822", fmt.formats.rfc2822, "rfc2822")}
+                {card("UTC ISO", fmt.formats.utcIso, "utc")}
+                {card("本地自定义", fmt.formats.custom, "custom")}
+                {card("含亚秒(ns)", fmt.formats.withSub, "sub")}
+                {card(
+                  "偏移 / DST",
+                  `${fmt.formats.offset}${fmt.formats.isDst ? " · 夏令时" : ""}`,
+                  "off",
+                )}
+              </div>
             )}
           </div>
-        )}
 
-        {/* 相对时间 + 倒计时 */}
-        {rel && rel.ok && (
-          <div class="ts-rel">
-            <span class="ts-rel-text">{rel.text}</span>
-            {rel.countdown && <span class="ts-rel-cd">（{rel.countdown}）</span>}
-          </div>
-        )}
+          {/* 侧栏：时区 / 相对时间 / 历史（等高填充） */}
+          <aside class="ts-side">
+            <div class="ts-side-block">
+              <label class="ts-tz-label" for="ts-tz">
+                时区
+              </label>
+              <input
+                id="ts-tz"
+                class="tools-in-line ts-tz-input"
+                list="ts-tz-list"
+                placeholder="搜索 IANA 时区，如 Asia/Shanghai"
+                value={zone.value}
+                onInput$={(_e, el) => {
+                  zone.value = (el as HTMLInputElement).value;
+                  syncUrl();
+                }}
+              />
+              <datalist id="ts-tz-list">
+                {COMMON_ZONES.map((z) => (
+                  <option value={z} />
+                ))}
+              </datalist>
+            </div>
 
-        {/* 时区切换 */}
-        <div class="ts-tzbar">
-          <label class="ts-tz-label" for="ts-tz">
-            时区
-          </label>
-          <input
-            id="ts-tz"
-            class="tools-in-line ts-tz-input"
-            list="ts-tz-list"
-            placeholder="搜索 IANA 时区，如 Asia/Shanghai"
-            value={zone.value}
-            onInput$={(_e, el) => {
-              zone.value = (el as HTMLInputElement).value;
-              syncUrl();
-            }}
-          />
-          <datalist id="ts-tz-list">
-            {COMMON_ZONES.map((z) => (
-              <option value={z} />
-            ))}
-          </datalist>
-        </div>
+            <div class="ts-side-block">
+              <span class="ts-side-label">相对时间</span>
+              {rel && rel.ok && (
+                <div class="ts-rel">
+                  <span class="ts-rel-text">{rel.text}</span>
+                  {rel.countdown && <span class="ts-rel-cd">（{rel.countdown}）</span>}
+                </div>
+              )}
+            </div>
 
-        {/* 历史 */}
-        <div class="ts-history">
-          <span class="ts-history-label">历史</span>
-          {history.value.length === 0 && <span class="ts-history-empty">暂无</span>}
-          {history.value.map((h) => (
-            <button
-              class="btn ghost ts-history-chip"
-              key={h}
-              onClick$={() => (raw.value = h)}
-            >
-              {h}
-            </button>
-          ))}
+            <div class="ts-side-block ts-side-history">
+              <span class="ts-side-label">历史</span>
+              {history.value.length === 0 && <span class="ts-history-empty">暂无</span>}
+              <div class="ts-history">
+                {history.value.map((h) => (
+                  <button
+                    class="btn ghost ts-history-chip"
+                    key={h}
+                    onClick$={() => (raw.value = h)}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
         </div>
 
         {/* 高级分区（手风琴） */}
