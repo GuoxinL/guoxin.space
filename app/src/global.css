@@ -6077,7 +6077,7 @@ body[data-theme="light"] .md-pre {
 }
 .ts-cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 10px;
 }
 .ts-card {
@@ -6088,6 +6088,11 @@ body[data-theme="light"] .md-pre {
   background: var(--surface2);
   border: 1px solid var(--border2);
   border-radius: 10px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ts-card:hover {
+  background: var(--violet-0);
+  border-color: var(--violet-65);
 }
 .ts-card-label {
   font-size: 11px;
@@ -6194,6 +6199,11 @@ body[data-theme="light"] .md-pre {
   align-items: center;
   gap: 10px;
   font-size: 13px;
+  padding: 8px 0;
+}
+.ts-compare-row + .ts-compare-row,
+.ts-period-row + .ts-period-row {
+  border-top: 1px solid var(--border2);
 }
 .ts-compare-zone {
   flex: 0 0 160px;

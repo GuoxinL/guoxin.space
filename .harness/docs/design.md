@@ -427,8 +427,8 @@ V2 去容器化：专栏卡片行置于 `/notes/` 列表页顶部（横向滚动
 
 ### 时间戳工具（Toolbox /toolbox/timestamp）
 
-- 复用 Toolbox 既有 `.tools-panel`（max-width 680px）容器与「发丝线 + 留白」去容器化分区（V2 规范），不新增圆角+描边+阴影盒子。
-- 新增样式集中在 `global.css` 末尾 `/* 页面：时间戳工具 */` 一节，类名统一 `ts-*` 前缀：`.ts-cards`（双列网格，窄屏单列）、`.ts-card`、`.ts-nowbar`、`.ts-tzbar`、`.ts-adv`（手风琴）、`.ts-compare`/`.ts-period`/`.ts-interval`/`.ts-aijson` 等。
+- 沿用 Toolbox 的 V2「发丝线 + 留白」去容器化分区与 `.tools-*` 共享类（`.tools-h1`/`.tools-intro`/`.tools-in-line`/`.tools-err`/`.tools-hint` 等）；但**不套用 `.tools-panel` 的 680px 宽度上限**（该上限仅适合单列的 JSON 工具）。根节点 `.ts-wrap` 直接跟随 `<main class="mc-container">` 的 1280px 全宽（与日历工具一致），因多列格式卡片 / 多时区对比表 / 时段边界表都需要充足横向空间。
+- 新增样式集中在 `global.css` 末尾 `/* 页面：时间戳工具 */` 一节，类名统一 `ts-*` 前缀：`.ts-cards`（响应式 `repeat(auto-fill, minmax(210px, 1fr))` 网格，窄屏单列）、`.ts-card`（hover 给 `--violet-0` 色带）、`.ts-nowbar`、`.ts-tzbar`、`.ts-adv`（手风琴）、`.ts-compare`/`.ts-period`（行间 `border-top` 发丝线分块）/`.ts-interval`/`.ts-aijson` 等。
 - 数值一律等宽字（`var(--mono)`）；强调/倒计时用 `var(--violet-65)`；错误沿用 `.tools-err`、提示沿用 `.tools-hint`。
 - 组件层：`app/src/components/timestamp/TimestampTool.tsx`（主流程 + 高级区同文件内联，复用同一批 signal，避免 bigint 跨组件序列化）；Temporal 引擎经 `useVisibleTask$` 动态 `import("@js-temporal/polyfill")` 后挂 `globalThis.Temporal`，逻辑层 `getTemporal()` 只读该全局（SSG 期无 Temporal 时走 Date 兜底）。
 - 单测：`app/src/lib/timestamp.test.ts`（纯函数层，21 通过 / 2 个 DST 用例在无 Temporal 时 skip）；旧 `smalltools.ts` 的 `parseTimestamp/tsToDate/dateToTs` 已删除（由 `lib/timestamp.ts` 取代），`SmallToolPanel` 的 ts tab 已剥离为独立页面。

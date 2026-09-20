@@ -185,7 +185,7 @@ export const TimestampTool = component$(() => {
   );
 
   return (
-    <div class="tools-panel ts-wrap">
+    <div class="ts-wrap">
       <div class="tools-body">
         {toast.value && (
           <div class="tools-status">
