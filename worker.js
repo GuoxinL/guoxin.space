@@ -620,11 +620,28 @@ async function todoTags(env, cfg, cors) {
   const arr = await todoReadJson(env, cfg, "tags.json");
   return json(cors, 200, { ok: true, tags: Array.isArray(arr) ? arr : [] });
 }
+// 删除日文件；文件本就不存在视为成功（幂等），避免「重复清空」或「文件已删」时误报 500。
+async function todoDelDay(env, cfg, day) {
+  const path = cfg.path + "/" + day + ".json";
+  const q = "?ref=" + encodeURIComponent(cfg.branch);
+  const existing = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/contents/" + enc(path) + q);
+  if (existing.status !== 200 || !existing.data || !existing.data.sha) return true; // 已不存在
+  const r = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/contents/" + enc(path), {
+    method: "DELETE",
+    body: JSON.stringify({ message: "todo: 删除空日 " + day, sha: existing.data.sha, branch: cfg.branch }),
+  });
+  return r.status === 200 || r.status === 204;
+}
+
 async function todoSave(env, cfg, cors, body) {
   const day = String((body && body.day) || "");
   if (!isDayName(day)) return json(cors, 400, { error: "day 格式应为 YYYY-MM-DD" });
   const todos = Array.isArray(body.todos) ? body.todos : [];
-  const ok = await todoWriteJson(env, cfg, day + ".json", todos, body.message || "todo: 更新 " + day);
+  // 整日已清空：删除日文件而非留空数组，避免空 YYYY-MM-DD.json 残留在数据仓
+  // （否则 todoAll 仍会列出该文件、刷新后已删 todo「复活」）。
+  const ok = todos.length === 0
+    ? await todoDelDay(env, cfg, day)
+    : await todoWriteJson(env, cfg, day + ".json", todos, body.message || "todo: 更新 " + day);
   if (!ok) return json(cors, 500, { error: "写入日文件失败（token 是否授权了 " + cfg.repo.owner + "/" + cfg.repo.repo + "？）" });
   const ym = /^(\d{4})-(\d{2})/.exec(day);
   if (ym) await rebuildMonthIndex(env, cfg, Number(ym[1]), Number(ym[2]));

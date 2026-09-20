@@ -15,7 +15,7 @@ import type {
   Todo,
 } from "../../lib/todo/types";
 import { filterTodos, sortTodos } from "../../lib/todo/filter";
-import { groupByDay, genTodoId } from "../../lib/todo/store";
+import { groupByDay, genTodoId, dayFileOf } from "../../lib/todo/store";
 import {
   closeTodo,
   localDay,
@@ -105,6 +105,11 @@ export const TodoPage = component$(() => {
    *  （客户端赋值不参与序列化；SSR 阶段保持 undefined，而事件回调在 SSR 下不会触发）。 */
   const queue = useSignal<WriteQueue<Todo[]>>();
 
+  /** 已落盘 day 文件集合（reload 时播种）：用于「删光某天最后一条」时
+   *  反推出被清空的日文件并显式写空数组，让 Worker 删掉残留的 YYYY-MM-DD.json，
+   *  否则刷新后 todoAll 仍会读回（deleteRow 删除后刷新复现 bug）。 */
+  const knownDays = useSignal<Set<string>>(new Set());
+
   const filtered = useComputed$(() => {
     const list = filterTodos(todos.value, {
       tags: tagFilter.value,
@@ -124,6 +129,7 @@ export const TodoPage = component$(() => {
       };
       todos.value = [];
       tags.value = [];
+      knownDays.value = new Set();
       return;
     }
     status.value = { kind: "wait", msg: "正在读取 TODO 数据…" };
@@ -131,6 +137,8 @@ export const TodoPage = component$(() => {
       const [t, tg] = await Promise.all([fetchAll(), fetchTags()]);
       todos.value = t;
       tags.value = tg;
+      // 播种已知 day 文件：取每条 todo 的 createdAt 前 10 位（YYYY-MM-DD）。
+      knownDays.value = new Set(t.map((x) => dayFileOf(x)).filter(Boolean));
       status.value = { kind: "ok", msg: `共 ${t.length} 个 TODO` };
       // 深链 ?todo=<id> → 定位高亮 + 自动展开该行
       const id = new URLSearchParams(location.search).get("todo");
@@ -278,11 +286,17 @@ export const TodoPage = component$(() => {
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     const q = createWriteQueue<Todo[]>(
-      (next) => {
+      async (next) => {
         const groups = groupByDay(next);
-        return Promise.all(
-          Object.entries(groups).map(([day, arr]) => saveDay(day, arr)),
-        ).then(() => undefined);
+        // 反推被删空的日文件：已知 day 但本次分组里已不存在 → 显式写空数组，
+        // 让 Worker 清掉残留的 YYYY-MM-DD.json（否则刷新后 todoAll 仍读回）。
+        const removedDays = [...knownDays.value].filter((d) => !groups[d]);
+        await Promise.all([
+          ...Object.entries(groups).map(([day, arr]) => saveDay(day, arr)),
+          ...removedDays.map((d) => saveDay(d, [])),
+        ]);
+        // 写盘成功后，已知 day 集合收敛为当前仍含 todo 的分组。
+        knownDays.value = new Set(Object.keys(groups));
       },
       400,
       (e: unknown) => {

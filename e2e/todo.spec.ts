@@ -250,6 +250,25 @@ test.describe('TODO 已登录（mock Worker）', () => {
     await expect(r.locator('.td-r-check')).toHaveAttribute('aria-checked', 'true');
   });
 
+  test('删除某天最后一条 TODO：显式写空数组清掉日文件（防刷新复现）', async ({ page }) => {
+    // todo-1 是 2026-09-17 唯一一条；删光后该天应被清空（todos: []），
+    // 否则旧 YYYY-MM-DD.json 残留、刷新后 todoAll 仍读回、已删 todo「复活」（修复点）。
+    const saveEmpty = page.waitForRequest(
+      (req) =>
+        req.url().includes('/api/todo/save') &&
+        req.method() === 'POST' &&
+        (req.postData() ?? '').includes('"day":"2026-09-17"') &&
+        (req.postData() ?? '').includes('"todos":[]'),
+    );
+    await row(page, 'todo-1').locator('.td-r-del').click();
+    await row(page, 'todo-1').locator('.td-r-confirm .btn.danger').click();
+    await expect(row(page, 'todo-1')).toHaveCount(0);
+
+    const body = bodyOf(await saveEmpty);
+    expect(body.day).toBe('2026-09-17');
+    expect(body.todos).toEqual([]);
+  });
+
   test('标签浮层：点标签弹出已有标签，勾选即写盘', async ({ page }) => {
     const r = row(page, 'todo-2');
     await r.locator('.td-r-tagbtn').click();

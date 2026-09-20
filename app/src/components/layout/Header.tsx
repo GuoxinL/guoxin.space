@@ -4,12 +4,17 @@ import { AuthButton } from "../auth/AuthButton";
 import { authSubscribe, isAdmin } from "../../lib/auth";
 import { PixelIcon, type PixelIconName } from "../pixel/PixelIcon";
 
-const NAV: { href: string; label: string; icon: PixelIconName }[] = [
+/** 顶部常驻导航（顺序：首页 · TODO · Toolbox · Notes）。TODO 由登录态显隐，见下方 showTodo。 */
+const PRIMARY_NAV: { href: string; label: string; icon: PixelIconName }[] = [
   { href: "/", label: "首页", icon: "home" },
-  { href: "/skills", label: "Skills", icon: "chest" },
   { href: "/toolbox/json", label: "Toolbox", icon: "scroll" },
-  { href: "/running", label: "Running", icon: "boot" },
   { href: "/notes", label: "Notes", icon: "note" },
+];
+
+/** 收进「更多」悬浮窗的导航项（Skills · Running）：桌面端合并到一个下拉，移动端并入汉堡菜单。 */
+const MORE_NAV: { href: string; label: string; icon: PixelIconName }[] = [
+  { href: "/skills", label: "Skills", icon: "chest" },
+  { href: "/running", label: "Running", icon: "boot" },
 ];
 
 const TOOLBOX_MENU: {
@@ -32,6 +37,7 @@ export const Header = component$(() => {
   const dark = useSignal(false);
   const menuOpen = useSignal(false);
   const tbOpen = useSignal(false);
+  const moreOpen = useSignal(false);
   const showTodo = useSignal(false);
 
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -61,14 +67,19 @@ export const Header = component$(() => {
     track(() => loc.url.pathname);
     tbOpen.value = false;
     menuOpen.value = false;
+    moreOpen.value = false;
     const onDocClick = (e: MouseEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && !t.closest(".mc-nav-group")) tbOpen.value = false;
+      if (t && !t.closest(".mc-nav-group")) {
+        tbOpen.value = false;
+        moreOpen.value = false;
+      }
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         tbOpen.value = false;
         menuOpen.value = false;
+        moreOpen.value = false;
       }
     };
     document.addEventListener("click", onDocClick);
@@ -103,67 +114,18 @@ export const Header = component$(() => {
           {/* 桌面端内联导航（≥640px 显示文字；移动端收进汉堡菜单）。
               注意：ul 不能用 overflow-x-auto，否则会裁切绝对定位的子菜单。 */}
           <ul class="hidden sm:flex items-center gap-1">
-            {NAV.map((item) =>
-              item.href === "/toolbox/json" ? (
-                <li key={item.href} class="mc-nav-group">
-                  <button
-                    type="button"
-                    class="mc-nav-item"
-                    aria-haspopup="true"
-                    aria-expanded={tbOpen.value}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                    onClick$={() => (tbOpen.value = !tbOpen.value)}
-                  >
-                    <PixelIcon name={item.icon} size={14} />
-                    <span class="hidden sm:inline">{item.label}</span>
-                    <svg
-                      class="tb-caret"
-                      width="8"
-                      height="8"
-                      viewBox="0 0 8 8"
-                      aria-hidden="true"
-                      fill="currentColor"
-                    >
-                      <path d="M1 2h6l-3 4z" />
-                    </svg>
-                  </button>
-                  <ul
-                    role="menu"
-                    class={{ "mc-submenu": true, "is-open": tbOpen.value }}
-                  >
-                    {TOOLBOX_MENU.map((m) => (
-                      <li key={m.href}>
-                        <Link
-                          href={m.href}
-                          role="menuitem"
-                          aria-current={isExact(m.href) ? "page" : undefined}
-                          class="mc-nav-item"
-                          onClick$={() => (tbOpen.value = false)}
-                        >
-                          <PixelIcon name={m.icon} size={16} />
-                          <span class="tb-menu-text">
-                            <span class="tb-menu-title">{m.label}</span>
-                            <span class="tb-menu-desc">{m.desc}</span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ) : (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                    class="mc-nav-item"
-                  >
-                    <PixelIcon name={item.icon} size={14} />
-                    <span class="hidden sm:inline">{item.label}</span>
-                  </Link>
-                </li>
-              ),
-            )}
-            {/* TODO 是登录后的站长功能：未登录不渲染（与移动端菜单共用 showTodo 门控） */}
+            {/* 首页 */}
+            <li key="/">
+              <Link
+                href="/"
+                aria-current={isActive("/") ? "page" : undefined}
+                class="mc-nav-item"
+              >
+                <PixelIcon name="home" size={14} />
+                <span class="hidden sm:inline">首页</span>
+              </Link>
+            </li>
+            {/* TODO：登录后站长功能，未登录不渲染（与移动端菜单共用 showTodo 门控） */}
             {showTodo.value && (
               <li key="/todo">
                 <Link
@@ -176,6 +138,108 @@ export const Header = component$(() => {
                 </Link>
               </li>
             )}
+            {/* Toolbox：悬浮子菜单（7 个小工具） */}
+            {PRIMARY_NAV.filter((i) => i.href === "/toolbox/json").map((item) => (
+              <li key={item.href} class="mc-nav-group">
+                <button
+                  type="button"
+                  class="mc-nav-item"
+                  aria-haspopup="true"
+                  aria-expanded={tbOpen.value}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  onClick$={() => (tbOpen.value = !tbOpen.value)}
+                >
+                  <PixelIcon name={item.icon} size={14} />
+                  <span class="hidden sm:inline">{item.label}</span>
+                  <svg
+                    class="tb-caret"
+                    width="8"
+                    height="8"
+                    viewBox="0 0 8 8"
+                    aria-hidden="true"
+                    fill="currentColor"
+                  >
+                    <path d="M1 2h6l-3 4z" />
+                  </svg>
+                </button>
+                <ul
+                  role="menu"
+                  class={{ "mc-submenu": true, "is-open": tbOpen.value }}
+                >
+                  {TOOLBOX_MENU.map((m) => (
+                    <li key={m.href}>
+                      <Link
+                        href={m.href}
+                        role="menuitem"
+                        aria-current={isExact(m.href) ? "page" : undefined}
+                        class="mc-nav-item"
+                        onClick$={() => (tbOpen.value = false)}
+                      >
+                        <PixelIcon name={m.icon} size={16} />
+                        <span class="tb-menu-text">
+                          <span class="tb-menu-title">{m.label}</span>
+                          <span class="tb-menu-desc">{m.desc}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+            {/* Notes */}
+            {PRIMARY_NAV.filter((i) => i.href === "/notes").map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  class="mc-nav-item"
+                >
+                  <PixelIcon name={item.icon} size={14} />
+                  <span class="hidden sm:inline">{item.label}</span>
+                </Link>
+              </li>
+            ))}
+            {/* 更多：Skills + Running 收进悬浮窗（复用 Toolbox 同款浮层） */}
+            <li class="mc-nav-group">
+              <button
+                type="button"
+                class="mc-nav-item"
+                aria-haspopup="true"
+                aria-expanded={moreOpen.value}
+                onClick$={() => (moreOpen.value = !moreOpen.value)}
+              >
+                <span class="hidden sm:inline">更多</span>
+                <svg
+                  class="tb-caret"
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  aria-hidden="true"
+                  fill="currentColor"
+                >
+                  <path d="M1 2h6l-3 4z" />
+                </svg>
+              </button>
+              <ul
+                role="menu"
+                class={{ "mc-submenu": true, "is-open": moreOpen.value }}
+              >
+                {MORE_NAV.map((m) => (
+                  <li key={m.href}>
+                    <Link
+                      href={m.href}
+                      role="menuitem"
+                      aria-current={isActive(m.href) ? "page" : undefined}
+                      class="mc-nav-item"
+                      onClick$={() => (moreOpen.value = false)}
+                    >
+                      <PixelIcon name={m.icon} size={16} />
+                      <span>{m.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
           </ul>
 
           <button
@@ -223,54 +287,20 @@ export const Header = component$(() => {
         <div id="mc-mobile-menu" class="mc-nav-menu sm:hidden" role="menu">
           <div class="mc-container">
             <ul class="mc-nav-menu-list">
-              {NAV.map((item) =>
-                item.href === "/toolbox/json" ? (
-                  <li key={item.href} class="mc-nav-group-m">
-                    <Link
-                      href={item.href}
-                      role="menuitem"
-                      aria-current={isActive(item.href) ? "page" : undefined}
-                      class="mc-nav-item"
-                      onClick$={() => (menuOpen.value = false)}
-                    >
-                      <PixelIcon name={item.icon} size={14} />
-                      <span>{item.label}</span>
-                    </Link>
-                    <ul class="mc-nav-sub">
-                      {TOOLBOX_MENU.map((m) => (
-                        <li key={m.href}>
-                          <Link
-                            href={m.href}
-                            role="menuitem"
-                            aria-current={isExact(m.href) ? "page" : undefined}
-                            class="mc-nav-item"
-                            onClick$={() => (menuOpen.value = false)}
-                          >
-                            <PixelIcon name={m.icon} size={16} />
-                            <span class="tb-menu-text">
-                              <span class="tb-menu-title">{m.label}</span>
-                              <span class="tb-menu-desc">{m.desc}</span>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ) : (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      role="menuitem"
-                      aria-current={isActive(item.href) ? "page" : undefined}
-                      class="mc-nav-item"
-                      onClick$={() => (menuOpen.value = false)}
-                    >
-                      <PixelIcon name={item.icon} size={14} />
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                ),
-              )}
+              {/* 首页 */}
+              <li key="/">
+                <Link
+                  href="/"
+                  role="menuitem"
+                  aria-current={isActive("/") ? "page" : undefined}
+                  class="mc-nav-item"
+                  onClick$={() => (menuOpen.value = false)}
+                >
+                  <PixelIcon name="home" size={14} />
+                  <span>首页</span>
+                </Link>
+              </li>
+              {/* TODO：登录后站长功能 */}
               {showTodo.value && (
                 <li key="/todo">
                   <Link
@@ -285,6 +315,70 @@ export const Header = component$(() => {
                   </Link>
                 </li>
               )}
+              {/* Toolbox + 子项 */}
+              {PRIMARY_NAV.filter((i) => i.href === "/toolbox/json").map((item) => (
+                <li key={item.href} class="mc-nav-group-m">
+                  <Link
+                    href={item.href}
+                    role="menuitem"
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                    class="mc-nav-item"
+                    onClick$={() => (menuOpen.value = false)}
+                  >
+                    <PixelIcon name={item.icon} size={14} />
+                    <span>{item.label}</span>
+                  </Link>
+                  <ul class="mc-nav-sub">
+                    {TOOLBOX_MENU.map((m) => (
+                      <li key={m.href}>
+                        <Link
+                          href={m.href}
+                          role="menuitem"
+                          aria-current={isExact(m.href) ? "page" : undefined}
+                          class="mc-nav-item"
+                          onClick$={() => (menuOpen.value = false)}
+                        >
+                          <PixelIcon name={m.icon} size={16} />
+                          <span class="tb-menu-text">
+                            <span class="tb-menu-title">{m.label}</span>
+                            <span class="tb-menu-desc">{m.desc}</span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+              {/* Notes */}
+              {PRIMARY_NAV.filter((i) => i.href === "/notes").map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    role="menuitem"
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                    class="mc-nav-item"
+                    onClick$={() => (menuOpen.value = false)}
+                  >
+                    <PixelIcon name={item.icon} size={14} />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+              {/* 更多：Skills + Running（移动端直接列出） */}
+              {MORE_NAV.map((m) => (
+                <li key={m.href}>
+                  <Link
+                    href={m.href}
+                    role="menuitem"
+                    aria-current={isActive(m.href) ? "page" : undefined}
+                    class="mc-nav-item"
+                    onClick$={() => (menuOpen.value = false)}
+                  >
+                    <PixelIcon name={m.icon} size={14} />
+                    <span>{m.label}</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

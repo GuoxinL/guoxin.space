@@ -10,16 +10,25 @@ import { test, expect } from "@playwright/test";
 const SUBMENU_LABELS = ["JSON", "日历", "Base", "URL", "时间戳", "JWT", "CSV"];
 
 test.describe("Toolbox 悬浮子菜单（桌面）", () => {
+  // 导航含两个悬浮组（Toolbox / 更多），此处一律按 Toolbox 组的触发按钮 + 子菜单精确定位，
+  // 避免与「更多」组（Skills+Running）的同级选择器冲突（strict mode violation）。
+  const tbGroup = (page: import("@playwright/test").Page) =>
+    page.locator(".mc-nav-group", { hasText: "Toolbox" });
+  const tbTrigger = (page: import("@playwright/test").Page) =>
+    tbGroup(page).locator(":scope > .mc-nav-item");
+  const tbSub = (page: import("@playwright/test").Page) =>
+    tbGroup(page).locator(".mc-submenu");
+
   test("点击 Toolbox 展开子菜单，含 7 个子项且每项含标题+描述", async ({
     page,
   }) => {
     await page.goto("/");
-    const group = page.locator(".mc-nav-group");
+    const group = tbGroup(page);
     await expect(group).toBeVisible();
     // 默认隐藏（状态驱动，无 is-open）
-    await expect(page.locator(".mc-submenu")).toBeHidden();
-    await page.locator(".mc-nav-group > .mc-nav-item").click();
-    const sub = page.locator(".mc-submenu");
+    await expect(tbSub(page)).toBeHidden();
+    await tbTrigger(page).click();
+    const sub = tbSub(page);
     await expect(sub).toBeVisible();
     await expect(sub.locator(".mc-nav-item")).toHaveCount(7);
     for (const label of SUBMENU_LABELS) {
@@ -34,19 +43,19 @@ test.describe("Toolbox 悬浮子菜单（桌面）", () => {
 
   test("键盘 Enter 也能展开（可达性）", async ({ page }) => {
     await page.goto("/");
-    await page.locator(".mc-nav-group > .mc-nav-item").focus();
+    await tbTrigger(page).focus();
     await page.keyboard.press("Enter");
-    await expect(page.locator(".mc-submenu")).toBeVisible();
+    await expect(tbSub(page)).toBeVisible();
   });
 
   test("点击子菜单项进入对应独立路由，且悬浮窗自动收起", async ({ page }) => {
     await page.goto("/");
-    await page.locator(".mc-nav-group > .mc-nav-item").click();
-    await page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" }).click();
+    await tbTrigger(page).click();
+    await tbSub(page).locator(".mc-nav-item", { hasText: "Base" }).click();
     await expect(page).toHaveURL(/\/toolbox\/base64/);
     await expect(page.locator(".base-wrap")).toBeVisible();
     // 修复回归：点击后悬浮窗自动收起（不再因 focus-within 残留常驻）
-    await expect(page.locator(".mc-submenu")).toBeHidden();
+    await expect(tbSub(page)).toBeHidden();
   });
 
   test("active 态：/toolbox/base64 下 Base64 子项与父栏目高亮", async ({
@@ -54,21 +63,18 @@ test.describe("Toolbox 悬浮子菜单（桌面）", () => {
   }) => {
     await page.goto("/toolbox/base64");
     await expect(
-      page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" }),
+      tbSub(page).locator(".mc-nav-item", { hasText: "Base" }),
     ).toHaveAttribute("aria-current", "page");
     // 父栏目 Toolbox 因 /toolbox/* 前缀也高亮
-    await expect(page.locator(".mc-nav-group > .mc-nav-item")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    await expect(tbTrigger(page)).toHaveAttribute("aria-current", "page");
   });
 
   test("C-23 hover 色带：子项 hover 背景变 violet-0（#f7f3ff）", async ({
     page,
   }) => {
     await page.goto("/");
-    await page.locator(".mc-nav-group > .mc-nav-item").click();
-    const item = page.locator(".mc-submenu .mc-nav-item", { hasText: "Base" });
+    await tbTrigger(page).click();
+    const item = tbSub(page).locator(".mc-nav-item", { hasText: "Base" });
     await expect(item).toBeVisible();
     // 静止态（子项未 hover）背景应为白
     const rest = await item.evaluate(
