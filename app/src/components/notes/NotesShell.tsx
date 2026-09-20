@@ -1,10 +1,11 @@
 import { component$, useSignal, useStore, useVisibleTask$, $, type QRL } from '@builder.io/qwik';
-import type { ArticleDoc, ArticleSummary, PostsIndex, NotesCfg } from '../../lib/notes/types';
+import type { ArticleDoc, ArticleSummary, PostsIndex, NotesCfg, SeriesInfo } from '../../lib/notes/types';
 import { loadArticle, loadNotesIndex, loadAllArticles, defaultNotesCfg } from '../../lib/notes/source';
+import { loadSeries, slugifySeries } from '../../lib/notes/series';
 import { buildIndex, search, type NoteSearch } from '../../lib/notes/search';
 import { computeRelated, type RelatedItem } from '../../lib/notes/related';
 import { computeStats, intensityLevel } from '../../lib/notes/stats';
-import { noteSlugFromPath, notePathFor, resolveInitialSlug } from '../../lib/notes/slug';
+import { noteSlugFromPath, notePathFor, resolveInitialSlug, noteSeriesSlugFromPath, seriesPathFor } from '../../lib/notes/slug';
 import { readPendingRedirect } from '../../lib/spa-redirect';
 import { getFavs, toggleFav } from '../../lib/notes/favorites';
 import { loadReading, saveReading, DEFAULT_READING, type ReadingCfg, type ReadFont, type ReadWidth } from '../../lib/notes/reading';
@@ -374,7 +375,11 @@ const NotesGraph = component$(() => {
   );
 });
 
-const SeriesNav = component$<{ doc: ArticleDoc; onNav: QRL<(slug: string) => void> }>(({ doc, onNav }) => {
+const SeriesNav = component$<{
+  doc: ArticleDoc;
+  onNav: QRL<(slug: string) => void>;
+  onOpenSeries: QRL<(name: string) => void>;
+}>(({ doc, onNav, onOpenSeries }) => {
   const s = doc.series;
   if (!s) return null;
   return (
@@ -400,10 +405,113 @@ const SeriesNav = component$<{ doc: ArticleDoc; onNav: QRL<(slug: string) => voi
         ) : (
           <span class="notes-series-link notes-series-link--disabled">下一篇 →</span>
         )}
+        <button
+          type="button"
+          class="notes-series-link notes-series-link--series"
+          onClick$={() => onOpenSeries(s.name)}
+          data-testid="notes-series-link"
+        >
+          查看专栏 →
+        </button>
       </div>
     </nav>
   );
 });
+
+/** 专栏状态 → 中文角标文案。 */
+function seriesStatusLabel(status?: SeriesInfo['status']): string {
+  switch (status) {
+    case 'completed':
+      return '已完结';
+    case 'wip':
+      return '撰写中';
+    case 'archived':
+      return '已归档';
+    default:
+      return '连载中';
+  }
+}
+
+/** 专栏卡片行（列表页顶部，横向滚动）；点击 → 专栏详情（SPA pushState）。 */
+const SeriesCards = component$<{ series: SeriesInfo[]; onOpen: QRL<(slug: string) => void> }>(
+  ({ series, onOpen }) => {
+    if (!series.length) return null;
+    return (
+      <section class="notes-series-cards" data-testid="notes-series-cards" aria-label="专栏">
+        <div class="notes-series-cards-row">
+          {series.map((s) => (
+            <button
+              type="button"
+              key={s.slug}
+              class="notes-series-card"
+              data-testid="notes-series-card"
+              onClick$={() => onOpen(s.slug)}
+            >
+              {s.cover && <img class="notes-series-card-cover" src={s.cover} alt="" aria-hidden="true" />}
+              <span class="notes-series-card-badge">专栏 Column</span>
+              {s.status && (
+                <span class={`notes-series-card-status notes-series-card-status--${s.status}`}>
+                  {seriesStatusLabel(s.status)}
+                </span>
+              )}
+              <span class="notes-series-card-name">{s.name}</span>
+              {s.summary && <span class="notes-series-card-summary">{s.summary}</span>}
+              <span class="notes-series-card-count">共 {s.count} 篇</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
+);
+
+/** 专栏详情视图（纯 CSR）：封面 + 标题 + 简介 + 篇数 + 文章列表（按 order 升序，标「第 N 篇」）。 */
+const SeriesDetail = component$<{
+  info: SeriesInfo;
+  articles: ArticleSummary[];
+  onBack: QRL<() => void>;
+  onOpenArticle: QRL<(slug: string) => void>;
+}>(({ info, articles, onBack, onOpenArticle }) => (
+  <div class="notes-series-detail" data-testid="notes-series-detail">
+    <button type="button" class="notes-back" onClick$={onBack}>
+      ← 返回列表
+    </button>
+    <header class="notes-series-detail-head">
+      {info.cover && <img class="notes-series-detail-cover" src={info.cover} alt="" aria-hidden="true" />}
+      <div class="notes-series-detail-meta">
+        <span class="notes-series-card-badge">专栏 Column</span>
+        {info.status && (
+          <span class={`notes-series-card-status notes-series-card-status--${info.status}`}>
+            {seriesStatusLabel(info.status)}
+          </span>
+        )}
+        <h1 class="notes-series-detail-title">{info.name}</h1>
+        {info.summary && <p class="notes-series-detail-summary">{info.summary}</p>}
+        <p class="notes-series-detail-count">共 {info.count} 篇</p>
+      </div>
+    </header>
+    {articles.length ? (
+      <ol class="notes-series-list">
+        {articles.map((a) => (
+          <li key={a.slug} class="notes-series-list-item">
+            <button
+              type="button"
+              class="notes-series-list-link"
+              data-testid="notes-series-article"
+              onClick$={() => onOpenArticle(a.slug)}
+            >
+              <span class="notes-series-list-order">第 {a.series?.order ?? '?'} 篇</span>
+              <span class="notes-series-list-title">{a.title}</span>
+              <span class="notes-series-list-date">{a.date}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    ) : (
+      <p class="notes-muted">该专栏暂未发布文章。</p>
+    )}
+  </div>
+));
 
 /**
  * 数据版本页脚（N-T19）：展示数据来源（sourceRef）与生成时间（generatedAt）。
@@ -434,7 +542,8 @@ const ArticleView = component$<{
   doc: ArticleDoc;
   onBack: QRL<() => void>;
   onNav: QRL<(slug: string) => void>;
-}>(({ doc, onBack, onNav }) => {
+  onOpenSeries: QRL<(name: string) => void>;
+}>(({ doc, onBack, onNav, onOpenSeries }) => {
   const toc = doc.headings.filter((h) => h.depth >= 2 && h.depth <= 3);
   const activeSlug = useSignal(toc[0]?.slug ?? '');
   const progress = useSignal(0);
@@ -591,7 +700,7 @@ const ArticleView = component$<{
           </button>
         </div>
         <ArticleHeader doc={doc} />
-        <SeriesNav doc={doc} onNav={onNav} />
+        <SeriesNav doc={doc} onNav={onNav} onOpenSeries={onOpenSeries} />
         <MdastRenderer ast={doc.ast} />
         <ReferencesBlock doc={doc} />
         <BacklinksBlock doc={doc} />
@@ -634,7 +743,12 @@ export const NotesShell = component$(() => {
     index: PostsIndex | null;
     indexLoading: boolean;
     initialHash: string | null;
-  }>({ slug: '', doc: null, loading: false, err: '', index: null, indexLoading: true, initialHash: null });
+    seriesSlug: string;
+  }>({ slug: '', doc: null, loading: false, err: '', index: null, indexLoading: true, initialHash: null, seriesSlug: '' });
+
+  // 专栏列表（运行时取 build/series.json）；seriesSlug 非空表示当前处于专栏详情视图
+  const seriesList = useSignal<SeriesInfo[]>([]);
+  const seriesLoaded = useSignal(false);
 
   // N-T17：列表筛选（标签）与视图（列表/归档）状态
   const tagFilter = useSignal('');
@@ -695,6 +809,7 @@ export const NotesShell = component$(() => {
   });
 
   const navigate = $(async (slug: string) => {
+    state.seriesSlug = ''; // 切换到文章/列表视图时清空专栏态
     state.slug = slug;
     if (slug) await loadArticleBySlug(slug);
     else state.doc = null;
@@ -702,14 +817,33 @@ export const NotesShell = component$(() => {
 
   const openNote = $((slug: string) => {
     state.initialHash = null; // 应用内导航不再按深链锚点滚动
+    state.seriesSlug = '';
     history.pushState({ noteSlug: slug }, '', notePathFor(slug));
     void navigate(slug);
   });
 
+  // 进入专栏详情视图（纯 CSR，文章列表来自已加载的 index，无需额外取数）
+  const openSeries = $((ss: string) => {
+    state.initialHash = null;
+    state.slug = '';
+    state.doc = null;
+    state.seriesSlug = ss;
+    history.pushState({ seriesSlug: ss }, '', seriesPathFor(ss));
+  });
+
+  // 详情页「查看专栏」：按系列 name 在已加载的 seriesList 中取规范 slug（series.json 手动别名），
+  // 未登记系列兜底用 slugifySeries(name) 派生，避免 slug 别名与派生 slug 不一致导致 404。
+  const openSeriesByName = $((name: string) => {
+    const info = seriesList.value.find((s) => s.name === name);
+    openSeries(info ? info.slug : slugifySeries(name));
+  });
+
   const backToList = $(() => {
     state.initialHash = null;
+    state.seriesSlug = ''; // 从专栏/文章返回列表均清空专栏态
     favSig.value = getFavs(); // 从详情返回列表时刷新收藏（详情页可能改过收藏态）
-    if (history.state && history.state.noteSlug) history.back();
+    const hs = history.state as { noteSlug?: string; seriesSlug?: string } | null;
+    if (hs && (hs.noteSlug || hs.seriesSlug)) history.back();
     else {
       history.pushState(null, '', notePathFor(''));
       void navigate('');
@@ -724,15 +858,30 @@ export const NotesShell = component$(() => {
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async () => {
     const pending = readPendingRedirect();
-    const { slug, restoreUrl, hash } = resolveInitialSlug(location.pathname, pending);
-    if (restoreUrl) history.replaceState({ noteSlug: slug }, '', restoreUrl);
-    state.initialHash = hash;
+    // 专栏页：/notes/series/<slug>/ —— 与文章共用 catch-all，此处优先分流
+    const seriesSlug = noteSeriesSlugFromPath(pending ?? location.pathname);
+    const resolved = seriesSlug
+      ? { slug: '', restoreUrl: seriesPathFor(seriesSlug), hash: null as string | null }
+      : resolveInitialSlug(location.pathname, pending);
+    if (resolved.restoreUrl)
+      history.replaceState(seriesSlug ? { seriesSlug } : { noteSlug: resolved.slug }, '', resolved.restoreUrl);
+    state.seriesSlug = seriesSlug;
+    state.initialHash = resolved.hash;
     await loadIndex();
-    await navigate(slug);
+    seriesList.value = await loadSeries(defaultNotesCfg());
+    seriesLoaded.value = true;
+    if (!seriesSlug) await navigate(resolved.slug);
     favSig.value = getFavs(); // 初始化收藏列表（SSR 守卫在 lib 内）
 
     const onPop = () => {
-      void navigate(noteSlugFromPath(location.pathname));
+      const ss = noteSeriesSlugFromPath(location.pathname);
+      if (ss) {
+        state.slug = '';
+        state.doc = null;
+        state.seriesSlug = ss;
+      } else {
+        void navigate(noteSlugFromPath(location.pathname));
+      }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -864,9 +1013,32 @@ export const NotesShell = component$(() => {
 
   return (
     <section data-testid="notes-shell" class="notes-shell mc-container">
-      {isList ? (
+      {state.seriesSlug ? (
+        (() => {
+          const info = seriesList.value.find((s) => s.slug === state.seriesSlug);
+          if (!info) {
+            if (!seriesLoaded.value) return <p class="notes-muted">加载中…</p>;
+            return (
+              <div data-testid="notes-series-notfound" class="notes-notfound">
+                <h1>未找到该专栏</h1>
+                <p>不存在 slug 为「{state.seriesSlug}」的专栏。</p>
+                <button type="button" class="btn" onClick$={backToList}>
+                  返回列表
+                </button>
+              </div>
+            );
+          }
+          const arts = allPosts
+            .filter((p) => p.series?.name === info.name)
+            .sort((a, b) => (a.series?.order ?? 999) - (b.series?.order ?? 999));
+          return (
+            <SeriesDetail info={info} articles={arts} onBack={backToList} onOpenArticle={openNote} />
+          );
+        })()
+      ) : isList ? (
         <div data-testid="notes-list">
           <h1 class="notes-page-title">Notes</h1>
+          <SeriesCards series={seriesList.value} onOpen={openSeries} />
           {state.indexLoading ? (
             <p class="notes-muted">加载中…</p>
           ) : allPosts.length ? (
@@ -1117,7 +1289,7 @@ export const NotesShell = component$(() => {
       ) : state.loading ? (
         <p class="notes-muted">加载中…</p>
       ) : state.doc ? (
-        <ArticleView key={state.doc.id} doc={state.doc} onBack={backToList} onNav={openNote} />
+        <ArticleView key={state.doc.id} doc={state.doc} onBack={backToList} onNav={openNote} onOpenSeries={openSeriesByName} />
       ) : (
         <div data-testid="notes-notfound" class="notes-notfound">
           <h1>{state.err || '未找到'}</h1>

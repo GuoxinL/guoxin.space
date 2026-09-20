@@ -29,6 +29,20 @@ export interface PostsIndex {
   slugToId: Record<string, string>;
 }
 
+/** 专栏（series）聚合产物（build/series.json，对齐 notes 仓 build.mjs 输出）。
+ * total 恒等于 count（构建期计算，不读 planned total，评审决策 1）。 */
+export interface SeriesInfo {
+  name: string;
+  slug: string;
+  cover?: string;
+  summary?: string;
+  status?: 'active' | 'completed' | 'wip' | 'archived';
+  order?: number;
+  count: number;
+  recentDate: string;
+  total: number;
+}
+
 export interface Reference {
   kind: 'internal' | 'external' | 'footnote';
   label: string;

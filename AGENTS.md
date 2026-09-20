@@ -91,7 +91,7 @@ personal-homepage/
   - **改 Running 数据链路时，改 `running-private` 仓库而非本仓库；原公开仓库 `GuoxinL/running` 已废弃，不再承担数据生产。**
 
 - 文章模块（Notes）数据来自**公开数据仓 `GuoxinL/notes`**，站点**纯运行时**取数（`app/src/lib/notes/source.ts`，默认 `raw.githubusercontent.com/GuoxinL/notes/main/build/**`），取数失败回退内置 `SAMPLE_*` 兜底：
-  - **`main` 分支 = 用户文档分支**（站点取数源）：`content/` 放正式文章，`scripts/build.mjs` 构建出 `build/{posts.json,posts/<id>.json,all.json,search-index.json}` 并**提交进仓**，`npm run validate` 校验契约
+  - **`main` 分支 = 用户文档分支**（站点取数源）：`content/` 放正式文章，`scripts/build.mjs` 构建出 `build/{posts.json,posts/<id>.json,all.json,search-index.json,series.json}` 并**提交进仓**（`series.json` 为专栏聚合输出，含 `count`/`recentDate`/`total(=count)`），`npm run validate` 校验契约
   - **`example` 分支 = 完整基线分支**（含完整脚本 + 示例文档 + `build/` 数据产物），用于新环境起步 / AI 写作参考 / 站点 `e2e/fixtures/notes/build/` 对照
   - ⚠️ **`scripts/` 或示例文档变化必须同步到 `example` 分支**（红线 13 / CONSTRAINTS `C-54`）
   - 文章语法、写作流程与示例模板见 skill **`notes-writing`**（**随数据仓分发**：`notes` 仓的 `SKILL/notes-writing/`，`example` 分支同步一份；`.workbuddy/` / `.codebuddy/` 是工具专属目录，**不在数据仓内提交**）
@@ -132,7 +132,7 @@ gh run list --workflow=deploy.yml --limit 5
 > **不要**用 `gh api repos/GuoxinL/guoxin.space/pages/builds/latest` 判断上线——workflow 模式下该接口停留在旧 branch-deploy 记录，不更新（见红线 6 / CONSTRAINTS C-19）。
 > 本地复验（构建产物）：`npm run build && npm run test:e2e`（Playwright 自动以 `tools/serve-pages.mjs` 静态服务 `app/dist`，模拟 GitHub Pages 语义 —— 含 404 fallback，深链用例才可验证）。
 
-线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/toolbox/base64`、`/toolbox/url`、`/toolbox/timestamp`、`/toolbox/jwt`、`/toolbox/csv`（5 个小工具独立页，经页头 Toolbox 悬浮子菜单进入）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情）、`/todo`（TODO 模块，GitHub OAuth 登录门禁，**入口在主导航 TODO 项——登录后才显示，桌面/移动端一致**，数据存独立仓经 Worker 代理）。
+线上页面 URL：`https://guoxin.space/`（首页）、`/skills`（Skills，含 `/skills/<dir>` 详情）、`/toolbox/json`（Toolbox · JSON 工具；旧 `/json` 由 `public/json/index.html` 元刷新跳转）、`/toolbox/calendar`（Toolbox · 日历）、`/toolbox/base64`、`/toolbox/url`、`/toolbox/timestamp`、`/toolbox/jwt`、`/toolbox/csv`（5 个小工具独立页，经页头 Toolbox 悬浮子菜单进入）、`/running`（Running）、`/notes`（Notes，含 `/notes/<中文标题>` 详情、专栏 `/notes/series/<slug>/`（NotesShell 内部 SPA 派发，非独立 Qwik 路由——由 catch-all `/notes/[...slug]/` 匹配后经 `noteSeriesSlugFromPath` 分流））、`/todo`（TODO 模块，GitHub OAuth 登录门禁，**入口在主导航 TODO 项——登录后才显示，桌面/移动端一致**，数据存独立仓经 Worker 代理）。
 
 ## 易错点备忘
 

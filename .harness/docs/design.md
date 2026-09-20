@@ -224,6 +224,47 @@ V2：**不再用药丸**。改为「前置 6px 方块 + 字距加宽」的极简
 .mc-tag.sky::before  { background: var(--sky-75); }
 ```
 
+### Notes Series（专栏卡片与详情）
+
+V2 去容器化：专栏卡片行置于 `/notes/` 列表页顶部（横向滚动），详情页为独立 SPA 视图（非独立路由）。视觉语言与全站一致——发丝线 `1px solid var(--slate-5)` + hover `--violet-0` 色带，**不用圆角描边阴影框**；角标 `10px` 圆角；`.btn` 基类不可动。
+
+```css
+/* 列表页：专栏卡片行（横向滚动，scroll-snap） */
+.notes-series-cards-row {
+  display: flex; gap: 1rem; overflow-x: auto;
+  padding-bottom: 0.5rem; scroll-snap-type: x proximity;
+}
+.notes-series-card {
+  position: relative; flex: 0 0 auto; width: 260px; scroll-snap-align: start;
+  display: flex; flex-direction: column; text-align: left;
+  border: 1px solid var(--slate-5); border-radius: 10px; background: var(--slate-0);
+  cursor: pointer; padding: 0; overflow: hidden;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.notes-series-card:hover {
+  border-color: var(--violet-65); background: var(--violet-0);
+  transform: translateY(-2px);          /* hover 态必须 getComputedStyle 回读 */
+}
+.notes-series-card-cover  { width: 100%; height: 110px; object-fit: cover; }
+.notes-series-card-name   { font-weight: 600; color: var(--slate-80); }
+.notes-series-card-summary{ color: var(--slate-50);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* 状态角标：active=连载中 / completed=已完结 / wip=撰写中 / archived=已归档 */
+.notes-series-card-status { font-size: 10px; letter-spacing: 0.14em; border-radius: 10px; }
+.notes-series-card-status--active    { color: var(--violet-80); }
+.notes-series-card-status--completed { color: var(--sky-75);   }
+.notes-series-card-status--wip       { color: var(--amber-70); }
+.notes-series-card-status--archived  { color: var(--slate-50); }
+
+/* 详情页：专栏头横幅 + 文章列表 */
+.notes-series-detail-head { display: flex; gap: 1.5rem; border: 1px solid var(--slate-5);
+  border-radius: 10px; padding: 1.25rem; background: var(--slate-0); }
+.notes-series-detail-cover { width: 240px; height: 140px; object-fit: cover; border-radius: 8px; }
+.notes-series-list-link:hover { background: var(--violet-0); }
+```
+
+> 配色复用 `--violet-*` 主色家族与 `--slate-*` 中性家族（见 §2），状态角标按语义色区分；hover 态一律回读避免同特异性后置覆盖（红线 4）。
+
 ### Terminal / Code Window（官网同款窗口装饰）
 
 ```css

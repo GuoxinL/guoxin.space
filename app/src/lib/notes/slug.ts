@@ -65,3 +65,20 @@ export function resolveInitialSlug(pathname: string, pending: string | null): Re
   const hash = hashMatch ? safeDecode(hashMatch[1]) : null;
   return { slug, restoreUrl: slug ? notePathFor(slug) : null, hash };
 }
+
+/**
+ * 从 pathname 提取专栏 slug（仅匹配 `/notes/series/<slug>/`）；否则返回 `''`。
+ * 用于把 `/notes/series/<slug>/` 从文章 catch-all 中分流出来，交由 NotesShell 内 dispatch
+ * 专栏详情视图（不新建 Qwik City 路由，避免动态路由 q-data 404 中止 SPA 导航）。
+ */
+export function noteSeriesSlugFromPath(pathname: string): string {
+  const m = /^\/notes\/series\/(.+)$/.exec(pathname || '');
+  if (!m) return '';
+  const raw = m[1].split('#')[0].split('?')[0].replace(/\/+$/, '');
+  return safeDecode(raw);
+}
+
+/** 生成专栏详情页 `pushState` 目标路径（slug 已编码，带尾斜杠）；空 slug → 列表页。 */
+export function seriesPathFor(slug: string): string {
+  return slug ? `/notes/series/${encodeURIComponent(slug)}/` : '/notes/';
+}

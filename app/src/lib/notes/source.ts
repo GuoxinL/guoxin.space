@@ -54,7 +54,7 @@ let indexCache: PostsIndex | null = null;
 const articleCache = new Map<string, ArticleDoc | null>();
 
 /** 取数封装：失败（网络/404）返回 null，由调用方回退 SAMPLE 兜底。 */
-async function fetchJson<T>(url: string): Promise<T | null> {
+export async function fetchJson<T>(url: string): Promise<T | null> {
   try {
     const res = await fetch(url, { headers: { accept: 'application/json' } });
     if (!res.ok) return null;

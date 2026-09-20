@@ -4,6 +4,7 @@ import postsIndex from './fixtures/notes/build/posts.json';
 import allDocs from './fixtures/notes/build/all.json';
 import docMarkdown from './fixtures/notes/build/posts/39fb46bd.json';
 import docQwik from './fixtures/notes/build/posts/a9ef50e0.json';
+import seriesFixture from './fixtures/notes/build/series.json';
 
 // 离线图片桩（1×1 PNG / SVG，真实文件，避免 Buffer body 在 worker 中序列化异常）
 const IMG_PNG = 'e2e/fixtures/notes/img/1x1.png';
@@ -23,16 +24,22 @@ const SAMPLE = 'Markdown 全功能示例';
 
 // 模拟 raw.githubusercontent.com/GuoxinL/notes/main/build/** → 本地 fixtures（离线确定）
 test.beforeEach(async ({ page }) => {
-  await page.route('https://raw.githubusercontent.com/GuoxinL/notes/main/build/**', (route) => {
-    const p = route.request().url();
-    let body: unknown;
-    if (p.endsWith('/posts.json')) body = postsIndex;
-    else if (p.endsWith('/all.json')) body = allDocs;
-    else if (p.endsWith('/posts/39fb46bd.json')) body = docMarkdown;
-    else if (p.endsWith('/posts/a9ef50e0.json')) body = docQwik;
-    else return route.fulfill({ status: 404, body: 'not found' });
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
-  });
+  // 逐文件显式路由（便于单测用 unroute 覆盖某一文件，如 series.json 404 场景）
+  await page.route('**/posts.json', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(postsIndex) }),
+  );
+  await page.route('**/all.json', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(allDocs) }),
+  );
+  await page.route('**/posts/39fb46bd.json', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(docMarkdown) }),
+  );
+  await page.route('**/posts/a9ef50e0.json', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(docQwik) }),
+  );
+  await page.route('**/series.json', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(seriesFixture) }),
+  );
   // 文章图片走 content/**（非 build/**），本地需桩离线图片，否则懒加载图取不到 → 0 尺寸 → 测试偶发 hidden
   await page.route('https://raw.githubusercontent.com/GuoxinL/notes/main/content/**', (route) => {
     const p = route.request().url();
@@ -475,5 +482,59 @@ test('键盘导航：搜索框聚焦时字母键不触发卡片导航（F）', a
   await expect(page.getByTestId('notes-search')).toHaveValue('j');
   await expect(page.getByTestId('notes-list')).toBeVisible();
   await page.getByTestId('notes-search').fill('');
+});
+
+test('列表页顶部出现专栏卡片（专栏名 + 篇数）', async ({ page }) => {
+  await page.goto('/notes/');
+  const card = page.getByTestId('notes-series-card').first();
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Markdown 实战');
+  await expect(card).toContainText('共 2 篇');
+});
+
+test('点击专栏卡片 → SPA 导航到 /notes/series/<slug>/ 且渲染专栏详情', async ({ page }) => {
+  await page.goto('/notes/');
+  await page.getByTestId('notes-series-card').first().click();
+  await expect(page).toHaveURL(/\/notes\/series\/markdown-shizhan\//);
+  const detail = page.getByTestId('notes-series-detail');
+  await expect(detail).toBeVisible();
+  await expect(detail.locator('.notes-series-detail-title')).toHaveText('Markdown 实战');
+  // 文章列表：2 篇，按 order 升序，标「第 N 篇」
+  await expect(page.getByTestId('notes-series-article')).toHaveCount(2);
+  await expect(page.getByTestId('notes-series-article').first()).toContainText('第 1 篇');
+});
+
+test('直接深链 /notes/series/<slug>/（404.html 接管）专栏详情仍渲染', async ({ page }) => {
+  await page.goto('/notes/series/markdown-shizhan/', { waitUntil: 'domcontentloaded' });
+  const detail = page.getByTestId('notes-series-detail');
+  await expect(detail).toBeVisible({ timeout: 10_000 });
+  await expect(detail.locator('.notes-series-detail-title')).toHaveText('Markdown 实战');
+  await expect(detail.locator('.notes-series-detail-count')).toContainText('共 2 篇');
+});
+
+test('详情页系列导航含可点击专栏链接，点击回到专栏页', async ({ page }) => {
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const link = page.getByTestId('notes-series-link');
+  await expect(link).toBeVisible();
+  await link.click();
+  await expect(page).toHaveURL(/\/notes\/series\/markdown-shizhan\//);
+  await expect(page.getByTestId('notes-series-detail')).toBeVisible();
+});
+
+test('series.json 404 → 不白屏，回退 SAMPLE 专栏卡片仍渲染（优雅降级，与文章兜底一致）', async ({ page }) => {
+  await page.unroute('**/series.json');
+  await page.route('**/series.json', (route) => route.fulfill({ status: 404, body: 'not found' }));
+  await page.goto('/notes/');
+  // 列表不白屏（文章照常渲染）
+  await expect(page.getByTestId('notes-item').first()).toBeVisible();
+  // 专栏数据缺失 → 回退 SAMPLE_SERIES，仍展示兜底卡片（不静默消失）
+  await expect(page.getByTestId('notes-series-card').first()).toBeVisible();
+  await expect(page.getByTestId('notes-series-card').first()).toContainText('Markdown 实战');
+});
+
+test('专栏页 slug 不存在 → 显示未找到空态', async ({ page }) => {
+  await page.goto('/notes/series/不存在的专栏/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-series-notfound')).toBeVisible({ timeout: 10_000 });
 });
 

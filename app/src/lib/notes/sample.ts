@@ -5,7 +5,7 @@
  * 本文件即「示例文章」：一篇文章覆盖写作模块计划支持的全部 Markdown 功能
  * （图 / 双链 / 代码高亮 / 公式 / 表格 / 列表 / 脚注 / Callout / 链接 / 分割线 / 内嵌 HTML）。
  */
-import type { ArticleDoc, HeadingMeta, MdNode, PostsIndex } from './types';
+import type { ArticleDoc, HeadingMeta, MdNode, PostsIndex, SeriesInfo } from './types';
 import { dedupHeadingSlugs } from './slugify';
 
 const SAMPLE_SLUG = 'Markdown 全功能示例';
@@ -479,3 +479,20 @@ export const SAMPLE_ARTICLES: Record<string, ArticleDoc> = {
   [SAMPLE_SLUG]: SAMPLE_DOC,
   [SAMPLE2_SLUG]: SAMPLE2_DOC,
 };
+
+/** 离线兜底专栏（对齐 notes 仓 build/series.json；name 匹配 SAMPLE_INDEX 文章 series）。
+ * total 恒等于 count（评审决策 1）。 */
+export const SAMPLE_SERIES: SeriesInfo[] = [
+  {
+    name: 'Markdown 实战',
+    slug: 'markdown-shizhan',
+    cover:
+      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='180'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23A053FE'/%3E%3Cstop offset='1' stop-color='%23C4B5FD'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='420' height='180' fill='url(%23g)'/%3E%3C/svg%3E",
+    summary: '从基础语法到高级用法的 Markdown 写作实战专栏。',
+    status: 'active',
+    order: 0,
+    count: 2,
+    recentDate: '2026-09-15',
+    total: 2,
+  },
+];
