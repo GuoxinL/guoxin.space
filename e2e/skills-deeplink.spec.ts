@@ -14,6 +14,32 @@ const MOCK_TREE = [
 ];
 
 // 收藏仓库内 brainstorming 的 SKILL.md：proxy 模式占位符（含 source 指向原仓库）
+// 静态注册表（Plan B）：skill-collection 仓构建的 skills.json，列表从此读取（替代 GitHub API 遍历）
+const SKILLS_JSON = JSON.stringify({
+  repo: 'GuoxinL/skill-collection',
+  branch: 'main',
+  rows: [
+    {
+      dir: 'brainstorming',
+      name: '示例技能',
+      description: '用于 IT 的示例简介',
+      mode: 'proxy',
+      source: 'https://github.com/Other/skills-repo/tree/main/skills/brainstorming',
+      sourceOwner: 'Other',
+      icon: null,
+    },
+    {
+      dir: 'xz-credentials',
+      name: 'xz-credentials',
+      description: '',
+      mode: null,
+      source: '',
+      sourceOwner: '',
+      icon: null,
+    },
+  ],
+});
+
 const COLLECTION_SKILL_MD = [
   '---',
   'name: 示例技能',
@@ -61,6 +87,14 @@ async function mockGitHub(page: Page): Promise<void> {
   });
   await page.route('https://raw.githubusercontent.com/**', (route) => {
     const lc = route.request().url().toLowerCase();
+    // 静态注册表 skills.json（Plan B）：默认仓库根路径返回合法 JSON，列表走静态路径
+    if (lc.includes('guoxinl/skill-collection') && lc.endsWith('/skills.json')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: SKILLS_JSON,
+      });
+    }
     // 收藏仓库 → proxy 占位符；原仓库 → 真实正文（SKILL.md 与 references.md 共用，够断言）
     const body = lc.includes('guoxinl/skill-collection') ? COLLECTION_SKILL_MD : SOURCE_SKILL_MD;
     return route.fulfill({ status: 200, contentType: 'text/plain; charset=utf-8', body });

@@ -696,10 +696,52 @@ export async function fetchMeta(
   return meta;
 }
 
+/** 静态注册表读取（默认仓库）：skills.json 由 skill-collection 仓自身构建并提交，
+ *  经 raw.githubusercontent 拉取，避开 GitHub API 60/hr 限流。失败时返回 null（调用方回退动态路径）。 */
+async function fetchSkillsStatic(cfg: SkCfg, full: string, branch: string): Promise<FetchSkillsResult | null> {
+  const [owner, repo] = full.split('/');
+  try {
+    const res = await fetch(
+      `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/skills.json`,
+      { headers: { accept: 'application/json' } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json().catch(() => null)) as
+      | { rows?: Array<Record<string, unknown>>; branch?: string }
+      | null;
+    if (!data || !Array.isArray(data.rows)) return null;
+    const rows: SkillMeta[] = data.rows.map((r) => ({
+      dir: String(r.dir ?? ''),
+      name: String(r.name ?? r.dir ?? ''),
+      description: String(r.description ?? ''),
+      mode: r.mode == null ? null : String(r.mode),
+      source: String(r.source ?? ''),
+      sourceOwner: String(r.sourceOwner ?? ''),
+      icon: r.icon == null ? null : String(r.icon),
+      skillMd: null,
+    }));
+    if (!rows.length) return null;
+    return { rows, tree: [], repo: full, branch };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSkills(cfg: SkCfg): Promise<FetchSkillsResult> {
   const full = skRepoFull(cfg);
   if (!full) throw new Error('未配置技能夹仓库 · 请在「通道设置」填写 skill-collection 仓库地址');
   const branch = cfg.branch.trim() || 'main';
+
+  // 默认仓库优先读静态 skills.json（由 skill-collection 仓构建，去除 GitHub API 限流）；
+  // 自定义仓库 / 静态缺失 → 回退 GitHub API 动态路径（保留既有能力，写通道不受影响）。
+  const isDefault =
+    full.toLowerCase() === SK_DFLT_REPO.toLowerCase() &&
+    branch.toLowerCase() === SK_DFLT_BRANCH.toLowerCase();
+  if (isDefault) {
+    const stat = await fetchSkillsStatic(cfg, full, branch);
+    if (stat) return stat;
+  }
+
   const [owner, repo] = full.split('/');
 
   let treeData: any;
