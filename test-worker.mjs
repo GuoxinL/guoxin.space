@@ -512,7 +512,7 @@ await t("/api/auth/callback 缺 code → 400", async () => {
   const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?state=s"), AUTH_ENV);
   assert.strictEqual(resp.status, 400);
 });
-await t("/api/auth/callback 完整流程 → 302 带 token", async () => {
+await t("/api/auth/callback 完整流程（admin）→ 302 带 token，含 gh_token 与 admin:true", async () => {
   setQueue([
     { path: "/login/oauth/access_token", method: "POST", body: { access_token: "at" } },
     { path: "/user", body: { login: "GuoxinL" } },
@@ -520,18 +520,26 @@ await t("/api/auth/callback 完整流程 → 302 带 token", async () => {
   const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?code=c&state=s"), AUTH_ENV);
   assert.strictEqual(resp.status, 302);
   const loc = resp.headers.get("Location") || "";
-  assert.ok(loc.startsWith("https://guoxin.space/?auth="), loc);
+  assert.ok(loc.startsWith("https://guoxin.space/#auth="), loc);
   const p = await w.verifyToken(decodeURIComponent(loc.split("auth=")[1]), "sec");
   assert.strictEqual(p.login, "GuoxinL");
+  assert.strictEqual(p.admin, true);
+  assert.strictEqual(p.gh_token, "at");
 });
-await t("/api/auth/callback 非 admin 登录 → denied", async () => {
+await t("/api/auth/callback 非 admin 登录 → 302 带 token（admin:false，gh_token 已保留）", async () => {
   setQueue([
-    { path: "/login/oauth/access_token", method: "POST", body: { access_token: "at" } },
+    { path: "/login/oauth/access_token", method: "POST", body: { access_token: "gh_at_someone" } },
     { path: "/user", body: { login: "someone" } },
   ]);
   const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/callback?code=c&state=s"), AUTH_ENV);
   assert.strictEqual(resp.status, 302);
-  assert.ok((resp.headers.get("Location") || "").includes("auth=denied"));
+  const loc = resp.headers.get("Location") || "";
+  assert.ok(loc.startsWith("https://guoxin.space/#auth="), loc);
+  assert.ok(!loc.includes("auth=denied"), loc);
+  const p = await w.verifyToken(decodeURIComponent(loc.split("auth=")[1]), "sec");
+  assert.strictEqual(p.login, "someone");
+  assert.strictEqual(p.admin, false);
+  assert.strictEqual(p.gh_token, "gh_at_someone");
 });
 await t("/api/auth/callback token 交换失败 → 400", async () => {
   setQueue([{ path: "/login/oauth/access_token", method: "POST", body: { error: "bad_verification_code", error_description: "code 无效" } }]);
@@ -543,12 +551,13 @@ await t("/api/auth/me 无 token → 401", async () => {
   const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/me"), AUTH_ENV);
   assert.strictEqual(resp.status, 401);
 });
-await t("/api/auth/me 有效 token → ok + login", async () => {
+await t("/api/auth/me 有效 token → ok + login + admin 标识", async () => {
   const tok = await w.signToken("GuoxinL", "sec");
   const resp = await w.default.fetch(new Request("https://x.workers.dev/api/auth/me", { headers: { Authorization: "Bearer " + tok } }), AUTH_ENV);
   assert.strictEqual(resp.status, 200);
   const out = await resp.json();
   assert.strictEqual(out.login, "GuoxinL");
+  assert.strictEqual(out.admin, false);
 });
 
 await t("/api/tracks/raw 未知文件 → 400", async () => {

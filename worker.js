@@ -662,7 +662,7 @@ async function todoSaveTags(env, cfg, cors, body) {
 
 // ---------- 鉴权：GitHub OAuth + 无状态 HMAC 签名 token ----------
 // token = base64url(payload) + "." + HMAC_SHA256(base64url(payload), AUTH_SECRET)
-// payload = { login, iat, exp }（exp = iat + 7d）
+// payload = { login, gh_token, iat, exp, admin }（exp = iat + 7d；gh_token 为读者自身 GitHub access_token，供评论写操作用；admin 仅标识是否管理员，不等同于可写通道）
 
 const TOKEN_TTL = 7 * 24 * 3600;
 
@@ -696,18 +696,21 @@ export async function hmacB64(secret, data) {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export async function signToken(login, secret) {
+export async function signToken(login, secret, ghToken, admin) {
   const iat = Math.floor(Date.now() / 1000);
-  const body = b64urlEncode(JSON.stringify({ login, iat, exp: iat + TOKEN_TTL }));
+  const body = b64urlEncode(JSON.stringify({ login, gh_token: ghToken || undefined, iat, exp: iat + TOKEN_TTL, admin: !!admin }));
   return body + "." + (await hmacB64(secret, body));
 }
 
 // 验签按 [AUTH_SECRET, AUTH_SECRET_PREV] 顺序回退：轮换宽限期内旧 token 仍可用（≤24h）
+// env 可为 { AUTH_SECRET, AUTH_SECRET_PREV }（生产/写通道校验），也可直接传单个密钥字符串（单测往返校验）
 export async function verifyToken(token, env) {
   if (!token) return null;
   const parts = String(token).split(".");
   if (parts.length !== 2) return null;
-  const secrets = [env && env.AUTH_SECRET, env && env.AUTH_SECRET_PREV].filter(Boolean);
+  const secrets = typeof env === "string"
+    ? [env]
+    : [env && env.AUTH_SECRET, env && env.AUTH_SECRET_PREV].filter(Boolean);
   for (const secret of secrets) {
     const want = await hmacB64(secret, parts[0]);
     if (want !== parts[1]) continue;
@@ -824,7 +827,7 @@ async function authLogin(request, env, cors) {
   const origin = new URL(request.url).origin;
   const u = "https://github.com/login/oauth/authorize?client_id=" + encodeURIComponent(env.GITHUB_CLIENT_ID)
     + "&redirect_uri=" + encodeURIComponent(origin + "/api/auth/callback")
-    + "&scope=read:user&state=" + encodeURIComponent(randomId());
+    + "&scope=read:user public_repo&state=" + encodeURIComponent(randomId());
   return new Response(null, { status: 302, headers: { Location: u, "Access-Control-Allow-Origin": "*" } });
 }
 
@@ -851,10 +854,11 @@ async function authCallback(request, env, cors) {
     const user = await fetch("https://api.github.com/user", {
       headers: { "Authorization": "Bearer " + tok.access_token, "User-Agent": "guoxin-space", "Accept": "application/vnd.github+json" },
     }).then(r => r.json());
-    if (!user || user.login !== env.ADMIN_LOGIN) {
+    if (!user || !user.login) {
       return new Response(null, { status: 302, headers: { Location: home + "/#auth=denied", "Access-Control-Allow-Origin": "*" } });
     }
-    const token = await signToken(user.login, env.AUTH_SECRET);
+    const admin = (user.login === env.ADMIN_LOGIN);
+    const token = await signToken(user.login, env.AUTH_SECRET, tok.access_token, admin);
     return new Response(null, { status: 302, headers: { Location: home + "/#auth=" + encodeURIComponent(token), "Access-Control-Allow-Origin": "*" } });
   } catch (e) {
     return json(cors, 500, { error: String((e && e.message) || e) });
@@ -866,7 +870,7 @@ async function authMe(request, env, cors) {
   const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
   const payload = await verifyToken(token, env);
   if (!payload) return json(cors, 401, { error: "未授权或已过期" });
-  return json(cors, 200, { ok: true, login: payload.login, exp: payload.exp });
+  return json(cors, 200, { ok: true, login: payload.login, exp: payload.exp, admin: !!payload.admin });
 }
 
 // ---------- 轨迹私有仓库代理（白名单） ----------
