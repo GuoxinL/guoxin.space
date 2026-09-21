@@ -9,6 +9,7 @@ import { noteSlugFromPath, notePathFor, resolveInitialSlug, noteSeriesSlugFromPa
 import { readPendingRedirect } from '../../lib/spa-redirect';
 import { getFavs, toggleFav } from '../../lib/notes/favorites';
 import { loadReading, saveReading, DEFAULT_READING, type ReadingCfg, type ReadFont, type ReadWidth } from '../../lib/notes/reading';
+import { isBenignGiscusError } from '../../lib/notes/giscus';
 import { MdastRenderer } from './MdastRenderer';
 
 /**
@@ -181,12 +182,19 @@ const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
  * 评论（N-T27）：Giscus 配置驱动。
  * 有 NotesCfg.giscus → 注入 Giscus 脚本（需目标仓库开启 GitHub Discussions 且安装 Giscus App）；
  * 无配置 → 显示占位说明，避免静默失效。
- * Giscus 加载失败时（仓库未装 App / 未开 Discussions / 配置错误）以 postMessage 通知父页，
- * 收到即隐藏原始 iframe、改显示诚实说明，避免裸露「giscus is not installed…」报错。
+ *
+ * Giscus 经 postMessage 回报错误时必须**分类处理**，不能一律降级（2026-09-21 实测教训）：
+ * - 真故障（未装 App / 分类不存在 / 凭据无效）→ 隐藏 iframe，改显示诚实说明 + 原文；
+ * - 正常态（`Discussion not found`：该文章尚无讨论串，提交首条评论时才会创建；限流）→ **不得**判失败。
+ *   误判会隐藏评论框 → 访客无法留下首条评论 → 讨论串永不创建 → 404 永久复现（自锁死循环）。
+ * - 会话态（Bad credentials / State has expired）→ **不得**判失败，否则卡死 giscus 自身的
+ *   清 session + 重建 iframe 自愈路径（表现为必须整页刷新才恢复）。
+ *   判定规则见 `lib/notes/giscus.ts`（与官方 client.js 的降级口径一致）。
  */
 const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
   const ref = useSignal<HTMLDivElement>();
   const failed = useSignal(false);
+  const failReason = useSignal('');
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
     if (!cfg.giscus || !ref.value) return;
@@ -216,7 +224,12 @@ const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
     const onMsg = (e: MessageEvent) => {
       if (e.origin !== 'https://giscus.app') return;
       const d = e.data as { giscus?: { error?: string } } | undefined;
-      if (d?.giscus?.error) failed.value = true;
+      const msg = d?.giscus?.error;
+      if (!msg) return;
+      // 正常态放行：文章尚无讨论串（首条评论提交时才创建）/ 接口限流，均非配置故障
+      if (isBenignGiscusError(msg)) return;
+      failed.value = true;
+      failReason.value = msg; // 带上真实错误文本，避免再猜错原因（2026-09-21 曾误报为「未装 App」）
     };
     window.addEventListener('message', onMsg);
 
@@ -252,8 +265,13 @@ const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
       {failed.value ? (
         <div class="notes-giscus notes-giscus--error">
           <p class="notes-muted">
-            评论（Giscus）暂时不可用：目标仓库未安装 Giscus 应用或未开启 Discussions。
-            启用步骤见站点文档 <code>docs/third-party/giscus.md</code>。
+            评论（Giscus）暂时不可用。
+            {failReason.value ? (
+              <>
+                原因：<code>{failReason.value}</code>。
+              </>
+            ) : null}
+            排查与启用步骤见站点文档 <code>docs/third-party/giscus.md</code>。
           </p>
         </div>
       ) : (

@@ -2,8 +2,9 @@
 
 > 用途：Notes 详情页底部评论区（N-T27）。Giscus 把 GitHub Discussions 当评论后端——访客用 GitHub 账号登录后即可在文章下留言，评论数据存在你自己的仓库里，无独立数据库。
 > 代码位置：`app/src/components/notes/NotesShell.tsx` 的 `Comments` 组件（脚本注入 + 主题跟随）；配置常量 `NOTES_GISCUS` 在 `app/src/lib/notes/source.ts`；类型 `NotesGiscus` 在 `app/src/lib/notes/types.ts`。
-> 现状（2026-09-16）：**已启用**——`NOTES_GISCUS` 已填入四元组（`GuoxinL/notes` / `Announcements`），详情页底部评论区注入 giscus 脚本。改四元组只需编辑 `app/src/lib/notes/source.ts` 并重新部署。
-> 最后核验：2026-09-16。
+> 现状（2026-09-21）：**已启用**——`NOTES_GISCUS` 已填入四元组（`GuoxinL/notes` / `Announcements`），详情页底部评论区注入 giscus 脚本。改四元组只需编辑 `app/src/lib/notes/source.ts` 并重新部署。
+> 错误分类（真故障 / 正常态 / 会话态，共三类）在 `app/src/lib/notes/giscus.ts`（`isBenignGiscusError`），单测 `giscus.test.ts`。
+> 最后核验：2026-09-21——当日报修「评论暂时不可用」，根因是**本站把 giscus 的正常态 404 误判为配置故障**（非配置问题），修复见 §五 首行。
 
 ---
 
@@ -73,6 +74,7 @@ export const NOTES_GISCUS: NotesGiscus | null = {
 1. 本地：`npm run build && npx playwright test e2e/notes.spec.ts`（未启用时应仍是占位用例通过）。
 2. 线上：push 后打开任一篇 `/notes/<标题>/`，**强刷**（giscus 与 CDN 都有缓存）：
    - 底部「评论」区块出现 giscus iframe；
+   - **尚未有人留言的新文章也必须正常显示评论框**（只是内容为空）——若显示「暂时不可用」，即回归到 2026-09-21 的误判问题；
    - 用 GitHub 账号登录后可留言，刷新后评论仍在；
    - 留言会同步到目标仓库 → Discussions 里生成一条以文章路径命名的讨论。
 3. 后台核对：目标仓库 Discussions 中出现新帖，即链路全通。
@@ -81,6 +83,9 @@ export const NOTES_GISCUS: NotesGiscus | null = {
 
 | 现象 | 原因 | 解决 |
 | --- | --- | --- |
+| 显示「评论（Giscus）暂时不可用。原因：Discussion not found」 | **正常态被误判为故障**：该文章尚无讨论串（giscus 在提交首条评论时才创建它）。2026-09-21 前本站对 giscus 回报的**任何** error 一律降级，隐藏评论框 → 访客无法留下首条评论 → 讨论串永不创建 → 404 永久复现（自锁死循环） | 已修：`lib/notes/giscus.ts` 只对真故障报警，`Discussion not found` 与限流放行；确认线上产物已含该修复 |
+| 显示「评论（Giscus）暂时不可用。原因：Bad credentials / State has expired」 | 本地 `giscus-session` 过期（登录态失效）。官方 client.js 会自行清 session 并重建 iframe | **不应出现该提示**（会卡死自愈路径）：确认线上产物已含本次修复；若仍出现，整页刷新即可恢复 |
+| 显示「评论（Giscus）暂时不可用。原因：<其它文本>」 | 真故障，`原因` 字段是 giscus 原文 | 按原文对症处理（对照本表其余各行） |
 | 显示「评论功能需在 NotesCfg 中配置…当前站点未启用。」 | **只做了 GitHub 侧的 ①，没做本站侧的 ②**（`NOTES_GISCUS` 仍是 `null`） | 按 §三 填四元组并重新部署 |
 | iframe 内提示 `giscus is not installed on this repository` / 401 | giscus App 未给该仓库授权（或装到了别的仓库） | https://github.com/apps/giscus → Configure → 勾选目标仓库 |
 | iframe 内提示 `Discussion category not found` | `categoryId` 与 `category` 对不上，或分类被删/改名 | 回 giscus.app 重新生成，或到仓库 Discussions 重建分类 |
@@ -89,6 +94,22 @@ export const NOTES_GISCUS: NotesGiscus | null = {
 | 切换明暗后评论框主题不变 | 已修：站点现在会在 `body[data-theme]` 变化时给 iframe 发 `setConfig` | 若仍不跟随，确认部署的是最新产物（强刷） |
 | 本机 curl giscus.app 超时（HTTP 000 / exit 28） | 本地网络对部分国际 CDN 不稳定，**不代表服务故障** | 以浏览器实际渲染为准 |
 | 留言后别人看不到 | 文章路径变了（改标题 = 改 slug = 换 pathname）会让旧讨论串失联 | 尽量不改已发布文章的标题；真要改，去 Discussions 手动改帖标题 |
+
+### 一条命令判性质（2026-09-21 新增，替代靠文案猜原因）
+
+配置对不对，直接问 giscus 服务端，不用等浏览器（本机 curl 打不通 giscus.app 时也可作为旁证）：
+
+```bash
+curl -s "https://giscus.app/api/discussions?repo=GuoxinL%2Fnotes&repoId=R_kgDOUbx1Ow&category=Announcements&categoryId=DIC_kwDOUbx1O84DFqqt&term=notes%2Ftest&number=0&strict=false&reactionsEnabled=true&emitMetadata=false&inputPosition=bottom&first=1&last=1"
+```
+
+| 返回 | 含义 |
+| --- | --- |
+| `404 {"error":"Discussion not found"}` | **配置完全正确**——只是该 term 还没有讨论串（新文章必然如此，提交首条评论时自动创建） |
+| `403 {"error":"giscus is not installed on this repository"}` | giscus App 未授权该仓库（或仓库不存在 / 非公开 / 仓库名写错） |
+| `200` 且带 `data` | 该 term 已有讨论串，链路正常 |
+
+> 判据价值：**404 ≠ 未装 App**。把这两个状态混为一谈，就会得出「配置没做好」的错误结论（2026-09-21 的误报正是如此）。
 
 ## 六、轮换 / 撤销
 
