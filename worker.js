@@ -32,6 +32,7 @@
 //   GET  /api/auth/callback?code&state  OAuth 回调：验身份 → 签 token → 302 回站
 //   GET  /api/auth/me                   Bearer 校验，返回当前登录用户
 //   GET  /api/tracks/raw?f=<file>       代理轨迹私有仓库文件（白名单；rides.full.json 需 Bearer）
+//   GET  /gh/{owner}/{repo}/{ref}/{path}   反代 raw.githubusercontent.com（公开内容 CDN 缓存；站点取数备用通道）
 //   POST /api/collect {url,mode}        收藏一个 skill（mode: proxy|mirror，默认 proxy）
 //   POST /api/remove  {dir}             删除收藏目录（仅 fav-*/my-*）
 //   POST /api/sync    {dir,url}         重新探测原仓库并更新代理文件（proxy）
@@ -53,6 +54,11 @@ export default {
       "Content-Type": "application/json; charset=utf-8",
     };
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    // 公开 CDN 反代：站点「关联 GitHub 取数」通道（/gh/{owner}/{repo}/{ref}/{path}）
+    // 国内经 api.guoxin.space 直达，规避 raw.githubusercontent.com 不可达；不依赖 GH_TOKEN
+    if (url.pathname.startsWith("/gh/") && request.method === "GET") {
+      return await ghProxy(request, env, ctx, cors, url);
+    }
 
     try {
       if (!env.GH_TOKEN || !env.COLLECT_REPO) {
@@ -780,6 +786,37 @@ async function tilesProxy(request, env, ctx, cors, url) {
   });
   if (ctx) ctx.waitUntil(caches.default.put(cacheKey, out.clone()));
   return out;
+}
+// GET /gh/{owner}/{repo}/{ref}/{path...} -> 反代 https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}
+// 站点「关联 GitHub 取数」的 Cloudflare 通道：经 api.guoxin.space 边缘缓存，国内可达
+async function ghProxy(request, env, ctx, cors, url) {
+  const m = /^\/gh\/([\w.-]+)\/([\w.-]+)\/([^/]+)\/(.+)$/.exec(url.pathname);
+  if (!m) return json(cors, 400, { error: "用法: /gh/{owner}/{repo}/{ref}/{path}" });
+  const owner = m[1], repo = m[2], ref = m[3], pp = m[4];
+  const upstream = "https://raw.githubusercontent.com/" + owner + "/" + repo + "/" + ref + "/" + pp;
+  const cacheKey = new Request(upstream, { method: "GET", headers: { "User-Agent": "guoxin-space-worker" } });
+  const hit = await caches.default.match(cacheKey);
+  if (hit) {
+    const h = new Headers(hit.headers);
+    h.set("X-Cache", "HIT");
+    h.set("Access-Control-Allow-Origin", "*");
+    return new Response(hit.body, { status: hit.status, headers: h });
+  }
+  const headers = { "User-Agent": "guoxin-space-worker" };
+  if (env.GH_TOKEN) headers["Authorization"] = "Bearer " + env.GH_TOKEN;
+  let resp;
+  try {
+    resp = await fetch(upstream, { method: "GET", headers: headers, redirect: "follow" });
+  } catch (e) {
+    return json(cors, 502, { error: "upstream fetch failed: " + String((e && e.message) || e) });
+  }
+  if (!resp.ok) return json(cors, resp.status, { error: "upstream " + resp.status + " for " + upstream });
+  const h = new Headers(resp.headers);
+  h.set("Access-Control-Allow-Origin", "*");
+  h.set("Cache-Control", "public, max-age=600, s-maxage=3600");
+  h.set("X-Cache", "MISS");
+  if (ctx) ctx.waitUntil(caches.default.put(cacheKey, resp.clone()));
+  return new Response(resp.body, { status: resp.status, headers: h });
 }
 
 async function authLogin(request, env, cors) {
