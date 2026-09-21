@@ -43,9 +43,10 @@ afterEach(() => {
 });
 
 describe('默认通道', () => {
-  it('默认走 jsDelivr（raw 国内多不可达）', () => {
-    expect(NOTES_DFLT_SOURCE).toBe('jsdelivr');
-    expect(defaultNotesCfg().source).toBe('jsdelivr');
+  it('默认走 custom（api.guoxin.space/gh 反代 raw，国内稳定可达；jsDelivr/raw 兜底）', () => {
+    expect(NOTES_DFLT_SOURCE).toBe('custom');
+    expect(defaultNotesCfg().source).toBe('custom');
+    expect(defaultNotesCfg().custom).toBe('https://api.guoxin.space/gh/GuoxinL/notes/main/build');
     expect(defaultNotesCfg().repo).toBe(REPO);
     expect(defaultNotesCfg().branch).toBe(BRANCH);
   });

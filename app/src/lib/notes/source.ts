@@ -7,9 +7,9 @@
  * 数据源：GitHub 公开仓 `GuoxinL/notes` 的 build/ 产物（posts.json / posts/<id>.json / all.json / series.json），
  * 经「通道候选链」取数（可经 NotesCfg.source 切 raw / jsDelivr / 自定义镜像），**首个成功者胜出**：
  *
- *   jsdelivr（默认）→ raw   实测 raw.githubusercontent.com 国内直连 1.73s 且常超时；jsDelivr 0.61s
+ *   custom（默认，api.guoxin.space/gh 反代 raw）→ jsDelivr → raw   Cloudflare 前置 GitHub 内容，国内稳定可达
  *   raw            → jsdelivr
- *   custom         → jsdelivr → raw   api.guoxin.space 就绪后只改配置即成为主通道，无需改代码
+ *   jsdelivr       → raw
  *
  * 取数失败（网络 / 非 2xx / 超时）逐通道降级，全失败回退本地 SAMPLE 兜底，避免白屏（plan R-3）。
  */
@@ -18,8 +18,10 @@ import { SAMPLE_ARTICLES, SAMPLE_INDEX } from './sample';
 
 export const NOTES_DFLT_REPO = 'GuoxinL/notes';
 export const NOTES_DFLT_BRANCH = 'main';
-/** 默认通道。raw.githubusercontent.com 国内多数网络不可达（实测直连 1.73s、常超时），故默认 jsDelivr。 */
-export const NOTES_DFLT_SOURCE: NotesCfg['source'] = 'jsdelivr';
+/** 默认通道。raw.githubusercontent.com 国内多数网络不可达；jsDelivr 也偶发抽风。
+ *  故默认走 `custom` = api.guoxin.space/gh（Cloudflare 前置于 GitHub 内容，国内稳定可达），
+ *  其后 jsDelivr → raw 两级兜底（见 CHANNEL_FALLBACK）。 */
+export const NOTES_DFLT_SOURCE: NotesCfg['source'] = 'custom';
 /** 单通道取数超时（ms）。超时即降级下一通道——原实现无超时，网络挂住时请求长期 pending 是「感觉特别慢」的直接来源。 */
 export const NOTES_FETCH_TIMEOUT_MS = 3000;
 
@@ -53,6 +55,8 @@ export function defaultNotesCfg(): NotesCfg {
     repo: NOTES_DFLT_REPO,
     branch: NOTES_DFLT_BRANCH,
     source: NOTES_DFLT_SOURCE,
+    // custom 主通道基址（build/ 目录）：api.guoxin.space 的 /gh 反代 raw.githubusercontent.com
+    custom: 'https://api.guoxin.space/gh/GuoxinL/notes/main/build',
     giscus: NOTES_GISCUS ?? undefined,
   };
 }
