@@ -111,19 +111,10 @@ export interface ArticleDoc {
   ast: MdNode; // 已剥离 position 的纯数据根节点
 }
 
-/** Giscus 评论配置（N-T27）。仅当显式提供时才注入 Giscus 脚本；否则详情页显示占位说明。 */
-export interface NotesGiscus {
-  repo: string; // 形如 "owner/repo"
-  repoId: string;
-  category: string;
-  categoryId: string;
-  mapping?: 'pathname' | 'url' | 'title' | 'og:title' | 'specific' | 'number';
-}
-
+/** 评论系统（原 Giscus / N-T27，2026-09 退役）：改为本站 GitHub 身份自建评论，见 NotesShell `Comments`。 */
 export interface NotesCfg {
   repo: string;
   branch: string;
   source: 'raw' | 'jsdelivr' | 'custom';
   custom?: string;
-  giscus?: NotesGiscus;
 }

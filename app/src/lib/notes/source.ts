@@ -13,7 +13,7 @@
  *
  * 取数失败（网络 / 非 2xx / 超时）逐通道降级，全失败回退本地 SAMPLE 兜底，避免白屏（plan R-3）。
  */
-import type { ArticleDoc, NotesCfg, NotesGiscus, PostsIndex } from './types';
+import type { ArticleDoc, NotesCfg, PostsIndex } from './types';
 import { SAMPLE_ARTICLES, SAMPLE_INDEX } from './sample';
 
 export const NOTES_DFLT_REPO = 'GuoxinL/notes';
@@ -33,21 +33,9 @@ const CHANNEL_FALLBACK: Record<NotesCfg['source'], NotesCfg['source'][]> = {
 };
 
 /**
- * Giscus 评论配置（N-T27）。**null = 未启用**（详情页显示诚实占位，不静默失效）。
- *
- * 启用步骤见 `docs/third-party/giscus.md`：① 目标仓库开启 Discussions → ② 安装 giscus GitHub App
- * → ③ 建一个讨论分类（推荐 Announcements）→ ④ 在 https://giscus.app/zh-CN 生成四元组后填入这里。
- *
- * 四个值会出现在公开 HTML 中，**不属于机密**（与 CARTO key 同性质），可直接写在此处；
- * 换仓库/换分类时改这里并重新部署即可。
+ * 评论系统（原 Giscus / N-T27，2026-09 退役）：计划改为本站 GitHub 身份自建评论（Issue 存储，
+ * 读者用本人身份写、游客匿名读）。新实现见 NotesShell `Comments`；当前详情页显示升级占位。
  */
-export const NOTES_GISCUS: NotesGiscus | null = {
-  repo: 'GuoxinL/notes',
-  repoId: 'R_kgDOUbx1Ow',
-  category: 'Announcements',
-  categoryId: 'DIC_kwDOUbx1O84DFqqt',
-  mapping: 'pathname', // 本站详情页是纯 CSR，必须用 pathname，否则所有文章共用一个讨论串
-};
 
 /** 通道设置（与 Skills/Running 现有模式一致，可切 raw / jsDelivr / 自定义镜像）。 */
 export function defaultNotesCfg(): NotesCfg {
@@ -57,7 +45,6 @@ export function defaultNotesCfg(): NotesCfg {
     source: NOTES_DFLT_SOURCE,
     // custom 主通道基址（build/ 目录）：api.guoxin.space 的 /gh 反代 raw.githubusercontent.com
     custom: 'https://api.guoxin.space/gh/GuoxinL/notes/main/build',
-    giscus: NOTES_GISCUS ?? undefined,
   };
 }
 

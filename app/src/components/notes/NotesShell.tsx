@@ -9,7 +9,6 @@ import { noteSlugFromPath, notePathFor, resolveInitialSlug, noteSeriesSlugFromPa
 import { readPendingRedirect } from '../../lib/spa-redirect';
 import { getFavs, toggleFav } from '../../lib/notes/favorites';
 import { loadReading, saveReading, DEFAULT_READING, type ReadingCfg, type ReadFont, type ReadWidth } from '../../lib/notes/reading';
-import { isBenignGiscusError } from '../../lib/notes/giscus';
 import { MdastRenderer } from './MdastRenderer';
 
 /**
@@ -179,104 +178,15 @@ const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
 });
 
 /**
- * 评论（N-T27）：Giscus 配置驱动。
- * 有 NotesCfg.giscus → 注入 Giscus 脚本（需目标仓库开启 GitHub Discussions 且安装 Giscus App）；
- * 无配置 → 显示占位说明，避免静默失效。
- *
- * Giscus 经 postMessage 回报错误时必须**分类处理**，不能一律降级（2026-09-21 实测教训）：
- * - 真故障（未装 App / 分类不存在 / 凭据无效）→ 隐藏 iframe，改显示诚实说明 + 原文；
- * - 正常态（`Discussion not found`：该文章尚无讨论串，提交首条评论时才会创建；限流）→ **不得**判失败。
- *   误判会隐藏评论框 → 访客无法留下首条评论 → 讨论串永不创建 → 404 永久复现（自锁死循环）。
- * - 会话态（Bad credentials / State has expired）→ **不得**判失败，否则卡死 giscus 自身的
- *   清 session + 重建 iframe 自愈路径（表现为必须整页刷新才恢复）。
- *   判定规则见 `lib/notes/giscus.ts`（与官方 client.js 的降级口径一致）。
+ * 评论区（原 Giscus / N-T27，2026-09 退役）。
+ * 计划改为本站 GitHub 身份自建评论（Issue 存储，读者用本人身份写、游客匿名读）。
+ * 新系统未上线前显示诚实占位，不静默失效。
  */
-const Comments = component$<{ cfg: NotesCfg }>(({ cfg }) => {
-  const ref = useSignal<HTMLDivElement>();
-  const failed = useSignal(false);
-  const failReason = useSignal('');
-  // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(({ cleanup }) => {
-    if (!cfg.giscus || !ref.value) return;
-    const g = cfg.giscus!;
-    const host = ref.value;
-    const themeOf = () => (document.body.dataset.theme === 'dark' ? 'dark' : 'light');
-
-    // 先清空：SPA 内切换文章会重新执行本任务，避免 iframe 越叠越多
-    host.replaceChildren();
-    const s = document.createElement('script');
-    s.src = 'https://giscus.app/client.js';
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.setAttribute('data-repo', g.repo);
-    s.setAttribute('data-repo-id', g.repoId);
-    s.setAttribute('data-category', g.category);
-    s.setAttribute('data-category-id', g.categoryId);
-    s.setAttribute('data-mapping', g.mapping ?? 'pathname');
-    s.setAttribute('data-reactions-enabled', '1');
-    s.setAttribute('data-emit-metadata', '0');
-    s.setAttribute('data-input-position', 'bottom');
-    s.setAttribute('data-theme', themeOf());
-    s.setAttribute('data-lang', 'zh-CN');
-    host.appendChild(s);
-
-    // Giscus 失败时以 postMessage 通知父页，收到即切到诚实说明（隐藏原始 iframe 报错）
-    const onMsg = (e: MessageEvent) => {
-      if (e.origin !== 'https://giscus.app') return;
-      const d = e.data as { giscus?: { error?: string } } | undefined;
-      const msg = d?.giscus?.error;
-      if (!msg) return;
-      // 正常态放行：文章尚无讨论串（首条评论提交时才创建）/ 接口限流，均非配置故障
-      if (isBenignGiscusError(msg)) return;
-      failed.value = true;
-      failReason.value = msg; // 带上真实错误文本，避免再猜错原因（2026-09-21 曾误报为「未装 App」）
-    };
-    window.addEventListener('message', onMsg);
-
-    // 主题跟随：站点明暗切换后通知已加载的 giscus iframe 换主题（否则评论框停在进入时的主题）
-    const postTheme = () => {
-      const frame = host.querySelector('iframe.giscus-frame') as HTMLIFrameElement | null;
-      frame?.contentWindow?.postMessage(
-        { giscus: { setConfig: { theme: themeOf() } } },
-        'https://giscus.app'
-      );
-    };
-    const mo = new MutationObserver(postTheme);
-    mo.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
-
-    cleanup(() => {
-      window.removeEventListener('message', onMsg);
-      mo.disconnect();
-      s.remove();
-    });
-  });
-
-  if (!cfg.giscus) {
-    return (
-      <section class="notes-comments notes-comments--off" data-testid="notes-comments" aria-label="评论">
-        <h2 class="notes-section-title">评论</h2>
-        <p class="notes-muted">评论功能需在 NotesCfg 中配置 GitHub Discussions（Giscus）。当前站点未启用。</p>
-      </section>
-    );
-  }
+const Comments = component$(() => {
   return (
-    <section class="notes-comments" data-testid="notes-comments" aria-label="评论">
+    <section class="notes-comments notes-comments--off" data-testid="notes-comments" aria-label="评论">
       <h2 class="notes-section-title">评论</h2>
-      {failed.value ? (
-        <div class="notes-giscus notes-giscus--error">
-          <p class="notes-muted">
-            评论（Giscus）暂时不可用。
-            {failReason.value ? (
-              <>
-                原因：<code>{failReason.value}</code>。
-              </>
-            ) : null}
-            排查与启用步骤见站点文档 <code>docs/third-party/giscus.md</code>。
-          </p>
-        </div>
-      ) : (
-        <div ref={ref} class="notes-giscus" />
-      )}
+      <p class="notes-muted">评论系统升级中：将支持使用本站 GitHub 账号直接登录后评论。</p>
     </section>
   );
 });
@@ -730,7 +640,7 @@ const ArticleView = component$<{
         <BacklinksBlock doc={doc} />
         <HistoryBlock doc={doc} />
         <RelatedArticles items={related.value} />
-        <Comments cfg={defaultNotesCfg()} />
+        <Comments />
       </article>
     </div>
   );

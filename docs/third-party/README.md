@@ -2,7 +2,7 @@
 
 > 本目录收录 guoxin.space 所有**外部服务 / 第三方组件**的接入与运维操作步骤，每组件一份文档。
 > 原则：每个组件一份文档、写清「准备 → 接入 → 验证 → 轮换/撤销 → 排障」；凭据一律存 Secret，不在代码/文档出现明文。
-> 最后核验：2026-09-15（新增 Giscus）。
+> 最后核验：2026-09-21（退役 Giscus，评论系统改为本站 GitHub 身份自建）。
 
 ## 组件总览
 
@@ -15,7 +15,6 @@
 | **CARTO Basemaps** | Running 地图/回放底图瓦片（三档样式） | 前端 URL 参数 `?key=`（公开性质凭据，靠额度+域名限制保护） | [carto-basemaps.md](./carto-basemaps.md) |
 | **Server酱** | CI 失败 → 微信推送（两个仓库的 notify job） | GitHub Actions Secret：`SERVERCHAN_SENDKEY`（guoxin.space + running-private 各一份） | [serverchan.md](./serverchan.md) |
 | **行者 OpenAPI** | 骑行/跑步数据上游（running-private 每小时同步） | running-private Secret：`XINGZHE_CREDENTIALS_JSON`（+可选 `XINGZHE_PAT`） | [xingzhe-openapi.md](./xingzhe-openapi.md) |
-| **Giscus** | Notes 文章评论（GitHub Discussions 当后端） | 非机密配置常量：`NOTES_GISCUS`（`app/src/lib/notes/source.ts`）；权限靠 giscus App 只授权指定仓库 | [giscus.md](./giscus.md) |
 
 > DNS 解析（DNSPod，A 记录指向 GitHub Pages `185.199.108/109.153`）属于域名侧配置，操作说明并入 [github-pages.md](./github-pages.md)。
 

@@ -371,14 +371,14 @@ test('列表页渲染双链图谱（N-T25 force-graph）', async ({ page }) => {
   await expect(graph.locator('line')).toHaveCount(1);
 });
 
-test('详情页评论区已启用 Giscus（注入容器存在，不再显示未启用占位）', async ({ page }) => {
+test('详情页评论区显示升级占位（Giscus 已退役，新评论系统未上线）', async ({ page }) => {
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
   const c = page.getByTestId('notes-comments');
   await expect(c).toBeVisible();
   await expect(c).toContainText('评论');
-  await expect(c).not.toContainText('当前站点未启用'); // 占位消失 = 已启用
-  await expect(c.locator('.notes-giscus')).toBeVisible(); // giscus 脚本注入容器存在
+  await expect(c).toContainText('升级中'); // 占位说明，未注入 giscus
+  await expect(c.locator('.notes-giscus')).toHaveCount(0); // giscus 容器不再注入
 });
 
 test('正文渲染 StackBlitz 交互示例嵌入（N-T29）', async ({ page }) => {

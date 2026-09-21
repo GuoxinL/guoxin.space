@@ -25,10 +25,10 @@ personal-homepage/
 │   ├── plans/          # 任务目录（仅委托/复杂/多会话才建，内含一个 <task>.md）；_template 模板（SOP.md + MINI.md + DEPLOY-LOOP.md）；结项目录直接删
 │   └── docs/           # 现行规范：architecture / devops / coding-style / design / 单测·IT 等
 └── docs/               # 文档（外部接入类，与 .harness/docs 分工见下）
-    └── third-party/    # 第三方接入操作步骤（Pages / Worker / Server酱 / 行者 / Giscus，每组件一份）
+    └── third-party/    # 第三方接入操作步骤（Pages / Worker / Server酱 / 行者，每组件一份）
 ```
 
-> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、视觉设计、单测·IT）；`docs/` 只放**外部接入类**文档——第三方组件的接入操作步骤在 `docs/third-party/`（每组件一份，含 Cloudflare Worker / Pages / Server酱 / 行者 / Giscus）。设计稿与历史过程稿已并入 `.harness/docs/` 或随 git 历史留存，不在 `docs/` 下维护。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
+> **文档分工**：`.harness/docs/` 是 **SOP / 现行工程规范**的真源（架构、部署、编码风格、视觉设计、单测·IT）；`docs/` 只放**外部接入类**文档——第三方组件的接入操作步骤在 `docs/third-party/`（每组件一份，含 Cloudflare Worker / Pages / Server酱 / 行者）。设计稿与历史过程稿已并入 `.harness/docs/` 或随 git 历史留存，不在 `docs/` 下维护。改规范优先改 `.harness/docs/`，不要在这里堆过程稿。
 
 > ⚠️ **历史段落提示**：下方「旧单文件站机制」一节描述 2026-09-09 Qwik 重构**前**的机制（`index.html` / `css/style.css` / `js/*.js` / `verify.js`，已在 P8 删除），仅作历史参考，**不得**按其操作。现行代码规范以 `.harness/docs/coding-style.md` 为准；改代码直接看 `app/src/`。
 
@@ -97,7 +97,7 @@ personal-homepage/
   - 文章语法、写作流程与示例模板见 skill **`notes-writing`**（**随数据仓分发**：`notes` 仓的 `SKILL/notes-writing/`，`example` 分支同步一份；`.workbuddy/` / `.codebuddy/` 是工具专属目录，**不在数据仓内提交**）
   - ⚠️ 正文图片地址是数仓构建期写死的 `raw.githubusercontent.com/.../content/**` 绝对地址，切换数据通道救不了它们 —— 由 `rewriteRawAssetUrl` 在**渲染期**改道到当前通道（接线在 `components/notes/MdastRenderer.tsx`）。非 raw 域 / 畸形 URL 原样返回。
 
-> 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI / Giscus 评论）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
+> 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
 
 ## 构建与验证
 
