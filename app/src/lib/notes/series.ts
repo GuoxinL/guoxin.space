@@ -10,7 +10,7 @@
  */
 import type { ArticleSummary, NotesCfg, SeriesInfo } from './types';
 import { SAMPLE_SERIES } from './sample';
-import { defaultNotesCfg, fetchJson, notesBaseUrl } from './source';
+import { defaultNotesCfg, fetchJsonFromChannels } from './source';
 
 /** series/slug 归一（与 notes 仓 build.mjs slugifyHeading 一致）。导出供 SeriesNav 由 series.name 反推专栏路径。 */
 export function slugifySeries(text: string): string {
@@ -61,8 +61,8 @@ export function aggregateSeries(
     .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 }
 
-/** 运行时取数：build/series.json；失败回退 SAMPLE_SERIES。 */
+/** 运行时取数：build/series.json（沿通道候选链降级）；失败回退 SAMPLE_SERIES。 */
 export async function loadSeries(cfg: NotesCfg = defaultNotesCfg()): Promise<SeriesInfo[]> {
-  const series = await fetchJson<SeriesInfo[]>(`${notesBaseUrl(cfg)}/series.json`);
+  const series = await fetchJsonFromChannels<SeriesInfo[]>('/series.json', cfg);
   return series ?? SAMPLE_SERIES;
 }

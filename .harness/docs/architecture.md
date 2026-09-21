@@ -142,6 +142,28 @@ app/dist/<route>.html   ← 含真实预渲染内容 + q: 属性 + 脚本引用
 
 - 链路要点：本仓库**只持有 Worker 源码（worker.js）与前端调用封装（lib/worker.ts）**，不持有数据生产过程；数据生产完全在 `running-private`。改数据链路请改 `running-private` 仓库，勿改本仓库（参见 AGENTS.md 红线 10）。
 
+### 3. Notes / Skills 取数链路（运行时，外部，多通道降级）
+
+```
+浏览器（纯 CSR，useVisibleTask$）
+     │  notesChannelBases(cfg)：配置通道优先 + 逐级降级，首个成功者胜出；单通道 3s 超时
+     ▼
+① custom ：api.guoxin.space/gh/...              ← 未启用（需给 Worker 绑自定义域）
+② jsdelivr：cdn.jsdelivr.net/gh/<repo>@<branch>/...  ← 默认主通道（国内实测 0.6s 级）
+③ raw    ：raw.githubusercontent.com/<repo>/<branch>/...  ← 兜底（国内多数网络不可达）
+     │
+     ▼
+GuoxinL/notes 仓 build/ 产物（posts.json / posts/<id>.json / all.json / series.json）
+GuoxinL/skill-collection 仓（skills.json / SKILL.md / 图标）
+     │  全部通道失败
+     ▼
+内置 SAMPLE_* 兜底（避免白屏）
+```
+
+- 切换通道**只改配置**（`NOTES_DFLT_SOURCE` / `NotesCfg.source`），不改代码；`custom` 配好后自动成为主通道并保留两级兜底。实现见 `lib/notes/source.ts`、`lib/skills.ts`。
+- 正文图片地址是数仓构建期写死的 raw 绝对地址，**切数据通道救不了它们** —— 由 `rewriteRawAssetUrl` 在渲染期改道（接线 `components/notes/MdastRenderer.tsx`）。
+- 未启用项：`SK_DFLT_WORKER` 仍指向 `*.workers.dev`（该域名在国内被 DNS 污染，Worker 相关功能不可用）；修复需给 Worker 绑自定义域，属独立任务。
+
 ---
 
 ## 关键设计决策
@@ -198,6 +220,6 @@ flowchart TD
 - **Worker 部署流水线**：已自动化（2026-09-13）——`deploy-worker.yml` 在 push 改动 `worker.js` 时经 wrangler-action `--keep-vars` 部署（**无** wrangler.toml；前置 GitHub Secret `CLOUDFLARE_API_TOKEN`）。手动 dashboard / wrangler 仍可兜底，步骤与 `--keep-vars` 大坑见 `docs/third-party/cloudflare-worker.md` §3.5。
 - **`/skills/[dir]` SSG 策略**：动态路由**未预渲染**（dir 列表构建期未知，产物仅 `skills/index.html`）。直连 `/skills/<dir>` 由 GitHub Pages 返回 404，但 `404.html` 已是 **SPA 引导页**（`tools/make-404-fallback.mjs` 生成）：暂存原始路径到 `sessionStorage['spaRedirect']` → `location.replace` 到同一路由入口页 `/skills/` → 应用读取暂存值并用 `history.replaceState` 把 URL 还原回 `/skills/<dir>`（见 CONSTRAINTS `C-52`/`C-53`）。**深链已可达**；dir 不存在时显示「未找到 · 不存在名为「X」的技能」+ 返回列表（与 `/notes/<中文标题>` 口径一致）。首屏仍返回 404 状态码（既定代价，不执行 JS 的爬虫抓不到正文）。
 - **Service Worker**：`root.tsx` 挂载 `ServiceWorkerRegister`，但无 service-worker 源文件 → `/service-worker.js` 线上 404、注册无效；后续补 `src/routes/service-worker.ts` 或移除挂载（见决策 10）。
-- **单测规模**：9 文件 / 136 用例（CI 实测 2026-09-12；`app/src/lib/` 7 个 + `app/src/components/` 2 个）。
+- **单测规模**：30 文件 / 445 用例（2026-09-21 本机实测，含 2 skipped；`app/src/lib/` + `app/src/components/`）。
 - **Web Worker / 分块**：未使用（grep 核实），重计算均在主线程；当前体量可接受。
 - **running-private 内部链路**：已由 `AGENTS.md`「数据流」详载（`xingzhe_sync.yml` 每小时整点 UTC 同步 → `xz-fill.js` 补 polyline → `prebuild-preview.js` 产出三单文件 + `previews/`、`thumb/`；Secrets `XINGZHE_CREDENTIALS_JSON` / 可选 `XINGZHE_PAT`），源码见该私有仓库 docs。

@@ -90,11 +90,12 @@ personal-homepage/
   - 获取/刷新行者凭据步骤见 `running-private` 仓库 `docs/GET-XINGZHE-CREDENTIALS.md`（或全局 skill `xz-credentials`）
   - **改 Running 数据链路时，改 `running-private` 仓库而非本仓库；原公开仓库 `GuoxinL/running` 已废弃，不再承担数据生产。**
 
-- 文章模块（Notes）数据来自**公开数据仓 `GuoxinL/notes`**，站点**纯运行时**取数（`app/src/lib/notes/source.ts`，默认 `raw.githubusercontent.com/GuoxinL/notes/main/build/**`），取数失败回退内置 `SAMPLE_*` 兜底：
+- 文章模块（Notes）数据来自**公开数据仓 `GuoxinL/notes`**，站点**纯运行时**取数（`app/src/lib/notes/source.ts`）。取数走**通道候选链**（`notesChannelBases`）：配置通道优先 + 逐级降级，**首个成功者胜出**，单通道 3s 超时（`NOTES_FETCH_TIMEOUT_MS`）——默认 `jsdelivr`（`cdn.jsdelivr.net/gh/GuoxinL/notes@main/build/**`）→ 兜底 `raw`；`custom` 通道（如 `api.guoxin.space/gh/...`）配好后优先级最高，**无需改代码**。全部通道失败回退内置 `SAMPLE_*` 兜底。
   - **`main` 分支 = 用户文档分支**（站点取数源）：`content/` 放正式文章，`scripts/build.mjs` 构建出 `build/{posts.json,posts/<id>.json,all.json,search-index.json,series.json}` 并**提交进仓**（`series.json` 为专栏聚合输出，含 `count`/`recentDate`/`total(=count)`），`npm run validate` 校验契约
   - **`example` 分支 = 完整基线分支**（含完整脚本 + 示例文档 + `build/` 数据产物），用于新环境起步 / AI 写作参考 / 站点 `e2e/fixtures/notes/build/` 对照
   - ⚠️ **`scripts/` 或示例文档变化必须同步到 `example` 分支**（红线 13 / CONSTRAINTS `C-54`）
   - 文章语法、写作流程与示例模板见 skill **`notes-writing`**（**随数据仓分发**：`notes` 仓的 `SKILL/notes-writing/`，`example` 分支同步一份；`.workbuddy/` / `.codebuddy/` 是工具专属目录，**不在数据仓内提交**）
+  - ⚠️ 正文图片地址是数仓构建期写死的 `raw.githubusercontent.com/.../content/**` 绝对地址，切换数据通道救不了它们 —— 由 `rewriteRawAssetUrl` 在**渲染期**改道到当前通道（接线在 `components/notes/MdastRenderer.tsx`）。非 raw 域 / 畸形 URL 原样返回。
 
 > 🔗 各第三方组件（Pages / Cloudflare Worker / Server酱 / 行者 OpenAPI / Giscus 评论）的接入与凭据运维操作步骤：[`docs/third-party/`](docs/third-party/)。
 
@@ -140,6 +141,7 @@ gh run list --workflow=deploy.yml --limit 5
 - **改页面 / 交互 / 结构** → 跑 `npm run test:e2e`（强制门禁），必要时在 `e2e/` 补用例。
 - **改 `app/src/lib/` 逻辑** → 跑 `npm run test`。
 - **GitHub Pages 缓存**：raw.githubusercontent.com 约 5 分钟 CDN 缓存，改 `running-private` 仓库产物后浏览器需强制刷新。
+- **jsDelivr 缓存（Notes / Skills 主通道）**：分支名引用（`@main`）响应头为 `s-maxage=43200`（边缘约 12h）+ `max-age=604800`（浏览器 7 天）。数仓产物更新后经 jsDelivr 最长约 12h 才可见（raw 兜底约 5 分钟）；要秒级新鲜可在数仓 CI 里调 jsDelivr purge API（属数仓仓改动，C-54 范畴）。
 
 ## Qwik 重构（已完成，2026-09-09）
 

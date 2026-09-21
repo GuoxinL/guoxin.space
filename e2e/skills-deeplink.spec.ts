@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type Route } from '@playwright/test';
 
 /**
  * Skills 深链还原 IT：验证 `/skills/<dir>/` 与 `/notes/<slug>/` 行为一致 ——
@@ -85,7 +85,9 @@ async function mockGitHub(page: Page): Promise<void> {
     // commits（排序用）：返回空数组即可，fetchCommitsOrder 会降级为字典序
     return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
-  await page.route('https://raw.githubusercontent.com/**', (route) => {
+  // 技能夹取数走「通道候选链」（jsDelivr 主 → raw 兜底）：两个域共用同一套桩。
+  // 只桩 raw 会让主通道打真实外网（沙箱内表现为慢 / 超时，用例不稳）。
+  const stubFileChannels = (route: Route) => {
     const lc = route.request().url().toLowerCase();
     // 静态注册表 skills.json（Plan B）：默认仓库根路径返回合法 JSON，列表走静态路径
     if (lc.includes('guoxinl/skill-collection') && lc.endsWith('/skills.json')) {
@@ -98,7 +100,9 @@ async function mockGitHub(page: Page): Promise<void> {
     // 收藏仓库 → proxy 占位符；原仓库 → 真实正文（SKILL.md 与 references.md 共用，够断言）
     const body = lc.includes('guoxinl/skill-collection') ? COLLECTION_SKILL_MD : SOURCE_SKILL_MD;
     return route.fulfill({ status: 200, contentType: 'text/plain; charset=utf-8', body });
-  });
+  };
+  await page.route('https://cdn.jsdelivr.net/**', stubFileChannels);
+  await page.route('https://raw.githubusercontent.com/**', stubFileChannels);
 }
 
 test.describe('Skills · 深链还原（与 Notes 对齐）', () => {

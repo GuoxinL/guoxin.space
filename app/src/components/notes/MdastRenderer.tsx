@@ -7,7 +7,7 @@
 import { component$, useSignal, useVisibleTask$, useStore, $ } from '@builder.io/qwik';
 import type { MdNode } from '../../lib/notes/types';
 import { slugifyHeading } from '../../lib/notes/slugify';
-import { getKnownSlugs } from '../../lib/notes/source';
+import { getKnownSlugs, rewriteRawAssetUrl } from '../../lib/notes/source';
 import { notePathFor } from '../../lib/notes/slug';
 import { applyPrism } from '../../lib/notes/highlight';
 import { renderMath } from '../../lib/notes/math';
@@ -88,7 +88,7 @@ const Table = component$<{ node: MdNode }>(({ node }) => (
 const Image = component$<{ node: MdNode }>(({ node }) => (
   <img
     class="md-img"
-    src={node.url}
+    src={rewriteRawAssetUrl(node.url ?? '')}
     alt={node.alt ?? ''}
     title={node.title}
     loading="lazy"
@@ -119,7 +119,14 @@ const WikiEmbed = component$<{ node: MdNode }>(({ node }) => {
   const src = node.data?.src as string | undefined;
   const alt = node.data?.alt as string | undefined;
   if (embed === 'image' && src) {
-    return <img class="md-img md-embed" src={src} alt={alt ?? ''} loading="lazy" />;
+    return (
+      <img
+        class="md-img md-embed"
+        src={rewriteRawAssetUrl(src)}
+        alt={alt ?? ''}
+        loading="lazy"
+      />
+    );
   }
   // N-T24：Notes 嵌入卡片（![[笔记标题]]）—— 渲染目标文章预览 + 跳转
   if (embed === 'note') {

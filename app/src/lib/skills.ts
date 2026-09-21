@@ -19,9 +19,10 @@ export const SK_DFLT_REPO = 'guoxinl/skill-collection';
 export const SK_DFLT_BRANCH = 'main';
 export const SK_DFLT_WORKER = 'https://guoxin-space.lgx31.workers.dev';
 
-/* 「应用到 Agent」一键安装命令参数 */
-export const SK_APPLY_RAW =
-  'https://raw.githubusercontent.com/GuoxinL/guoxin.space/main/skill-apply.py';
+/* 「应用到 Agent」一键安装命令参数。
+   ⚠️ 走 jsDelivr 主通道：raw.githubusercontent.com 在国内多数网络不可达（实测直连 1.73s、常超时）。 */
+export const SK_APPLY_URL =
+  'https://cdn.jsdelivr.net/gh/GuoxinL/guoxin.space@main/skill-apply.py';
 export const SK_APPLY_AGENT = 'wb,cb';
 
 /* ================= 配置读写（localStorage，SSR 安全） ================= */
@@ -90,8 +91,40 @@ export function skRepoFull(cfg: SkCfg): string {
   return /^[\w.-]+\/[\w.-]+$/.test(s) ? s : '';
 }
 
+/** 主通道（jsDelivr）：国内可达，实测 0.6s 级。用于产出 `<img src>` 等无法降级的地址。 */
+export function skCdn(owner: string, repo: string, branch: string, path: string): string {
+  return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${path}`;
+}
+
+/** 兜底通道（raw.githubusercontent.com）：国内多数网络不可达，仅在主通道失败时尝试。 */
 export function skRaw(owner: string, repo: string, branch: string, path: string): string {
   return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+}
+
+/** 文件地址候选链：主通道 jsDelivr → 兜底 raw。用于取数（可降级）场景。 */
+export function skUrlCandidates(
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string,
+): string[] {
+  return [skCdn(owner, repo, branch, path), skRaw(owner, repo, branch, path)];
+}
+
+/** 依候选链取第一个成功响应；全部失败返回 null（调用方自行兜底，不抛错）。 */
+export async function skFetchFirst(
+  urls: string[],
+  init?: RequestInit,
+): Promise<Response | null> {
+  for (const u of urls) {
+    try {
+      const res = await fetch(u, init);
+      if (res.ok) return res;
+    } catch {
+      /* 该通道不可达：静默降级到下一通道 */
+    }
+  }
+  return null;
 }
 
 export function skApi(full: string, path: string, q = ''): string {
@@ -468,7 +501,7 @@ export function skShellQuote(s: string): string {
 export function skInstallCmd(dirOrAll: string): string {
   return (
     'mkdir -p "$HOME/.local/bin" && ' +
-    `curl -fsSL ${SK_APPLY_RAW} -o "$HOME/.local/bin/skill-apply.py" && ` +
+    `curl -fsSL ${SK_APPLY_URL} -o "$HOME/.local/bin/skill-apply.py" && ` +
     'chmod +x "$HOME/.local/bin/skill-apply.py" && ' +
     `python3 "$HOME/.local/bin/skill-apply.py" ${skShellQuote(dirOrAll)} --agent ${SK_APPLY_AGENT}`
   );
@@ -627,34 +660,30 @@ export async function fetchMeta(
     icon: null,
     skillMd: null,
   };
-  try {
-    const md = await fetch(skRaw(owner, repo, branch, dir + '/SKILL.md'));
-    if (md.ok) {
-      const text = await md.text();
-      meta.skillMd = text;
-      const fm = skParseFrontmatter(text);
-      if (fm.name) meta.name = fm.name;
-      if (fm.description) meta.description = fm.description;
-      if (fm.mode) meta.mode = fm.mode;
-      if (fm.source) meta.source = fm.source;
-      if (fm.sourceOwner) meta.sourceOwner = fm.sourceOwner;
-    }
-  } catch {
-    /* 忽略单目录元数据读取失败 */
+  const md = await skFetchFirst(skUrlCandidates(owner, repo, branch, dir + '/SKILL.md'));
+  if (md) {
+    const text = await md.text();
+    meta.skillMd = text;
+    const fm = skParseFrontmatter(text);
+    if (fm.name) meta.name = fm.name;
+    if (fm.description) meta.description = fm.description;
+    if (fm.mode) meta.mode = fm.mode;
+    if (fm.source) meta.source = fm.source;
+    if (fm.sourceOwner) meta.sourceOwner = fm.sourceOwner;
   }
   if (!meta.source) {
-    try {
-      const cj = await fetch(skRaw(owner, repo, branch, dir + '/_collect.json'));
-      if (cj.ok) {
-        const col = (await cj.json().catch(() => null)) as any;
-        if (col && col.source) {
-          meta.source = col.source;
-          if (!meta.mode && col.mode) meta.mode = col.mode;
-          if (col.sourceOwner) meta.sourceOwner = col.sourceOwner;
-        }
+    const cj = await skFetchFirst(
+      skUrlCandidates(owner, repo, branch, dir + '/_collect.json'),
+    );
+    if (cj) {
+      const col = (await cj.json().catch(() => null)) as
+        | { source?: string; mode?: string; sourceOwner?: string }
+        | null;
+      if (col && col.source) {
+        meta.source = col.source;
+        if (!meta.mode && col.mode) meta.mode = col.mode;
+        if (col.sourceOwner) meta.sourceOwner = col.sourceOwner;
       }
-    } catch {
-      /* ignore */
     }
   }
   if (!meta.sourceOwner) meta.sourceOwner = skSourceOwner(meta.source, '');
@@ -673,39 +702,35 @@ export async function fetchMeta(
     }
   }
   const cands = ['_icon.png', 'icon.svg', 'icon.png', 'logo.png', 'logo.svg'];
-  try {
-    const probes = await Promise.all(
-      cands.map((c) =>
-        fetch(skRaw(iconOwner, iconRepo, iconBranch, iconBase ? iconBase + '/' + c : c), {
-          method: 'HEAD',
-        })
-          .then((res) => (res.ok ? c : null))
-          .catch(() => null),
-      ),
-    );
-    for (const p of probes) {
-      if (p) {
-        meta.icon = skRaw(iconOwner, iconRepo, iconBranch, iconBase ? iconBase + '/' + p : p);
-        break;
-      }
+  const probes = await Promise.all(
+    cands.map(async (c) => {
+      const rel = iconBase ? iconBase + '/' + c : c;
+      const res = await skFetchFirst(skUrlCandidates(iconOwner, iconRepo, iconBranch, rel), {
+        method: 'HEAD',
+      });
+      return res ? c : null;
+    }),
+  );
+  for (const p of probes) {
+    if (p) {
+      // 这里产出的是 <img src>，无法在图片层面降级 —— 直接给主通道地址
+      meta.icon = skCdn(iconOwner, iconRepo, iconBranch, iconBase ? iconBase + '/' + p : p);
+      break;
     }
-  } catch {
-    /* ignore */
   }
   if (!meta.icon) meta.icon = skPlaceholderIcon(meta.name || dir);
   return meta;
 }
 
 /** 静态注册表读取（默认仓库）：skills.json 由 skill-collection 仓自身构建并提交，
- *  经 raw.githubusercontent 拉取，避开 GitHub API 60/hr 限流。失败时返回 null（调用方回退动态路径）。 */
+ *  沿通道候选链拉取（jsDelivr 主 → raw 兜底），避开 GitHub API 60/hr 限流。失败时返回 null（调用方回退动态路径）。 */
 async function fetchSkillsStatic(cfg: SkCfg, full: string, branch: string): Promise<FetchSkillsResult | null> {
   const [owner, repo] = full.split('/');
   try {
-    const res = await fetch(
-      `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/skills.json`,
-      { headers: { accept: 'application/json' } },
-    );
-    if (!res.ok) return null;
+    const res = await skFetchFirst(skUrlCandidates(owner, repo, branch, 'skills.json'), {
+      headers: { accept: 'application/json' },
+    });
+    if (!res) return null;
     const data = (await res.json().catch(() => null)) as
       | { rows?: Array<Record<string, unknown>>; branch?: string }
       | null;
@@ -803,14 +828,19 @@ export async function fetchFile(
 ): Promise<FileContent> {
   const target = path || 'SKILL.md';
   const rel = base ? base + '/' + target : target;
-  const url = skRaw(owner, repo, branch, rel);
+  // 展示 / <img src> 用的地址：直接给主通道
+  const url = skCdn(owner, repo, branch, rel);
   const isImage = /\.(png|jpe?g|gif|webp|ico|svg)$/i.test(target);
   const isMd = isMdName(target);
   if (isImage) {
     return { text: url, isImage: true, isMd: false, truncated: false, url };
   }
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  // 正文取数：主通道失败则落兜底通道；两者皆失败时报错（保留状态码语义）
+  let res = await fetch(url).catch(() => null);
+  if (!res || !res.ok) {
+    res = await fetch(skRaw(owner, repo, branch, rel)).catch(() => null);
+  }
+  if (!res || !res.ok) throw new Error('HTTP ' + (res ? res.status : 'network'));
   let text = await res.text();
   let truncated = false;
   if (text.length > 200000) {

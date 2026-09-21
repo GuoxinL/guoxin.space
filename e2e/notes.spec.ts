@@ -12,7 +12,7 @@ const IMG_SVG = 'e2e/fixtures/notes/img/1x1.svg';
 
 /**
  * Notes 模块 E2E 冒烟（对齐 plan §9）。
- * 取数来自公开数据仓 GuoxinL/notes 的 build/ 产物：用本地 fixtures 模拟 raw.githubusercontent.com，
+ * 取数来自公开数据仓 GuoxinL/notes 的 build/ 产物：用本地 fixtures 模拟 jsDelivr 主通道（raw 为兜底），
  * 使用例离线确定（同时验证 lib/notes/source.ts 的真实 fetch 管线：posts.json / posts/<id>.json / all.json）。
  * fixtures 由 notes/build/ 复制（改数据源后需重新 `cp` 同步）。
  * 验证：① 列表卡片 > 0 ② 点击卡片 SPA 导航到中文 URL 且 H1 正确
@@ -22,7 +22,7 @@ const IMG_SVG = 'e2e/fixtures/notes/img/1x1.svg';
  */
 const SAMPLE = 'Markdown 全功能示例';
 
-// 模拟 raw.githubusercontent.com/GuoxinL/notes/main/build/** → 本地 fixtures（离线确定）
+// 模拟主通道 cdn.jsdelivr.net/gh/GuoxinL/notes@main/build/** → 本地 fixtures（离线确定）
 test.beforeEach(async ({ page }) => {
   // 逐文件显式路由（便于单测用 unroute 覆盖某一文件，如 series.json 404 场景）
   await page.route('**/posts.json', (route) =>
@@ -41,7 +41,8 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(seriesFixture) }),
   );
   // 文章图片走 content/**（非 build/**），本地需桩离线图片，否则懒加载图取不到 → 0 尺寸 → 测试偶发 hidden
-  await page.route('https://raw.githubusercontent.com/GuoxinL/notes/main/content/**', (route) => {
+  // 图片地址由 rewriteRawAssetUrl 改道到主通道（jsDelivr）→ 此处桩 jsDelivr
+  await page.route('https://cdn.jsdelivr.net/gh/GuoxinL/notes@main/content/**', (route) => {
     const p = route.request().url();
     const isSvg = /\.svg(\?.*)?$/i.test(p);
     return route.fulfill({ status: 200, contentType: isSvg ? 'image/svg+xml' : 'image/png', path: isSvg ? IMG_SVG : IMG_PNG });
@@ -208,7 +209,7 @@ test('标签溢出分支：默认折叠前 8 个，点靠后标签提到可见�
     }),
   };
   await page.route(
-    'https://raw.githubusercontent.com/GuoxinL/notes/main/build/posts.json',
+    'https://cdn.jsdelivr.net/gh/GuoxinL/notes@main/build/posts.json',
     (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(injected) }),
   );
 
@@ -393,7 +394,7 @@ test('详情页注入 og:image meta（N-T28）', async ({ page }) => {
   expect(content).toContain('.svg');
 });
 
-test('详情页渲染方案A 相对路径图片（被重写为 raw 绝对 URL）', async ({ page }) => {
+test('详情页渲染方案A 相对路径图片（被改道到当前取数通道）', async ({ page }) => {
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
   // 段落图片（方案A）= .md-img 且非双链嵌入卡（md-embed）
@@ -401,7 +402,7 @@ test('详情页渲染方案A 相对路径图片（被重写为 raw 绝对 URL）
   await expect(img).toBeVisible();
   await expect(img).toHaveAttribute(
     'src',
-    /^https:\/\/raw\.githubusercontent\.com\/GuoxinL\/notes\/main\/content\//
+    /^https:\/\/cdn\.jsdelivr\.net\/gh\/GuoxinL\/notes@main\/content\//
   );
   // 第二张（svg）同样重写
   const svg = page.locator('.md-img:not(.md-embed)').nth(1);
