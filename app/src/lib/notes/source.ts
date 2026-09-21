@@ -116,7 +116,12 @@ export interface FetchJsonOptions {
 /** 取数封装：失败（网络 / 非 2xx / 超时 / JSON 解析失败）返回 null，由调用方降级或回退 SAMPLE。 */
 export async function fetchJson<T>(url: string, opts: FetchJsonOptions = {}): Promise<T | null> {
   const timeoutMs = opts.timeoutMs ?? NOTES_FETCH_TIMEOUT_MS;
-  const init: RequestInit = { headers: { accept: 'application/json' } };
+  // 当前页面关键数据：显式最高优先级，确保 /notes/ 首屏取数优先于 Qwik 对其他页面（toolbox/更多/工具）的 hover 预取。
+  // 浏览器 fetch priority 为标准 Web API，不支持的浏览器自动忽略该字段（无害）。
+  const init: RequestInit & { priority?: 'high' | 'low' | 'auto' } = {
+    headers: { accept: 'application/json' },
+    priority: 'high',
+  };
   // AbortSignal.timeout 在旧环境 / 测试桩下可能不存在：缺失时退化为无超时，不抛错。
   if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
     init.signal = AbortSignal.timeout(timeoutMs);

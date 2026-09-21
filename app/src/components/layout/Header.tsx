@@ -1,5 +1,5 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, useLocation } from "@builder.io/qwik-city";
+import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
 import { AuthButton } from "../auth/AuthButton";
 import { authSubscribe, isAdmin } from "../../lib/auth";
 import { PixelIcon, type PixelIconName } from "../pixel/PixelIcon";
@@ -39,6 +39,13 @@ export const Header = component$(() => {
   const tbOpen = useSignal(false);
   const moreOpen = useSignal(false);
   const showTodo = useSignal(false);
+  // 关闭「其他页面」链接预取（Toolbox 子菜单 / 更多菜单）。
+  // 根因：Qwik 把 <Link prefetch={false}> / prefetch="js" 的 prefetch 属性当作要落到宿主 <a> 的
+  // HTML 属性，而 <a> 无此属性 → 在序列化/编译阶段整体丢弃，Link 组件永远收不到该值，预取无法关闭。
+  // 因此这些「其他页面」链接改用普通 <a> + 客户端导航（onClick$ → nav()），从根本上移除 Qwik 的
+  // data-prefetch / prefetch 机制，不抢占 /notes/ 首屏带宽。首页 / Toolbox 父栏目 / Notes 等主航仍用
+  // <Link>（保留其合理的预取与 SPA 优化）。
+  const nav = useNavigate();
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
@@ -168,19 +175,26 @@ export const Header = component$(() => {
                 >
                   {TOOLBOX_MENU.map((m) => (
                     <li key={m.href}>
-                      <Link
+                      {/* 普通 <a> + 客户端导航：从根移除 Qwik data-prefetch，避免抢占 /notes/ 首屏 */}
+                      <a
                         href={m.href}
                         role="menuitem"
                         aria-current={isExact(m.href) ? "page" : undefined}
                         class="mc-nav-item"
-                        onClick$={() => (tbOpen.value = false)}
+                        onClick$={(e) => {
+                          if (!e.defaultPrevented) {
+                            e.preventDefault();
+                            nav(m.href);
+                          }
+                          tbOpen.value = false;
+                        }}
                       >
                         <PixelIcon name={m.icon} size={16} />
                         <span class="tb-menu-text">
                           <span class="tb-menu-title">{m.label}</span>
                           <span class="tb-menu-desc">{m.desc}</span>
                         </span>
-                      </Link>
+                      </a>
                     </li>
                   ))}
                 </ul>
@@ -226,16 +240,23 @@ export const Header = component$(() => {
               >
                 {MORE_NAV.map((m) => (
                   <li key={m.href}>
-                    <Link
+                    {/* 普通 <a> + 客户端导航：从根移除 Qwik data-prefetch，避免抢占 /notes/ 首屏 */}
+                    <a
                       href={m.href}
                       role="menuitem"
                       aria-current={isActive(m.href) ? "page" : undefined}
                       class="mc-nav-item"
-                      onClick$={() => (moreOpen.value = false)}
+                      onClick$={(e) => {
+                        if (!e.defaultPrevented) {
+                          e.preventDefault();
+                          nav(m.href);
+                        }
+                        moreOpen.value = false;
+                      }}
                     >
                       <PixelIcon name={m.icon} size={16} />
                       <span>{m.label}</span>
-                    </Link>
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -318,32 +339,44 @@ export const Header = component$(() => {
               {/* Toolbox + 子项 */}
               {PRIMARY_NAV.filter((i) => i.href === "/toolbox/json").map((item) => (
                 <li key={item.href} class="mc-nav-group-m">
-                  <Link
+                  <a
                     href={item.href}
                     role="menuitem"
                     aria-current={isActive(item.href) ? "page" : undefined}
                     class="mc-nav-item"
-                    onClick$={() => (menuOpen.value = false)}
+                    onClick$={(e) => {
+                      if (!e.defaultPrevented) {
+                        e.preventDefault();
+                        nav(item.href);
+                      }
+                      menuOpen.value = false;
+                    }}
                   >
                     <PixelIcon name={item.icon} size={14} />
                     <span>{item.label}</span>
-                  </Link>
+                  </a>
                   <ul class="mc-nav-sub">
                     {TOOLBOX_MENU.map((m) => (
                       <li key={m.href}>
-                        <Link
+                        <a
                           href={m.href}
                           role="menuitem"
                           aria-current={isExact(m.href) ? "page" : undefined}
                           class="mc-nav-item"
-                          onClick$={() => (menuOpen.value = false)}
+                          onClick$={(e) => {
+                            if (!e.defaultPrevented) {
+                              e.preventDefault();
+                              nav(m.href);
+                            }
+                            menuOpen.value = false;
+                          }}
                         >
                           <PixelIcon name={m.icon} size={16} />
                           <span class="tb-menu-text">
                             <span class="tb-menu-title">{m.label}</span>
                             <span class="tb-menu-desc">{m.desc}</span>
                           </span>
-                        </Link>
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -367,16 +400,22 @@ export const Header = component$(() => {
               {/* 更多：Skills + Running（移动端直接列出） */}
               {MORE_NAV.map((m) => (
                 <li key={m.href}>
-                  <Link
+                  <a
                     href={m.href}
                     role="menuitem"
                     aria-current={isActive(m.href) ? "page" : undefined}
                     class="mc-nav-item"
-                    onClick$={() => (menuOpen.value = false)}
+                    onClick$={(e) => {
+                      if (!e.defaultPrevented) {
+                        e.preventDefault();
+                        nav(m.href);
+                      }
+                      menuOpen.value = false;
+                    }}
                   >
                     <PixelIcon name={m.icon} size={14} />
                     <span>{m.label}</span>
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

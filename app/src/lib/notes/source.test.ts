@@ -146,6 +146,23 @@ describe('fetchJson', () => {
     const init = spy.mock.calls[0][1] as RequestInit;
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
+
+  it('当前页面取数显式最高优先级 priority:high（确保 /notes/ 首屏优于其他页 hover 预取）', async () => {
+    const spy = vi.fn().mockResolvedValue(jsonResponse({ ok: 1 }));
+    vi.stubGlobal('fetch', spy);
+    await fetchJson('https://x/y');
+    const init = spy.mock.calls[0][1] as RequestInit & { priority?: string };
+    expect(init.priority).toBe('high');
+  });
+
+  it('priority:high 与超时信号共存（两条分支都带 priority）', async () => {
+    const spy = vi.fn().mockResolvedValue(jsonResponse({ ok: 1 }));
+    vi.stubGlobal('fetch', spy);
+    await fetchJson('https://x/y');
+    const init = spy.mock.calls[0][1] as RequestInit & { priority?: string };
+    expect(init.priority).toBe('high');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
 });
 
 describe('fetchJsonFromChannels', () => {
