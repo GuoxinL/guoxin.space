@@ -86,6 +86,6 @@ describe('isAdmin / getAuthUser', () => {
 
 describe('authWorkerUrl', () => {
   it('未配置时回退默认 Worker', () => {
-    expect(authWorkerUrl()).toContain('guoxin-space.lgx31.workers.dev');
+    expect(authWorkerUrl()).toContain('api.guoxin.space');
   });
 });

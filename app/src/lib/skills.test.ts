@@ -304,15 +304,14 @@ describe('skPlaceholderIcon（P1-5 图标回退占位）', () => {
   });
 });
 
-describe('skMigrateWorker / loadSkCfg 旧域名迁移（skillboard-collect → guoxin-space）', () => {
+describe('skMigrateWorker / loadSkCfg 旧域名迁移（遗留 workers.dev 子域 → api.guoxin.space）', () => {
   it('遗留旧域 → 新默认域（含尾斜杠）', () => {
     expect(skMigrateWorker('https://skillboard-collect.lgx31.workers.dev')).toBe(SK_DFLT_WORKER);
     expect(skMigrateWorker('https://skillboard-collect.lgx31.workers.dev/')).toBe(SK_DFLT_WORKER);
+    expect(skMigrateWorker('https://guoxin-space.lgx31.workers.dev')).toBe(SK_DFLT_WORKER);
   });
-  it('新域 / 自定义域 / 空串 → 原样', () => {
-    expect(skMigrateWorker('https://guoxin-space.lgx31.workers.dev')).toBe(
-      'https://guoxin-space.lgx31.workers.dev',
-    );
+  it('当前默认域 / 自定义域 / 空串 → 原样', () => {
+    expect(skMigrateWorker('https://api.guoxin.space')).toBe('https://api.guoxin.space');
     expect(skMigrateWorker('https://api.example.com')).toBe('https://api.example.com');
     expect(skMigrateWorker('')).toBe('');
   });

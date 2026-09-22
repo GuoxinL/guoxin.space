@@ -17,7 +17,7 @@ const KEY_PREFIX = 'wb_home_';
 export const KEY_SK_SET = KEY_PREFIX + 'sk_set';
 export const SK_DFLT_REPO = 'guoxinl/skill-collection';
 export const SK_DFLT_BRANCH = 'main';
-export const SK_DFLT_WORKER = 'https://guoxin-space.lgx31.workers.dev';
+export const SK_DFLT_WORKER = 'https://api.guoxin.space';
 
 /* 「应用到 Agent」一键安装命令参数。
    ⚠️ 走 jsDelivr 主通道：raw.githubusercontent.com 在国内多数网络不可达（实测直连 1.73s、常超时）。 */
@@ -26,9 +26,13 @@ export const SK_APPLY_URL =
 export const SK_APPLY_AGENT = 'wb,cb';
 
 /* ================= 配置读写（localStorage，SSR 安全） ================= */
-/** 遗留 Worker 主机名（`skillboard-collect` → `guoxin-space` 重命名前）：
- *  老用户 localStorage 里存的旧域已失效，需迁移到新默认域。 */
-export const SK_LEGACY_WORKER_HOSTS = ['skillboard-collect.lgx31.workers.dev'];
+/** 遗留 Worker 主机名（已失效，老用户 localStorage 里存的旧域需迁移到新默认域）：
+ *  - `skillboard-collect` → `guoxin-space` 重命名前的旧脚本子域；
+ *  - `guoxin-space.lgx31.workers.dev` 为旧默认 workers.dev 子域（2026-09-22 实测已 502/超时，仅自定义域 api.guoxin.space 存活）。 */
+export const SK_LEGACY_WORKER_HOSTS = [
+  'skillboard-collect.lgx31.workers.dev',
+  'guoxin-space.lgx31.workers.dev',
+];
 
 /** 归一化存储的 Worker URL：命中遗留域名 → 返回新默认域；其余原样返回（空串原样，由调用方回退默认）。 */
 export function skMigrateWorker(url: string): string {

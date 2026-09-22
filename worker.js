@@ -835,7 +835,7 @@ async function authLogin(request, env, cors) {
   const u = "https://github.com/login/oauth/authorize?client_id=" + encodeURIComponent(env.GITHUB_CLIENT_ID)
     + "&redirect_uri=" + encodeURIComponent(origin + "/api/auth/callback")
     + "&scope=read:user public_repo&state=" + encodeURIComponent(randomId());
-  return new Response(null, { status: 302, headers: { Location: u, "Access-Control-Allow-Origin": "*" } });
+  return new Response(null, { status: 302, headers: { Location: u, "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" } });
 }
 
 async function authCallback(request, env, cors) {
@@ -862,11 +862,11 @@ async function authCallback(request, env, cors) {
       headers: { "Authorization": "Bearer " + tok.access_token, "User-Agent": "guoxin-space", "Accept": "application/vnd.github+json" },
     }).then(r => r.json());
     if (!user || !user.login) {
-      return new Response(null, { status: 302, headers: { Location: home + "/#auth=denied", "Access-Control-Allow-Origin": "*" } });
+      return new Response(null, { status: 302, headers: { Location: home + "/#auth=denied", "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" } });
     }
     const admin = (user.login === env.ADMIN_LOGIN);
     const token = await signToken(user.login, env.AUTH_SECRET, tok.access_token, admin);
-    return new Response(null, { status: 302, headers: { Location: home + "/#auth=" + encodeURIComponent(token), "Access-Control-Allow-Origin": "*" } });
+    return new Response(null, { status: 302, headers: { Location: home + "/#auth=" + encodeURIComponent(token), "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" } });
   } catch (e) {
     return json(cors, 500, { error: String((e && e.message) || e) });
   }

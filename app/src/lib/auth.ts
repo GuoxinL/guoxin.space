@@ -121,7 +121,8 @@ export function authLogin(): void {
     }
     return;
   }
-  window.location.href = worker + '/api/auth/login';
+  // 带一次性 query：绕开浏览器/CDN 可能缓存的旧 302（曾致用户拿到过期 OAuth client_id 的授权地址）
+  window.location.href = worker + '/api/auth/login?_cb=' + Date.now();
 }
 
 export function authLogout(): void {

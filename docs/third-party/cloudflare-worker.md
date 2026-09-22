@@ -114,7 +114,7 @@ dashboard 粘贴 / 本地 wrangler 保留为兜底，见下方步骤。
 
 1. GitHub → Settings → **Developer settings** → **OAuth Apps** → **New OAuth App**。
 2. Homepage URL：`https://guoxin.space`。
-3. **Authorization callback URL：`https://guoxin-space.lgx31.workers.dev/api/auth/callback`**（不能是 localhost）。
+3. **Authorization callback URL：`https://api.guoxin.space/api/auth/callback`**（不能是 localhost）。
 4. 记下 **Client ID** 与 **Client Secret**。
 
 ### 2. 创建 GitHub 细粒度 PAT（一次）
@@ -171,8 +171,8 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 
 ### 5. 确认 Worker 访问地址
 
-- 默认地址：`https://guoxin-space.<你的 Cloudflare 子域>.workers.dev`（本仓库为 `https://guoxin-space.lgx31.workers.dev`，页面默认走此）。
-- 可选：**Settings → Domains & Routes** 绑定自定义域名（非必须，CORS 已通配）。
+- 主地址：**自定义域 `https://api.guoxin.space`**（页面默认走此；2026-09-22 实测 workers.dev 子域已 502/超时，勿作为默认）。
+- 备用：workers.dev 子域 `https://guoxin-space.<你的 Cloudflare 子域>.workers.dev`（仅 Dashboard 开启 workers.dev 路由时可用，不稳定）。
 
 ### 6. 页面端接入
 
@@ -182,7 +182,7 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 |---|---|
 | 技能夹仓库 | `guoxin/skill-collection` |
 | 分支 | `main` |
-| Worker URL | `https://guoxin-space.lgx31.workers.dev` |
+| Worker URL | `https://api.guoxin.space` |
 
 点 **测试连接**，出现绿色 `✓` 即打通。设置保存在浏览器 localStorage，不上传任何地方。
 
@@ -190,31 +190,31 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 
 ```bash
 # 1. 健康检查（无需任何凭证）
-curl "https://guoxin-space.lgx31.workers.dev/api/health"
+curl "https://api.guoxin.space/api/health"
 
 # 2. 未登录调用写通道 → 401
-curl -X POST "https://guoxin-space.lgx31.workers.dev/api/collect" \
+curl -X POST "https://api.guoxin.space/api/collect" \
   -H "Content-Type: application/json" \
   -d '{"url":"https://github.com/owner/skill","mode":"proxy"}'
 #   → {"error":"未授权：请先登录 GitHub（仅站长本人可用）"}
 
 # 3. 旧 x-collect-key 不再生效 → 401（无兼容）
-curl -X POST "https://guoxin-space.lgx31.workers.dev/api/collect" \
+curl -X POST "https://api.guoxin.space/api/collect" \
   -H "Content-Type: application/json" -H "x-collect-key: anything" \
   -d '{"url":"https://github.com/owner/skill","mode":"proxy"}'
 #   → 401
 
 # 4. 游客读截断轨迹 → 200
-curl "https://guoxin-space.lgx31.workers.dev/api/tracks/raw?f=preview.json"
+curl "https://api.guoxin.space/api/tracks/raw?f=preview.json"
 
 # 4b. 游客读双主题垫底图/缩略图 → 200 (image/png)
 curl -o /dev/null -w "%{http_code} %{content_type}\n" \
-  "https://guoxin-space.lgx31.workers.dev/api/tracks/raw?f=previews%2Flight.png"
+  "https://api.guoxin.space/api/tracks/raw?f=previews%2Flight.png"
 curl -o /dev/null -w "%{http_code} %{content_type}\n" \
-  "https://guoxin-space.lgx31.workers.dev/api/tracks/raw?f=thumb%2F218861077.light.png"
+  "https://api.guoxin.space/api/tracks/raw?f=thumb%2F218861077.light.png"
 
 # 5. 游客读完整轨迹 → 401
-curl "https://guoxin-space.lgx31.workers.dev/api/tracks/raw?f=rides.full.json"
+curl "https://api.guoxin.space/api/tracks/raw?f=rides.full.json"
 #   → 401
 
 # 6. 浏览器登录后收藏 / 删除 / 同步（页面已自动带 Bearer header）
