@@ -427,6 +427,56 @@ test('详情页评论区：已登录态显示编辑器并拉取渲染评论列�
   await expect(c.locator('.notes-comment-login')).toContainText('alice');
 });
 
+test('评论回复（GitHub Issue 平铺风格：引用被评评论，提交后平铺一条带引用的新评论）', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('wb_home_auth_token', 'fake.jwt.token');
+    localStorage.setItem('wb_home_gh_user', JSON.stringify({ login: 'tester' }));
+    localStorage.setItem('wb_home_sk_set', JSON.stringify({ worker: 'https://api.guoxin.space' }));
+  });
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, login: 'tester', admin: false }) }),
+  );
+  // 状态化 mock：GET 返回当前列表，POST 把新评论（含引用正文）追加进列表，模拟 Issue 平铺存储
+  const store = {
+    comments: [
+      { id: 101, login: 'alice', body: '第一条评论', createdAt: '2026-09-22T00:00:00Z', htmlUrl: 'https://github.com/x', avatar: 'https://x/a.png' },
+    ],
+  };
+  await page.route('**/api/comments**', (route) => {
+    if (route.request().method() === 'POST') {
+      const body = JSON.parse(route.request().postData() || '{}');
+      const id = Date.now();
+      store.comments.push({ id, login: 'tester', body: body.body, createdAt: new Date().toISOString() });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, comment: { id, login: 'tester', body: body.body } }) });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, container: true, issueNumber: 1, comments: store.comments }),
+    });
+  });
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const c = page.getByTestId('notes-comments');
+  // 点 alice 评论（id=101）的「回复」——用 data-comment-id 唯一锚定，避免新回复含引用原文后多匹配
+  await c.locator('[data-comment-id="101"]').getByTestId('notes-comment-reply').click();
+  // 编辑器被注入引用块 + 横幅提示「回复 @alice」
+  const input = c.locator('[data-testid="notes-comment-input"]');
+  await expect(input).toHaveValue(/^> @alice 写道：/);
+  await expect(c.locator('.notes-comment-reply-banner')).toContainText('回复 @alice');
+  // 输入回复正文并提交
+  await input.fill('> @alice 写道：\n> 第一条评论\n\n这条回复测试');
+  await c.locator('[data-testid="notes-comment-submit"]').click();
+  // 平铺列表出现新评论（含引用 + 回复文本），回复横幅消失
+  await expect(c.locator('.notes-comment-body').filter({ hasText: '这条回复测试' })).toBeVisible({ timeout: 10_000 });
+  await expect(c.locator('.notes-comment-reply-banner')).toHaveCount(0);
+  // 取消回复：再点 alice 评论（id=101）的「回复」后点 ✕，编辑器应清空引用
+  await c.locator('[data-comment-id="101"]').getByTestId('notes-comment-reply').click();
+  await expect(input).toHaveValue(/^> @alice 写道：/);
+  await c.locator('.notes-comment-reply-cancel').click();
+  await expect(input).toHaveValue('');
+});
+
 test('正文渲染 StackBlitz 交互示例嵌入（N-T29）', async ({ page }) => {
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });

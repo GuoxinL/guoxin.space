@@ -4212,6 +4212,50 @@ body[data-theme="light"] .md-pre {
   outline-offset: 1px;
   border-color: var(--violet-65);
 }
+/* 回复某条评论（GitHub Issue 平铺风格）：引用块注入编辑器，提交即平铺新评论 */
+.notes-comment-reply {
+  margin-left: auto;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--slate-50);
+  background: transparent;
+  border: 1px solid var(--slate-5);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.notes-comment-reply:hover {
+  color: var(--violet-65);
+  border-color: var(--violet-65);
+}
+.notes-comment-reply-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--slate-50);
+  background: var(--violet-0);
+  border: 1px solid var(--violet-65);
+  border-radius: 8px 8px 0 0;
+}
+.notes-comment-reply-to {
+  font-weight: 600;
+  color: var(--violet-65);
+}
+.notes-comment-reply-cancel {
+  padding: 0 0.4rem;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--slate-50);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.notes-comment-reply-cancel:hover {
+  color: var(--slate-80);
+}
 .notes-comment-actions {
   display: flex;
   align-items: center;

@@ -201,6 +201,9 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
   const draft = useSignal('');
   const submitting = useSignal(false);
   const postError = useSignal('');
+  // 回复某条评论（GitHub Issue 平铺风格）：点击「回复」把被引评论引用块注入编辑器，提交即平铺一条带引用的新评论
+  const replyTarget = useSignal<{ login: string; quote: string } | null>(null);
+  const inputRef = useSignal<HTMLTextAreaElement>();
 
   const load = $(async () => {
     loading.value = true;
@@ -235,6 +238,30 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
     load();
   });
 
+  // 点击某条评论「回复」：把被引评论引用块（GitHub 引用风格）注入编辑器并聚焦，提交即平铺一条带引用的新评论
+  const startReply = $((c: CommentItem) => {
+    if (!getAuthToken()) {
+      authLogin();
+      return;
+    }
+    const lines = (c.body || '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+    let snippet = lines.join('\n> ');
+    if (snippet.length > 240) snippet = snippet.slice(0, 240) + '…';
+    const quote = `> @${c.login || '匿名'} 写道：\n> ${snippet}\n\n`;
+    draft.value = quote + draft.value; // 在已有草稿前插入引用块（GitHub quote-reply 语义）
+    replyTarget.value = { login: c.login || '匿名', quote };
+    inputRef.value?.focus();
+  });
+
+  const cancelReply = $(() => {
+    replyTarget.value = null;
+    draft.value = '';
+  });
+
   const submit = $(async () => {
     const text = draft.value.trim();
     if (!text) {
@@ -260,6 +287,7 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
         postError.value = (data && data.error) || '发布失败';
       } else {
         draft.value = '';
+        replyTarget.value = null;
         await load();
       }
     } catch {
@@ -282,7 +310,7 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
       {list.value.length > 0 && (
         <ul class="notes-comments-list">
           {list.value.map((c) => (
-            <li key={String(c.id)} class="notes-comment">
+            <li key={String(c.id)} class="notes-comment" data-comment-id={String(c.id)}>
               {c.avatar ? (
                 <img class="notes-comment-avatar" src={c.avatar} alt={c.login || '匿名'} width={32} height={32} loading="lazy" />
               ) : null}
@@ -295,6 +323,16 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
                     </a>
                   ) : null}
                   {c.createdAt ? <time class="notes-comment-time">{c.createdAt}</time> : null}
+                  {getAuthToken() && (
+                    <button
+                      type="button"
+                      class="notes-comment-reply"
+                      data-testid="notes-comment-reply"
+                      onClick$={() => startReply(c)}
+                    >
+                      回复
+                    </button>
+                  )}
                 </div>
                 <div class="notes-comment-body">{c.body}</div>
               </div>
@@ -306,12 +344,28 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
       <div class="notes-comment-editor">
         {getAuthToken() ? (
           <div class="notes-comment-form">
+            {replyTarget.value && (
+              <div class="notes-comment-reply-banner">
+                <span>
+                  回复 <span class="notes-comment-reply-to">@{replyTarget.value.login}</span>
+                </span>
+                <button
+                  type="button"
+                  class="notes-comment-reply-cancel"
+                  aria-label="取消回复"
+                  onClick$={cancelReply}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <textarea
               class="notes-comment-input"
               data-testid="notes-comment-input"
               rows={4}
               placeholder="写下你的评论（纯 GitHub 身份，公开可见）"
               bind:value={draft}
+              ref={inputRef}
             />
             <div class="notes-comment-actions">
               <button
