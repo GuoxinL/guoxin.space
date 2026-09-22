@@ -18,6 +18,9 @@
 //   SERVERCHAN_SENDKEY  选填  写操作审计：collect/remove/sync 成功后 Server酱推微信
 //   CARTO_API_KEY       选填  地图瓦片代理（/api/tiles/）的 CARTO key；未配时 302 降级 Esri 免 key 瓦片
 //   TRACKS_REPO         必填  轨迹私有仓库，形如 GuoxinL/running-private
+//   NOTES_REPO          选填  评论容器仓库，默认 GuoxinL/notes（Issue 存储式自建评论）
+//   NOTES_GH_TOKEN      选填  写评论容器 / 映射回写的 GitHub token（需 notes 仓 Contents 写权限）；
+//                            未配时回退 GH_TOKEN（要求 GH_TOKEN 本身已授权 notes 仓写）
 //   REDIRECT_URL        选填  登录回跳地址，默认 https://guoxin.space
 //   TODO_REPO           选填  默认 guoxin.space 站点仓库；建议用独立仓库（如 GuoxinL/todo-data）
 //                            避免每次编辑 TODO 触发站点仓库自动重新部署
@@ -32,6 +35,8 @@
 //   GET  /api/auth/callback?code&state  OAuth 回调：验身份 → 签 token → 302 回站
 //   GET  /api/auth/me                   Bearer 校验，返回当前登录用户
 //   GET  /api/tracks/raw?f=<file>       代理轨迹私有仓库文件（白名单；rides.full.json 需 Bearer）
+//   GET  /api/comments?slug=<slug>      匿名读某文章评论（无容器返回 container:false；映射在 notes 仓 comments.json）
+//   POST /api/comments {slug,body}      登录读者发评：无容器时运行期懒建 Issue 容器，并以读者自身 token 发布（纯 GitHub 身份）
 //   GET  /gh/{owner}/{repo}/{ref}/{path}   反代 raw.githubusercontent.com（公开内容 CDN 缓存；站点取数备用通道）
 //   POST /api/collect {url,mode}        收藏一个 skill（mode: proxy|mirror，默认 proxy）
 //   POST /api/remove  {dir}             删除收藏目录（仅 fav-*/my-*）
@@ -72,6 +77,8 @@ export default {
       if (url.pathname === "/api/auth/callback" && request.method === "GET") return await authCallback(request, env, cors);
       if (url.pathname === "/api/auth/me" && request.method === "GET") return await authMe(request, env, cors);
       if (url.pathname === "/api/tracks/raw" && request.method === "GET") return await tracksRaw(request, env, cors);
+      if (url.pathname === "/api/comments" && request.method === "GET") return await commentsGet(request, env, cors);
+      if (url.pathname === "/api/comments" && request.method === "POST") return await commentsPost(request, env, cors);
       if (url.pathname === "/api/health" && request.method === "GET") return await health(env, repo, branch, cors);
 
       // 地图瓦片代理（GET /api/tiles/{style}/{z}/{x}/{y}）：key 存 Worker Secret，
@@ -917,4 +924,134 @@ async function tracksRaw(request, env, cors) {
     });
   }
   return new Response(decodeUtf8(bytes), { status: 200, headers: cors });
+}
+
+// ---------- 评论模块（Issue 存储 · 运行期懒建容器）----------
+// 数据：GuoxinL/notes 的 build/comments.json（slug→issue_number 映射；构建期保留、运行期写回）。
+// 容器 Issue 在用户首次发评时由 Worker 用 NOTES_GH_TOKEN 懒建；评论本身用读者自身 gh_token 发布（纯 GitHub 身份）。
+function commentsCfg(env) {
+  const repo = parseRepo(env.NOTES_REPO || "GuoxinL/notes");
+  if (!repo) return null;
+  const token = env.NOTES_GH_TOKEN || env.GH_TOKEN;
+  if (!token) return null;
+  return { repo, branch: "main", token };
+}
+
+async function loadCommentsMap(cfg) {
+  const f = await fetchFile(cfg.token, cfg.repo.owner, cfg.repo.repo, cfg.branch, "build/comments.json");
+  if (!f || !f.text) return {};
+  try {
+    const m = JSON.parse(f.text);
+    return (m && typeof m === "object") ? m : {};
+  } catch (e) { return {}; }
+}
+
+async function getIssueComments(cfg, issueNumber) {
+  const r = await gh(cfg.token, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/issues/" + issueNumber + "/comments?per_page=100");
+  if (r.status !== 200 || !Array.isArray(r.data)) return [];
+  return r.data.map((c) => ({
+    id: c.id,
+    login: c.user && c.user.login,
+    avatar: c.user && c.user.avatar_url,
+    htmlUrl: c.html_url,
+    body: c.body,
+    createdAt: c.created_at,
+  }));
+}
+
+async function createCommentIssue(cfg, slug, title) {
+  const r = await gh(cfg.token, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/issues", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      body:
+        `本 Issue 是 guoxin.space /notes 文章「${slug}」的评论容器，由站点运行期懒建。\n` +
+        `读者经站点使用本站 GitHub 账号登录后，评论将写入此 Issue（评论身份为读者自身 GitHub 账号）。\n` +
+        `请勿在本 Issue 下手动评论。`,
+      labels: ["comments-container"],
+    }),
+  });
+  if (r.status !== 201 || !r.data || !r.data.number) return null;
+  return r.data.number;
+}
+
+async function writeCommentsMap(cfg, map) {
+  const base64 = b64enc(JSON.stringify(map, null, 2) + "\n");
+  return putFile(cfg.token, cfg.repo.owner, cfg.repo.repo, cfg.branch, "build/comments.json", base64, "comments: 映射更新");
+}
+
+export async function commentsGet(request, env, cors) {
+  const cfg = commentsCfg(env);
+  if (!cfg) return json(cors, 500, { error: "Worker 未配置评论仓库（NOTES_REPO / NOTES_GH_TOKEN）" });
+  const slug = requestSlug(request);
+  if (!slug) return json(cors, 400, { error: "缺少 slug" });
+  const map = await loadCommentsMap(cfg);
+  const num = map[slug];
+  if (!num) return json(cors, 200, { ok: true, container: false, comments: [] });
+  const comments = await getIssueComments(cfg, num);
+  return json(cors, 200, { ok: true, container: true, issueNumber: num, comments });
+}
+
+export async function commentsPost(request, env, cors) {
+  const cfg = commentsCfg(env);
+  if (!cfg) return json(cors, 500, { error: "Worker 未配置评论仓库（NOTES_REPO / NOTES_GH_TOKEN）" });
+  // 读者身份：站签 token 含 gh_token（读者自身 GitHub access_token）
+  const reader = await requireReader(request, env, cors);
+  if (!reader.ok) return json(cors, 401, { error: "未登录 GitHub（评论需读者身份）" });
+  const ghToken = reader.payload.gh_token;
+  if (!ghToken) return json(cors, 401, { error: "令牌缺少 GitHub access_token（请重新登录）" });
+  let body;
+  try { body = await request.json(); } catch (e) { return json(cors, 400, { error: "请求体非 JSON" }); }
+  const slug = typeof (body && body.slug) === "string" ? body.slug.trim() : "";
+  const text = typeof (body && body.body) === "string" ? body.body.trim() : "";
+  if (!slug) return json(cors, 400, { error: "缺少 slug" });
+  if (!text) return json(cors, 400, { error: "评论内容为空" });
+  if (text.length > 5000) return json(cors, 400, { error: "评论过长（≤5000 字）" });
+
+  const map = await loadCommentsMap(cfg);
+  let num = map[slug];
+  if (!num) {
+    // 运行期懒建容器：用 Worker token 建 Issue，再写回映射
+    const title = "评论 · " + slug;
+    num = await createCommentIssue(cfg, slug, title);
+    if (!num) return json(cors, 502, { error: "创建评论容器失败（Worker token 是否授权 " + cfg.repo.owner + "/" + cfg.repo.repo + "？）" });
+    map[slug] = num;
+    await writeCommentsMap(cfg, map);
+  }
+  // 以读者自身 token 发布评论（纯 GitHub 身份）
+  const r = await gh(ghToken, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/issues/" + num + "/comments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ body: text }),
+  });
+  if (r.status !== 201 || !r.data) {
+    return json(cors, r.status === 401 ? 401 : 502, { error: "发布评论失败（GitHub " + r.status + "，读者 token 是否具备 public_repo 权限？）" });
+  }
+  return json(cors, 200, {
+    ok: true,
+    comment: {
+      id: r.data.id,
+      login: r.data.user && r.data.user.login,
+      avatar: r.data.user && r.data.user.avatar_url,
+      htmlUrl: r.data.html_url,
+      body: r.data.body,
+      createdAt: r.data.created_at,
+    },
+  });
+}
+
+// 读者校验：站签 token 有效即视为已登录读者（不限 admin，评论是读者身份）
+export async function requireReader(request, env, cors) {
+  const h = request.headers.get("Authorization") || "";
+  const token = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
+  const payload = await verifyToken(token, env);
+  if (!payload || !payload.login) return { ok: false };
+  return { ok: true, payload };
+}
+
+function requestSlug(request) {
+  const url = new URL(request.url);
+  const s = url.searchParams.get("slug");
+  return typeof s === "string" && s.trim() ? s.trim().slice(0, 300) : "";
 }

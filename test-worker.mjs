@@ -629,6 +629,86 @@ await t("collect 带有效 admin token → 通过鉴权进入业务层（无 moc
 });
 
 // ============================================================
+section("comments 模块（Issue 存储 · 运行期懒建容器）");
+const COMMENTS_ENV = { GH_TOKEN: "t", COLLECT_REPO: "g/s", NOTES_REPO: "GuoxinL/notes", NOTES_GH_TOKEN: "tok", AUTH_SECRET: "sec" };
+
+await t("commentsGet 无映射 → container:false、空评论", async () => {
+  setQueue([{ path: "/contents/build/comments.json", body: { encoding: "base64", content: b64("{}"), sha: "s1" } }]);
+  const resp = await w.commentsGet(new Request("https://x.workers.dev/api/comments?slug=foo"), COMMENTS_ENV, {});
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out.container, false);
+  assert.deepStrictEqual(out.comments, []);
+});
+
+await t("commentsGet 有映射 → 返回 issueNumber + 评论列表", async () => {
+  setQueue([
+    { path: "/contents/build/comments.json", body: { encoding: "base64", content: b64('{"foo": 5}'), sha: "s1" } },
+    { path: "/issues/5/comments", body: [{ id: 11, user: { login: "alice", avatar_url: "http://a" }, html_url: "http://h", body: "hi", created_at: "2026-01-01" }] },
+  ]);
+  const resp = await w.commentsGet(new Request("https://x.workers.dev/api/comments?slug=foo"), COMMENTS_ENV, {});
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out.container, true);
+  assert.strictEqual(out.issueNumber, 5);
+  assert.strictEqual(out.comments[0].login, "alice");
+  assert.strictEqual(out.comments[0].body, "hi");
+});
+
+await t("commentsGet 缺 slug → 400", async () => {
+  const resp = await w.commentsGet(new Request("https://x.workers.dev/api/comments"), COMMENTS_ENV, {});
+  assert.strictEqual(resp.status, 400);
+});
+
+await t("commentsPost 无 token → 401", async () => {
+  const resp = await w.commentsPost(new Request("https://x.workers.dev/api/comments", { method: "POST", body: JSON.stringify({ slug: "foo", body: "x" }) }), COMMENTS_ENV, {});
+  assert.strictEqual(resp.status, 401);
+});
+
+await t("commentsPost 有读者 token：无容器→懒建+以读者身份发评", async () => {
+  const readerTok = await w.signToken("someone", "sec", "reader_gh", false);
+  setQueue([
+    { path: "/contents/build/comments.json", body: { encoding: "base64", content: b64("{}"), sha: "s1" } },          // loadCommentsMap
+    { path: "/repos/GuoxinL/notes/issues", method: "POST", status: 201, body: { number: 7 } },                          // createCommentIssue
+    { path: "/contents/build/comments.json", body: { sha: "s1" } },                                                    // writeCommentsMap GET sha
+    { path: "/contents/build/comments.json", method: "PUT", body: {} },                                                // writeCommentsMap PUT
+    { path: "/repos/GuoxinL/notes/issues/7/comments", method: "POST", status: 201, body: { id: 99, user: { login: "someone" }, html_url: "h", body: "hello", created_at: "t" } }, // 发评
+  ]);
+  const resp = await w.commentsPost(
+    new Request("https://x.workers.dev/api/comments", { method: "POST", headers: { Authorization: "Bearer " + readerTok }, body: JSON.stringify({ slug: "foo", body: "hello" }) }),
+    COMMENTS_ENV, {}
+  );
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out.ok, true);
+  assert.strictEqual(out.comment.id, 99);
+  assert.strictEqual(out.comment.login, "someone");
+  assert.ok(queue.length === 0, "fetch 队列应耗尽，剩余 " + queue.length);
+});
+
+await t("commentsPost 空内容 → 400（不触网）", async () => {
+  const readerTok = await w.signToken("someone", "sec", "reader_gh", false);
+  const resp = await w.commentsPost(
+    new Request("https://x.workers.dev/api/comments", { method: "POST", headers: { Authorization: "Bearer " + readerTok }, body: JSON.stringify({ slug: "foo", body: "   " }) }),
+    COMMENTS_ENV, {}
+  );
+  assert.strictEqual(resp.status, 400);
+});
+
+await t("fetch 路由 GET /api/comments?slug=foo 命中 commentsGet", async () => {
+  setQueue([{ path: "/contents/build/comments.json", body: { encoding: "base64", content: b64("{}"), sha: "s1" } }]);
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/comments?slug=foo"), COMMENTS_ENV);
+  assert.strictEqual(resp.status, 200);
+  const out = await resp.json();
+  assert.strictEqual(out.container, false);
+});
+
+await t("fetch 路由 POST /api/comments 无 token → 401", async () => {
+  const resp = await w.default.fetch(new Request("https://x.workers.dev/api/comments", { method: "POST", body: JSON.stringify({ slug: "foo", body: "x" }) }), COMMENTS_ENV);
+  assert.strictEqual(resp.status, 401);
+});
+
+// ============================================================
 console.log("\n----------------------------");
 console.log("passed: " + passed + "  failed: " + failed);
 process.exit(failed ? 1 : 0);
