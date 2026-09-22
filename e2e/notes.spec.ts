@@ -389,6 +389,10 @@ test('详情页评论区：已登录态显示编辑器并拉取渲染评论列�
     localStorage.setItem('wb_home_gh_user', JSON.stringify({ login: 'tester' }));
     localStorage.setItem('wb_home_sk_set', JSON.stringify({ worker: 'https://api.guoxin.space' }));
   });
+  // 桩 /api/auth/me：authVerify 校验通过、保留 token（否则真实 Worker 对 fake token 返回 401 → authLogout 清空 token → 编辑器不渲染）
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, login: 'tester', admin: false }) }),
+  );
   // 桩 Worker 评论端点：GET 返回列表，POST 返回成功
   await page.route('**/api/comments**', (route) => {
     if (route.request().method() === 'POST') {
