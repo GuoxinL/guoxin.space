@@ -33,8 +33,9 @@ const CHANNEL_FALLBACK: Record<NotesCfg['source'], NotesCfg['source'][]> = {
 };
 
 /**
- * 评论系统（原 Giscus / N-T27，2026-09 退役）：计划改为本站 GitHub 身份自建评论（Issue 存储，
- * 读者用本人身份写、游客匿名读）。新实现见 NotesShell `Comments`；当前详情页显示升级占位。
+ * 评论系统（Phase 4 已上线）：本站 GitHub 身份自建评论（Issue 存储，读者用本人身份写、游客匿名读）。
+ * 后端 Worker `GET/POST /api/comments` 运行期懒建 Issue 容器并写回 notes 仓 build/comments.json；
+ * 前端消费见 NotesShell `Comments`（列表 + 受控编辑器 + 登录门禁）。
  */
 
 /** 通道设置（与 Skills/Running 现有模式一致，可切 raw / jsDelivr / 自定义镜像）。 */

@@ -111,7 +111,7 @@ export interface ArticleDoc {
   ast: MdNode; // 已剥离 position 的纯数据根节点
 }
 
-/** 评论系统（原 Giscus / N-T27，2026-09 退役）：改为本站 GitHub 身份自建评论，见 NotesShell `Comments`。 */
+/** 评论系统（Phase 4 已上线）：本站 GitHub 身份自建评论（Issue 存储，读者用本人身份写、游客匿名读）；前端见 NotesShell `Comments`，读写端点见 Worker `GET/POST /api/comments`。 */
 export interface NotesCfg {
   repo: string;
   branch: string;

@@ -10,6 +10,7 @@ import { readPendingRedirect } from '../../lib/spa-redirect';
 import { getFavs, toggleFav } from '../../lib/notes/favorites';
 import { loadReading, saveReading, DEFAULT_READING, type ReadingCfg, type ReadFont, type ReadWidth } from '../../lib/notes/reading';
 import { MdastRenderer } from './MdastRenderer';
+import { authWorkerUrl, getAuthToken, authLogin } from '../../lib/auth';
 
 /**
  * N-T20：全文搜索索引（模块级缓存）。
@@ -178,15 +179,159 @@ const RelatedArticles = component$<{ items: RelatedItem[] }>(({ items }) => {
 });
 
 /**
- * 评论区（原 Giscus / N-T27，2026-09 退役）。
- * 计划改为本站 GitHub 身份自建评论（Issue 存储，读者用本人身份写、游客匿名读）。
- * 新系统未上线前显示诚实占位，不静默失效。
+ * 评论区（Phase 4：本站 GitHub 身份自建评论，Issue 存储）。
+ * - 游客匿名读：GET <worker>/api/comments?slug=<slug>
+ * - 已登录读者发评：POST <worker>/api/comments（Bearer = 本站 HMAC 令牌，含读者本人 gh_token，由 Worker 以读者身份发布到 Issue）
+ * - 评论体为 GitHub 返回的纯文本，按 white-space:pre-wrap 安全渲染（Qwik 文本默认转义，无 XSS）；Markdown 富渲染留待后续
+ * 组件仅 CSR 渲染（NotesShell 详情为纯客户端取数），故此处读 localStorage / fetch 均安全。
  */
-const Comments = component$(() => {
+type CommentItem = {
+  id: number | string;
+  login?: string;
+  avatar?: string;
+  htmlUrl?: string;
+  body: string;
+  createdAt?: string;
+};
+
+const Comments = component$<{ slug: string }>(({ slug }) => {
+  const list = useSignal<CommentItem[]>([]);
+  const loading = useSignal(true);
+  const loadError = useSignal('');
+  const draft = useSignal('');
+  const submitting = useSignal(false);
+  const postError = useSignal('');
+
+  const load = $(async () => {
+    loading.value = true;
+    loadError.value = '';
+    try {
+      const base = (authWorkerUrl() || '').replace(/\/+$/, '');
+      if (!base) {
+        loadError.value = '未配置 Worker（Skills「通道设置」填写 Worker URL 后可用评论）';
+        list.value = [];
+        return;
+      }
+      const r = await fetch(`${base}/api/comments?slug=${encodeURIComponent(slug)}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const data = await r.json().catch(() => null);
+      if (!r.ok || !data || !data.ok) {
+        loadError.value = (data && data.error) || '评论加载失败';
+        list.value = [];
+      } else {
+        list.value = Array.isArray(data.comments) ? data.comments : [];
+      }
+    } catch {
+      loadError.value = '评论加载失败（网络）';
+      list.value = [];
+    } finally {
+      loading.value = false;
+    }
+  });
+
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(() => {
+    load();
+  });
+
+  const submit = $(async () => {
+    const text = draft.value.trim();
+    if (!text) {
+      postError.value = '评论内容为空';
+      return;
+    }
+    const token = getAuthToken();
+    if (!token) {
+      authLogin();
+      return;
+    }
+    submitting.value = true;
+    postError.value = '';
+    try {
+      const base = (authWorkerUrl() || '').replace(/\/+$/, '');
+      const r = await fetch(`${base}/api/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ slug, body: text }),
+      });
+      const data = await r.json().catch(() => null);
+      if (!r.ok || !data || !data.ok) {
+        postError.value = (data && data.error) || '发布失败';
+      } else {
+        draft.value = '';
+        await load();
+      }
+    } catch {
+      postError.value = '发布失败（网络）';
+    } finally {
+      submitting.value = false;
+    }
+  });
+
   return (
-    <section class="notes-comments notes-comments--off" data-testid="notes-comments" aria-label="评论">
+    <section class="notes-comments" data-testid="notes-comments" aria-label="评论">
       <h2 class="notes-section-title">评论</h2>
-      <p class="notes-muted">评论系统升级中：将支持使用本站 GitHub 账号直接登录后评论。</p>
+
+      {loading.value && <p class="notes-muted">评论加载中…</p>}
+      {loadError.value && <p class="notes-muted notes-comments-err">{loadError.value}</p>}
+      {!loading.value && !loadError.value && list.value.length === 0 && (
+        <p class="notes-muted">还没有评论，来抢沙发。</p>
+      )}
+
+      {list.value.length > 0 && (
+        <ul class="notes-comments-list">
+          {list.value.map((c) => (
+            <li key={String(c.id)} class="notes-comment">
+              {c.avatar ? (
+                <img class="notes-comment-avatar" src={c.avatar} alt={c.login || '匿名'} width={32} height={32} loading="lazy" />
+              ) : null}
+              <div class="notes-comment-main">
+                <div class="notes-comment-meta">
+                  <span class="notes-comment-login">{c.login || '匿名'}</span>
+                  {c.htmlUrl ? (
+                    <a class="notes-comment-link" href={c.htmlUrl} target="_blank" rel="noopener noreferrer">
+                      在 GitHub 查看
+                    </a>
+                  ) : null}
+                  {c.createdAt ? <time class="notes-comment-time">{c.createdAt}</time> : null}
+                </div>
+                <div class="notes-comment-body">{c.body}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div class="notes-comment-editor">
+        {getAuthToken() ? (
+          <div class="notes-comment-form">
+            <textarea
+              class="notes-comment-input"
+              data-testid="notes-comment-input"
+              rows={4}
+              placeholder="写下你的评论（纯 GitHub 身份，公开可见）"
+              bind:value={draft}
+            />
+            <div class="notes-comment-actions">
+              <button
+                type="button"
+                class="btn"
+                data-testid="notes-comment-submit"
+                disabled={submitting.value}
+                onClick$={submit}
+              >
+                {submitting.value ? '发布中…' : '发表评论'}
+              </button>
+              {postError.value && <span class="notes-comments-err">{postError.value}</span>}
+            </div>
+          </div>
+        ) : (
+          <button type="button" class="btn" data-testid="notes-comment-login" onClick$={() => authLogin()}>
+            登录 GitHub 后参与评论
+          </button>
+        )}
+      </div>
     </section>
   );
 });
@@ -640,7 +785,7 @@ const ArticleView = component$<{
         <BacklinksBlock doc={doc} />
         <HistoryBlock doc={doc} />
         <RelatedArticles items={related.value} />
-        <Comments />
+        <Comments slug={doc.slug} />
       </article>
     </div>
   );

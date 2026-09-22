@@ -371,14 +371,56 @@ test('列表页渲染双链图谱（N-T25 force-graph）', async ({ page }) => {
   await expect(graph.locator('line')).toHaveCount(1);
 });
 
-test('详情页评论区显示升级占位（Giscus 已退役，新评论系统未上线）', async ({ page }) => {
+test('详情页评论区渲染（Phase 4 本站 GitHub 身份自建评论，未登录显示登录按钮）', async ({ page }) => {
   await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
   const c = page.getByTestId('notes-comments');
   await expect(c).toBeVisible();
   await expect(c).toContainText('评论');
-  await expect(c).toContainText('升级中'); // 占位说明，未注入 giscus
+  // 干净浏览器上下文无 token → 显示「登录 GitHub 后参与评论」按钮，不注入 giscus
+  await expect(c.locator('[data-testid="notes-comment-login"]')).toBeVisible();
   await expect(c.locator('.notes-giscus')).toHaveCount(0); // giscus 容器不再注入
+});
+
+test('详情页评论区：已登录态显示编辑器并拉取渲染评论列表（Worker 桩）', async ({ page }) => {
+  // 注入登录态 + Worker 通道配置（假 token 仅用于 UI 门禁；评论读写全程 page.route 桩，离线确定）
+  await page.addInitScript(() => {
+    localStorage.setItem('wb_home_auth_token', 'fake.jwt.token');
+    localStorage.setItem('wb_home_gh_user', JSON.stringify({ login: 'tester' }));
+    localStorage.setItem('wb_home_sk_set', JSON.stringify({ worker: 'https://api.guoxin.space' }));
+  });
+  // 桩 Worker 评论端点：GET 返回列表，POST 返回成功
+  await page.route('**/api/comments**', (route) => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, comment: { id: 999, login: 'tester', body: '新评论' } }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        container: true,
+        issueNumber: 1,
+        comments: [
+          { id: 101, login: 'alice', body: '第一条评论', createdAt: '2026-09-22T00:00:00Z', htmlUrl: 'https://github.com/x', avatar: 'https://x/a.png' },
+        ],
+      }),
+    });
+  });
+  await page.goto(`/notes/${encodeURIComponent(SAMPLE)}/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('notes-detail')).toBeVisible({ timeout: 10_000 });
+  const c = page.getByTestId('notes-comments');
+  await expect(c).toBeVisible();
+  // 已登录 → 受控编辑器可见
+  await expect(c.locator('[data-testid="notes-comment-input"]')).toBeVisible();
+  // 列表渲染了从 Worker 拉取的评论
+  await expect(c.locator('.notes-comment')).toHaveCount(1);
+  await expect(c.locator('.notes-comment-body')).toContainText('第一条评论');
+  await expect(c.locator('.notes-comment-login')).toContainText('alice');
 });
 
 test('正文渲染 StackBlitz 交互示例嵌入（N-T29）', async ({ page }) => {
