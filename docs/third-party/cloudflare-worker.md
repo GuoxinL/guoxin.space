@@ -35,6 +35,8 @@
 | `SERVERCHAN_SENDKEY` | ❌ | 写操作审计：collect/remove/sync 成功后 Server酱推微信（与 GitHub Actions 同名 Secret 同值）。**配置步骤见 [serverchan.md §2.5](./serverchan.md)** |
 | `CARTO_API_KEY` | ❌ | 地图瓦片代理（`/api/tiles/`）的 CARTO key；未配时 302 降级 Esri 免 key 瓦片 |
 | `TRACKS_REPO` | ✅ | 轨迹私有仓库，形如 `GuoxinL/running-private` |
+| `NOTES_REPO` | ❌ | 评论容器仓库，默认 `GuoxinL/notes`（`Issue 存储`式自建评论）；改 `owner/repo` 可换仓 |
+| `NOTES_GH_TOKEN` | ❌ | 写评论容器 / 写回 `build/comments.json` 的 GitHub token（需 `NOTES_REPO` 的 Contents 写权限）；未配时回退 `GH_TOKEN`（此时 `GH_TOKEN` 须已授权 notes 仓写） |
 | `REDIRECT_URL` | ❌ | 登录回跳地址，默认 `https://guoxin.space` |
 
 ## 二、API 契约（Worker 已实现，页面已对接）
@@ -50,6 +52,8 @@
 | POST | `/api/collect` | **Bearer** | 收藏 skill。`mode`：`proxy` / `mirror`（≤60 文件） |
 | POST | `/api/remove` | **Bearer** | 删除目录（仅 `fav-*` / `my-*` 前缀） |
 | POST | `/api/sync` | **Bearer** | 仅 proxy：重新探测原仓库更新代理文件 |
+| GET | `/api/comments?slug=<slug>` | 无 | 匿名读某文章评论：从 `NOTES_REPO` 的 `build/comments.json` 读 `slug→issue_number` 映射；无容器→`{container:false,comments:[]}`，有→拉该 Issue 评论（含 `login`/`avatar`/`htmlUrl`/`body`/`createdAt`） |
+| POST | `/api/comments` | **Bearer** | 读者发评（纯 GitHub 身份）：`{slug,body}`；无容器时运行期懒建 Issue 容器（label `comments-container`）并写回 `build/comments.json`，再以**读者自身 gh_token** 发布 Issue 评论；读者令牌须含 `gh_token`（Phase 1 登录流程已签发），否则 401 |
 
 CORS：`Access-Control-Allow-Origin: *`，允许头 `Content-Type, Authorization`，OPTIONS 预检返回 204。
 
@@ -162,6 +166,8 @@ Worker 详情页 → **Settings** → **Variables and Secrets**：
 | `ADMIN_LOGIN` | Text | `GuoxinL`（你的 GitHub 用户名） |
 | `AUTH_SECRET` | **Secret** | `openssl rand -base64 32` 生成 |
 | `TRACKS_REPO` | Text | `GuoxinL/running-private` |
+| `NOTES_REPO` | Text | `GuoxinL/notes`（默认，可留空） |
+| `NOTES_GH_TOKEN` | **Secret**（加密存储） | 用于评论容器写操作 + 写回 `build/comments.json` 的 PAT，须授权 `GuoxinL/notes` 的 Contents 写；不配则回退 `GH_TOKEN`（须已授权 notes 仓写）。**不配此变量时首评懒建/发评会 502** |
 
 ### 5. 确认 Worker 访问地址
 
@@ -235,6 +241,7 @@ curl "https://guoxin-space.lgx31.workers.dev/api/tracks/raw?f=rides.full.json"
 | Running 完整骑行轨迹 | Worker `/api/tracks/raw?f=rides.full.json` | 需登录，显示「完整轨迹」徽标 |
 | 收藏（引用 / 深度镜像） | Worker `/api/collect` | 需登录 GitHub（admin-only 按钮） |
 | 删除 / 同步 | Worker `/api/remove` / `/api/sync` | 需登录 GitHub |
+| Notes 评论（列表 / 发评） | Worker `/api/comments` | 列表游客可读（匿名 GET）；发评需登录 GitHub（读者用本人身份写，非 admin） |
 
 ## 八、权限模型（游客 / admin）
 
@@ -248,6 +255,8 @@ curl "https://guoxin-space.lgx31.workers.dev/api/tracks/raw?f=rides.full.json"
 | `/api/tracks/raw` → `preview.*` / `previews/*` / `thumb/*` | ✅ | ✅ | 白名单精确匹配 + run_id 纯数字 |
 | `/api/tracks/raw` → `rides.full.json` | ❌ | ✅ | Bearer + `login===ADMIN_LOGIN` |
 | `POST /api/collect` / `/api/remove` / `/api/sync` | ❌ | ✅ | Bearer；remove 仅 `fav-*`/`my-*` 前缀 |
+| `GET /api/comments` | ✅ | ✅ | 公开（游客匿名读评论列表） |
+| `POST /api/comments` | ❌ | ✅ | Bearer 且须含 `gh_token`（任意登录 GitHub 用户，非仅 admin）；无容器运行期懒建 Issue 容器 |
 
 ### 认证流程与细化
 
