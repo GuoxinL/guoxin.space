@@ -5,6 +5,7 @@ import {
   localDay,
   patchTodo,
   reopenTodo,
+  setWholeProgress,
   withSubtasks,
 } from "./mutate";
 import type { Subtask, Todo } from "./types";
@@ -166,5 +167,61 @@ describe("withSubtasks", () => {
     const subs = [sub("a", 1, 30)];
     withSubtasks(todo({}), subs, NOW);
     expect(subs[0].progress).toBe(30);
+  });
+});
+
+describe("setWholeProgress", () => {
+  it("有子任务拖到 100% → 关闭任务（子任务全满 + 写 completedAt）", () => {
+    const next = setWholeProgress(
+      todo({ subtasks: [sub("a", 1, 50), sub("b", 2, 0)] }),
+      100,
+      NOW,
+    );
+    expect(next.subtasks.map((s) => s.progress)).toEqual([100, 100]);
+    expect(next.completedAt).toBe(NOW);
+    expect(next.updatedAt).toBe(NOW);
+  });
+
+  it("有子任务拖到 60% → 各子任务统一吸附到 50% 档、清空 completedAt", () => {
+    const next = setWholeProgress(
+      todo({ subtasks: [sub("a", 1, 100), sub("b", 1, 100)] }),
+      60,
+      NOW,
+    );
+    expect(next.subtasks.map((s) => s.progress)).toEqual([50, 50]);
+    expect(next.completedAt).toBeNull();
+    expect(next.updatedAt).toBe(NOW);
+  });
+
+  it("有子任务拖到 0% → 重新打开（清 completedAt，保留子任务进度）", () => {
+    const next = setWholeProgress(
+      todo({ completedAt: "2026-09-16T00:00:00", subtasks: [sub("a", 1, 100)] }),
+      0,
+      NOW,
+    );
+    expect(next.completedAt).toBeNull();
+    expect(next.subtasks[0].progress).toBe(100);
+  });
+
+  it("无子任务拖到 100% → 写 completedAt（关闭）", () => {
+    const next = setWholeProgress(todo({}), 100, NOW);
+    expect(next.completedAt).toBe(NOW);
+    expect(next.subtasks).toEqual([]);
+  });
+
+  it("无子任务的中间值（50%）→ 无法表达，回退为重新打开（completedAt 清零）", () => {
+    const next = setWholeProgress(
+      todo({ completedAt: "2026-09-16T00:00:00" }),
+      50,
+      NOW,
+    );
+    expect(next.completedAt).toBeNull();
+  });
+
+  it("纯函数：不修改入参", () => {
+    const orig = todo({ subtasks: [sub("a", 1, 50)] });
+    setWholeProgress(orig, 100, NOW);
+    expect(orig.subtasks[0].progress).toBe(50);
+    expect(orig.completedAt).toBeNull();
   });
 });

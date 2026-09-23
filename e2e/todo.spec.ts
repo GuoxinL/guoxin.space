@@ -250,6 +250,45 @@ test.describe('TODO 已登录（mock Worker）', () => {
     await expect(r.locator('.td-r-check')).toHaveAttribute('aria-checked', 'true');
   });
 
+  test('整体完成度滑块：无子任务拖到 100% → 标记完成并写完成时间', async ({
+    page,
+  }) => {
+    const r = row(page, 'todo-2');
+    const setRange = (val: number) =>
+      r.locator('.td-prog-range').evaluate((el, v) => {
+        const input = el as HTMLInputElement;
+        input.value = String(v);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, val);
+
+    const saveReq = waitSaveWith(page, 'todo-2');
+    await setRange(100);
+    const saved = bodyOf(await saveReq).todos.find((x) => x.id === 'todo-2');
+    expect(saved?.completedAt).not.toBeNull();
+    await expect(r.locator('.td-r-check')).toHaveAttribute('aria-checked', 'true');
+  });
+
+  test('整体完成度滑块：有子任务拖到中间值 → 子任务统一档位并清完成时间', async ({
+    page,
+  }) => {
+    const r = row(page, 'todo-1');
+    // todo-1 初始 completedAt 有值、子任务 [100, 0]
+    const setRange = (val: number) =>
+      r.locator('.td-prog-range').evaluate((el, v) => {
+        const input = el as HTMLInputElement;
+        input.value = String(v);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }, val);
+
+    const saveReq = waitSaveWith(page, 'todo-1');
+    await setRange(50);
+    const saved = bodyOf(await saveReq).todos.find((x) => x.id === 'todo-1');
+    expect(saved?.completedAt).toBeNull();
+    expect(saved?.subtasks.map((s: { progress: number }) => s.progress)).toEqual([
+      50, 50,
+    ]);
+  });
+
   test('删除某天最后一条 TODO：显式写空数组清掉日文件（防刷新复现）', async ({ page }) => {
     // todo-1 是 2026-09-17 唯一一条；删光后该天应被清空（todos: []），
     // 否则旧 YYYY-MM-DD.json 残留、刷新后 todoAll 仍读回、已删 todo「复活」（修复点）。

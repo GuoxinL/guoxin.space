@@ -27,6 +27,8 @@ export interface TodoRowProps {
   defaultOpen?: boolean;
   onPatch$: QRL<(patch: TodoPatch) => void>;
   onSubtasks$: QRL<(next: Subtask[]) => void>;
+  /** 整体完成度滑块：拖动设定任务整体进度；100% → 标记完成并写完成时间 */
+  onProgress$: QRL<(target: number) => void>;
   onToggleDone$: QRL<() => void>;
   onDelete$: QRL<() => void>;
   /** 标签浮层回车新建：父级落盘 tags.json 后再勾选（带 todoId 便于定位到具体行） */
@@ -340,9 +342,25 @@ export const TodoRow = component$<TodoRowProps>((props) => {
         </div>
 
         {!isDraftRow && (
-          <span class="td-r-progress" title={`进度 ${p}%`}>
-            <span class="td-bar">
-              <span class={"td-bar-fill " + color} style={{ width: p + "%" }} />
+          <span class="td-r-progress" title={`完成度 ${p}%`}>
+            <span class="td-bar-wrap">
+              <span class="td-bar">
+                <span class={"td-bar-fill " + color} style={{ width: p + "%" }} />
+              </span>
+              <input
+                type="range"
+                class="td-prog-range"
+                min={0}
+                max={100}
+                step={todo.subtasks.length ? 25 : 100}
+                value={p}
+                aria-label="完成度"
+                onInput$={(e) =>
+                  props.onProgress$(
+                    Number((e.target as HTMLInputElement).value),
+                  )
+                }
+              />
             </span>
             <span class="td-pct">{p}%</span>
           </span>

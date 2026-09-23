@@ -3,7 +3,12 @@
  *  设计约束（见 .harness/plans/2026-09-17_todo-row-inline-edit/02-plan.md D5/D10）：
  *  「关闭任务」通过**把子任务进度写满 100%** 达成数据自洽，
  *  **不修改** `calcProgress` 算法——否则既有 progress.test.ts 用例与日历经条颜色语义都会被动摇。 */
-import { applyAutoComplete, calcProgress, clampProgress } from "./progress";
+import {
+  applyAutoComplete,
+  calcProgress,
+  clampProgress,
+  sanitizeProgress,
+} from "./progress";
 import type { SubProgress, Subtask, Todo } from "./types";
 
 /** 可原地编辑的字段白名单（行内可改的只有这四项；完成态走 closeTodo/reopenTodo）。 */
@@ -78,4 +83,34 @@ export function withSubtasks(
   };
   next.completedAt = calcProgress(next) >= 100 ? applyAutoComplete(next, nowIso) : null;
   return next;
+}
+
+/** 整体完成度控制：拖拽滑块设定任务整体进度（不引入独立进度字段，仍经子任务落地，
+ *  保持「进度 = 子任务加权」单一真相源，不动 calcProgress 算法与既有契约）。
+ *  - 100%      → 关闭任务（子任务全写满 100% + 写 completedAt，即更新完成时间）
+ *  - 0%        → 重新打开（只清 completedAt，保留子任务进度）
+ *  - 0<p<100   → 有子任务：按同一档位铺满所有子任务并清 completedAt；
+ *                无子任务无法表达中间值，回退为重新打开（completedAt 清零）
+ *  纯函数，不修改入参；nowIso 用于时间戳与 completedAt。 */
+export function setWholeProgress(
+  todo: Todo,
+  target: number,
+  nowIso: string,
+): Todo {
+  const T = sanitizeProgress(target);
+  if (T >= 100) return closeTodo(todo, nowIso);
+  if (T <= 0) return reopenTodo(todo, nowIso);
+  if ((todo.subtasks || []).length === 0) return reopenTodo(todo, nowIso);
+  const subs: Subtask[] = todo.subtasks.map((s) => ({
+    ...s,
+    progress: clampProgress(T) as SubProgress,
+    updatedAt: nowIso,
+  }));
+  return {
+    ...todo,
+    subtasks: subs,
+    completedAt: null,
+    updatedAt: nowIso,
+    lastOperatedAt: nowIso,
+  };
 }

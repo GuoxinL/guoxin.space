@@ -21,6 +21,7 @@ import {
   localDay,
   patchTodo,
   reopenTodo,
+  setWholeProgress,
   withSubtasks,
   type TodoPatch,
 } from "../../lib/todo/mutate";
@@ -166,6 +167,16 @@ export const TodoPage = component$(() => {
     const iso = nowIso();
     commit$(
       todos.value.map((t) => (t.id === id ? withSubtasks(t, next, iso) : t)),
+    );
+  });
+
+  /** 整体完成度滑块：拖到 100% → 关闭任务并写完成时间；其余按 setWholeProgress 落子任务。 */
+  const setProgress$ = $((id: string, target: number) => {
+    const iso = nowIso();
+    commit$(
+      todos.value.map((t) =>
+        t.id === id ? setWholeProgress(t, target, iso) : t,
+      ),
     );
   });
 
@@ -486,6 +497,7 @@ export const TodoPage = component$(() => {
                 defaultOpen={t.id === highlightId.value}
                 onPatch$={(patch) => patchRow$(t.id, patch)}
                 onSubtasks$={(next) => setSubtasks$(t.id, next)}
+                onProgress$={(target) => setProgress$(t.id, target)}
                 onToggleDone$={() => toggleDone$(t.id)}
                 onDelete$={() => deleteRow$(t.id)}
                 onCreateTag$={createTag$}
@@ -502,6 +514,7 @@ export const TodoPage = component$(() => {
                 isDraft={true}
                 onPatch$={patchDraft$}
                 onSubtasks$={noopSubs$}
+                onProgress$={noop$}
                 onToggleDone$={noop$}
                 onDelete$={noop$}
                 onCreateTag$={createTag$}

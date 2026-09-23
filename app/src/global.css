@@ -5717,6 +5717,31 @@ body[data-theme="light"] .md-pre {
   width: 34px;
   text-align: right;
 }
+/* 整体完成度滑块：把透明 range 叠在进度条上，拖动即设整体完成度（100% → 完成并写完成时间）。
+   .td-bar 仅作彩色填充视觉，交互由 .td-prog-range 承担。 */
+.td-bar-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.td-prog-range {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.td-prog-range:focus-visible {
+  outline: 2px solid var(--violet-0);
+  outline-offset: 2px;
+}
 
 .td-tags {
   display: inline-flex;
