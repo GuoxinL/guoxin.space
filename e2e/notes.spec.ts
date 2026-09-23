@@ -469,6 +469,8 @@ test('评论回复（GitHub Issue 平铺风格：引用被评评论，提交后�
   await c.locator('[data-testid="notes-comment-submit"]').click();
   // 平铺列表出现新评论（含引用 + 回复文本），回复横幅消失
   await expect(c.locator('.notes-comment-body').filter({ hasText: '这条回复测试' })).toBeVisible({ timeout: 10_000 });
+  // 引用块被渲染为美观的 blockquote（非裸 `>` 纯文本）——优化点回归保护
+  await expect(c.locator('.notes-comment-quote').filter({ hasText: '@alice 写道：' })).toHaveCount(1);
   await expect(c.locator('.notes-comment-reply-banner')).toHaveCount(0);
   // 取消回复：再点 alice 评论（id=101）的「回复」后点 ✕，编辑器应清空引用
   await c.locator('[data-comment-id="101"]').getByTestId('notes-comment-reply').click();

@@ -194,6 +194,59 @@ type CommentItem = {
   createdAt?: string;
 };
 
+/**
+ * 评论正文渲染：把 GitHub 引用风格（`>` 行块，回复时注入的引用）渲染成美观的 blockquote，
+ * 其余为普通文本块。全部走文本插值（Qwik 自动转义），不拼接 innerHTML，杜绝 XSS。
+ * 引用首行 `> @login 写道：` 中的「@login 写道：」加粗，提升可读性。存储端仍是纯文本 Issue 评论。
+ */
+const renderCommentBody = (body: string) => {
+  const lines = (body || '').split('\n');
+  type Block = { type: 'quote' | 'text'; lines: string[] };
+  const blocks: Block[] = [];
+  let cur: Block | null = null;
+  const push = () => {
+    if (cur) blocks.push(cur);
+    cur = null;
+  };
+  for (const ln of lines) {
+    const isQ = /^>\s?/.test(ln);
+    const type: Block['type'] = isQ ? 'quote' : 'text';
+    if (!cur || cur.type !== type) {
+      push();
+      cur = { type, lines: [] };
+    }
+    cur.lines.push(isQ ? ln.replace(/^>\s?/, '') : ln);
+  }
+  push();
+  return blocks.map((b, bi) => {
+    if (b.type === 'quote') {
+      return (
+        <blockquote key={bi} class="notes-comment-quote">
+          {b.lines.map((ln, qi) => {
+            if (qi === 0) {
+              const m = ln.match(/^(@[\w-]+\s*写道：)\s*(.*)$/);
+              if (m) {
+                return (
+                  <p key={qi} class="notes-comment-quote-by">
+                    <strong>{m[1]}</strong>
+                    {m[2]}
+                  </p>
+                );
+              }
+            }
+            return <p key={qi}>{ln}</p>;
+          })}
+        </blockquote>
+      );
+    }
+    return (
+      <div key={bi} class="notes-comment-text">
+        {b.lines.join('\n')}
+      </div>
+    );
+  });
+};
+
 const Comments = component$<{ slug: string }>(({ slug }) => {
   const list = useSignal<CommentItem[]>([]);
   const loading = useSignal(true);
@@ -334,7 +387,7 @@ const Comments = component$<{ slug: string }>(({ slug }) => {
                     </button>
                   )}
                 </div>
-                <div class="notes-comment-body">{c.body}</div>
+                <div class="notes-comment-body">{renderCommentBody(c.body)}</div>
               </div>
             </li>
           ))}
