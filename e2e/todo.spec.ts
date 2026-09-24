@@ -1,4 +1,5 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 /**
  * TODO 模块 E2E（行式列表 + 原地编辑 + 标签浮层 + 末尾新增行 + 日历弹卡）。
@@ -407,9 +408,55 @@ test.describe('TODO 已登录（mock Worker）', () => {
     await expect(page.locator('.td-r')).toHaveCount(1);
   });
 
-  test('周报：打开周报弹窗含三格式', async ({ page }) => {
+  test('周报：含子任务明细 + 三种格式均产出下载文件', async ({ page }) => {
     await page.locator('.td-actions .btn', { hasText: '周报' }).click();
-    await expect(page.locator('.td-weekly')).toBeVisible();
+    const modal = page.locator('.td-weekly');
+    await expect(modal).toBeVisible();
+
+    // 默认范围是「本周」，采样数据落在 09-17/18 → 改成覆盖采样数据的区间
+    const dates = modal.locator('.td-weekly-controls input[type="date"]');
+    await dates.nth(0).fill('2026-09-17');
+    await dates.nth(1).fill('2026-09-18');
+
+    // 子任务明细：逐条列出标题与勾选态（原实现只给 done/total 聚合数）
+    await expect(modal).toContainText('### 📝 任务与子任务明细');
+    await expect(modal).toContainText('- [x] s1（100%）');
+    await expect(modal).toContainText('- [ ] s2（0%）');
+    // 无子任务的任务给出显式占位，而不是留空
+    await expect(modal).toContainText('- 无子任务');
+
+    // ① 默认 Markdown → .md，文件名带所选区间，内容含子任务明细
+    const mdEvent = page.waitForEvent('download');
+    await modal.locator('.td-modal-foot .btn', { hasText: '下载' }).click();
+    const mdDl = await mdEvent;
+    expect(mdDl.suggestedFilename()).toBe('周报_2026-09-17_2026-09-18.md');
+    const mdText = readFileSync((await mdDl.path())!, 'utf8');
+    expect(mdText).toContain('### 📝 任务与子任务明细');
+    expect(mdText).toContain('- [x] s1（100%）');
+    expect(mdText).toContain('写需求文档 | 50% | 1/2');
+
+    // ② 切纯文本 → .txt
+    await modal.locator('.td-chips .td-chip', { hasText: '纯文本' }).click();
+    const txtEvent = page.waitForEvent('download');
+    await modal.locator('.td-modal-foot .btn', { hasText: '下载' }).click();
+    expect((await txtEvent).suggestedFilename()).toBe(
+      '周报_2026-09-17_2026-09-18.txt',
+    );
+
+    // ③ 切 HTML → .html，内容为表格 + 明细段
+    await modal.locator('.td-chips .td-chip', { hasText: 'HTML' }).click();
+    const htmlEvent = page.waitForEvent('download');
+    await modal.locator('.td-modal-foot .btn', { hasText: '下载' }).click();
+    const htmlDl = await htmlEvent;
+    expect(htmlDl.suggestedFilename()).toBe('周报_2026-09-17_2026-09-18.html');
+    const htmlText = readFileSync((await htmlDl.path())!, 'utf8');
+    expect(htmlText).toContain('<table');
+    expect(htmlText).toContain('任务与子任务明细');
+
+    // ④ 复制按钮与下载按钮并存（复制逻辑已改用 lib/clipboard 的 copyText）
+    await expect(
+      modal.locator('.td-modal-foot .btn', { hasText: '复制到剪贴板' }),
+    ).toBeVisible();
   });
 
   test('深链 ?todo=<id>：定位高亮 + 自动展开（不再弹窗）', async ({ page }) => {
