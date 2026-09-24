@@ -9,6 +9,7 @@ import {
 
 import type { Tag, Todo } from "../../lib/todo/types";
 import { buildWeeklyReport, weekRangeOf } from "../../lib/todo/weekly";
+import { copyText, downloadFile } from "../../lib/clipboard";
 
 export interface WeeklyReportModalProps {
   todos: Todo[];
@@ -49,13 +50,22 @@ export const WeeklyReportModal = component$<WeeklyReportModalProps>(
     });
 
     const copy = $(async () => {
-      try {
-        await navigator.clipboard.writeText(report.value[sel.fmt]);
-        copied.value = true;
-        setTimeout(() => (copied.value = false), 1500);
-      } catch {
-        copied.value = false;
-      }
+      const ok = await copyText(report.value[sel.fmt]);
+      copied.value = ok;
+      if (ok) setTimeout(() => (copied.value = false), 1500);
+    });
+
+    const download = $(() => {
+      const fmt = sel.fmt;
+      const ext = fmt === "markdown" ? "md" : fmt === "html" ? "html" : "txt";
+      const mime =
+        fmt === "markdown"
+          ? "text/markdown"
+          : fmt === "html"
+            ? "text/html"
+            : "text/plain";
+      const name = `周报_${sel.start}_${sel.end}.${ext}`;
+      downloadFile(name, report.value[fmt], mime);
     });
 
     return (
@@ -126,9 +136,14 @@ export const WeeklyReportModal = component$<WeeklyReportModalProps>(
 
           <div class="td-modal-foot">
             <span class="td-hint">{scoped.value.length} 个 TODO 命中范围</span>
-            <button class="btn" onClick$={copy}>
-              {copied.value ? "已复制" : "复制到剪贴板"}
-            </button>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onClick$={download}>
+                下载
+              </button>
+              <button class="btn" onClick$={copy}>
+                {copied.value ? "已复制" : "复制到剪贴板"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

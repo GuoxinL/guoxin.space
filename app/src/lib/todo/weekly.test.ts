@@ -79,6 +79,15 @@ describe("buildWeeklyReport", () => {
     expect(rep.markdown).toContain("重构个人主页 | 60% | 1/3");
     expect(rep.markdown).toContain("写技术博客 | 100% | 2/2");
   });
+  it("含子任务明细（标题/进度/勾选态）", () => {
+    expect(rep.markdown).toContain("### 📝 任务与子任务明细");
+    expect(rep.markdown).toContain("#### 1. 重构个人主页（进度 60%）");
+    expect(rep.markdown).toContain("- [x] a1（100%）");
+    expect(rep.markdown).toContain("- [ ] a2（60%）");
+    expect(rep.html).toContain("任务与子任务明细");
+    expect(rep.text).toContain("任务与子任务明细");
+    expect(rep.text).toContain("[x] a1（100%）");
+  });
   it("完成时间线含 09-16", () => {
     expect(rep.markdown).toContain("09-16 写技术博客 → 100%");
   });

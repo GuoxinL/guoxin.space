@@ -1,6 +1,6 @@
 /** 周报生成（纯函数，便于单测）。
  *  入参 todos 已按标签预筛；本模块只负责「时间范围交集 + 统计 + 渲染」。 */
-import { calcProgress, countSubtasksDone } from "./progress";
+import { calcProgress, countSubtasksDone, sanitizeProgress } from "./progress";
 import type { Todo } from "./types";
 
 export interface WeeklyReportInput {
@@ -109,6 +109,22 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
       );
     }
   }
+  if (scoped.length) {
+    lines.push("");
+    lines.push(`### 📝 任务与子任务明细`);
+    scoped.forEach((t, i) => {
+      const p = calcProgress(t);
+      lines.push(`#### ${i + 1}. ${t.title}（进度 ${p}%）`);
+      if (t.subtasks.length === 0) {
+        lines.push(`- 无子任务`);
+      } else {
+        for (const s of t.subtasks) {
+          const done = sanitizeProgress(s.progress) >= 100;
+          lines.push(`- [${done ? "x" : " "}] ${s.title}（${s.progress}%）`);
+        }
+      }
+    });
+  }
   if (tl.length) {
     lines.push("");
     lines.push(`### 📈 完成时间线`);
@@ -139,6 +155,23 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
   const tlHtml = tl.length
     ? `<h3>完成时间线</h3><ul>${tl.map((c) => `<li>${esc(c.date)} ${esc(c.title)} → 100%</li>`).join("")}</ul>`
     : "";
+  const detailHtml = scoped.length
+    ? `<h3>任务与子任务明细</h3>` +
+      scoped
+        .map((t, i) => {
+          const p = calcProgress(t);
+          const items = t.subtasks.length
+            ? t.subtasks
+                .map((s) => {
+                  const done = sanitizeProgress(s.progress) >= 100;
+                  return `<li>[${done ? "x" : " "}] ${esc(s.title)}（${s.progress}%）</li>`;
+                })
+                .join("")
+            : `<li>无子任务</li>`;
+          return `<h4>${i + 1}. ${esc(t.title)}（进度 ${p}%）</h4><ul>${items}</ul>`;
+        })
+        .join("")
+    : "";
   const html = [
     `<h2>周报 — ${esc(titleTag)} (${esc(period)})</h2>`,
     `<h3>总体统计</h3>`,
@@ -147,6 +180,7 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
     scoped.length
       ? `<table border="1" cellpadding="6" cellspacing="0"><thead><tr><th>任务</th><th>进度</th><th>子任务完成</th><th>起止日期</th></tr></thead><tbody>${rows}</tbody></table>`
       : `<p>本周（${esc(titleTag)}）暂无任务</p>`,
+    detailHtml,
     tlHtml,
   ].join("\n");
 
