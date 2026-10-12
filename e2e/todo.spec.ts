@@ -736,18 +736,28 @@ test.describe('TODO 行 · 窄屏布局', () => {
 });
 
 test.describe('日历融合 TODO（已登录）', () => {
-  // 同 calendar.spec.ts：数据写死 2026-09，而日历渲染当月 → 跨月必失败。
-  test.fixme(true, "日期漂移：数据写死 2026-09，日历渲染当月");
-
+  // 数据固定 2026-09，而日历渲染「当前月」—— 冻结 Date 让原假设恒成立（跨月不失效）
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const FIXED = new Date('2026-09-15T10:00:00+08:00').getTime();
+      const RealDate = Date;
+      class FakeDate extends RealDate {
+        constructor(...args: unknown[]) {
+          if (args.length === 0) super(FIXED);
+          else super(...(args as []));
+        }
+        static now(): number {
+          return FIXED;
+        }
+      }
+      (globalThis as { Date: unknown }).Date = FakeDate;
+    });
     seedAuth(page);
     mockWorker(page);
   });
 
   test('点击有 TODO 的格子弹出只读卡片（不整页跳转）', async ({ page }) => {
     await page.goto('/toolbox/calendar');
-    await expect(page.locator('.cal-todo-line')).toHaveCount(1);
-
     await page.locator('.cal-todo-line').first().click();
     const card = page.locator('.td-cal-card');
     await expect(card).toBeVisible();

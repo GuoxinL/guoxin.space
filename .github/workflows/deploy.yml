@@ -46,18 +46,10 @@ jobs:
       - name: 安装 Playwright 浏览器
         run: pnpm exec playwright install --with-deps chromium
 
-      # ⚠️ 临时·不阻断（2026-10-12 起）：e2e 失败不再阻断 Pages 部署。
-      # 起因：日历 e2e 把数据日期写死 2026-09，而日历渲染**当月**，
-      #      一跨月这批用例必然失败（与业务改动无关；已用冻结浏览器时间证伪代码问题）。
-      #      已对受影响用例加 test.fixme 保留可见性，但仍有环境差异用例在 CI 上失败。
-      # 恢复条件：日历日期漂移修好（gotoMonth + 渲染就绪等待）且 CI 全绿后，
-      #      删掉本段并恢复为普通门禁：`run: pnpm test:e2e`。
-      # ⚠️ 单测（vitest）门禁不受影响，仍硬阻断。
-      - name: 页面自动化测试（Playwright · 临时不阻断）
-        continue-on-error: true
-        run: |
-          echo "::warning::Playwright 门禁当前不阻断部署（临时措施，待日历日期漂移修复后恢复）"
-          pnpm test:e2e || echo "::error::e2e 失败（已被 continue-on-error 放行，请尽快修复）"
+      # e2e 的日历用例已改为「冻结浏览器 Date 到数据月」（2026-10-12），
+      # 不再依赖「今天是几月」—— 跨月不失效。此步骤重新作为硬门禁。
+      - name: 页面自动化测试（Playwright 门禁）
+        run: pnpm test:e2e
 
       - name: 补齐 CNAME（自定义域名 guoxin.space）
         run: cp CNAME app/dist/CNAME

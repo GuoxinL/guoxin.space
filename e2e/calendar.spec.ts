@@ -35,18 +35,34 @@ test.describe("Toolbox · Calendar /toolbox/calendar", () => {
     await page.goto("/toolbox/calendar");
     const title = page.locator(".cal-title");
     const before = (await title.innerText()).trim();
-    await page.locator("button.btn", { hasText: "下月" }).click();
+    // evaluate 派发 click：避免切月重建 DOM 时 detach 重试导致的双跳
+    await page
+      .locator('button.btn', { hasText: "下月" })
+      .evaluate((el) => (el as HTMLElement).click());
     await expect(title).not.toHaveText(before);
-    await page.locator("button.btn", { hasText: "上月" }).click();
+    await page
+      .locator('button.btn', { hasText: "上月" })
+      .evaluate((el) => (el as HTMLElement).click());
     await expect(title).toHaveText(before);
   });
 
-  // 同上：点一次「下月」到 10 月的假设，在 10 月会点到 11 月
   test("法定假期明显标记（休/班 徽标 + 节日高亮）", async ({ page }) => {
-    test.fixme(true, "日期漂移：假设当前月是 9 月，点下月即得 10 月");
+    // 数据月为 2026-10（国庆）：冻结 Date，免切月
+    await page.addInitScript(() => {
+      const FIXED = new Date("2026-10-01T10:00:00+08:00").getTime();
+      const RealDate = Date;
+      class FakeDate extends RealDate {
+        constructor(...args: unknown[]) {
+          if (args.length === 0) super(FIXED);
+          else super(...(args as []));
+        }
+        static now(): number {
+          return FIXED;
+        }
+      }
+      (globalThis as { Date: unknown }).Date = FakeDate;
+    });
     await page.goto("/toolbox/calendar");
-    // 切到 10 月（国庆 7 天连休）
-    await page.locator("button.btn", { hasText: "下月" }).click();
     await expect(page.locator(".cal-title")).toContainText("10 月");
     // 至少存在一个休息日高亮单元
     await expect(
@@ -161,10 +177,25 @@ function dayCell(page: Page, d: number) {
 }
 
 test.describe("Calendar · TODO 任务线跨日连续", () => {
-  // 已知问题（2026-10-12）：本组用例把数据日期写死为 2026-09，而日历默认渲染**当前月**。一跨到 10 月，9 月格子不在 DOM 中，用例必然失败 —— 与任何业务改动无关。已用冻结浏览器时间验证：把时间拨回 2026-09 后全部通过。
-  //   待修：改为「先gotoMonth(page, y, m) 再断言」，并等切月后网格与任务线渲染就绪。
-  //   证据：e2e/calendar.spec.ts 与提交 934a628 逐字节相同，当时 CI 绿（还在 9 月）。
-  test.fixme(true, "日期漂移：数据写死 2026-09，日历渲染当月");
+  // 用例数据固定 2026-09，而日历渲染「当前月」—— 跨月后 9 月格子不在 DOM，必然失败。
+  // 冻结浏览器 Date 到 2026-09-15，让「打开即 9 月」的原假设恒成立（零时序依赖）。
+  // （SSR 初始值是构建期当月、挂载后校正到真实今日 —— 冻结后校正目标也是 9 月，前后一致。）
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const FIXED = new Date("2026-09-15T10:00:00+08:00").getTime();
+      const RealDate = Date;
+      class FakeDate extends RealDate {
+        constructor(...args: unknown[]) {
+          if (args.length === 0) super(FIXED);
+          else super(...(args as []));
+        }
+        static now(): number {
+          return FIXED;
+        }
+      }
+      (globalThis as { Date: unknown }).Date = FakeDate;
+    });
+  });
 
   test("未登录：不渲染任何任务线", async ({ page }) => {
     await page.goto("/toolbox/calendar");

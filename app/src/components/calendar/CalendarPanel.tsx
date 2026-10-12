@@ -55,9 +55,13 @@ function cellTitle(c: CalendarCell): string {
 }
 
 export const CalendarPanel = component$(() => {
-  // 初始为确定值（与构建期当前月一致），保证 SSR 与客户端首帧一致；挂载后由 useVisibleTask 校正到真实今日。
-  const viewY = useSignal(2026);
-  const viewM = useSignal(9);
+  // 初始为「各自环境的当前月」：SSG=构建期月、客户端=访问月（各自调用 new Date()）。
+  // ⚠️ 不能硬编码年月（曾写死 2026/9）——跨月后 SSR 首帧显示错误月份，
+  //    且与挂载后校正的真实今日不一致（E2E「上/下月切换」的 before 永远对不上）。
+  //    挂载后仍由 useVisibleTask 校正到真实今日，跨月部署时首帧短暂偏差可接受。
+  const _init = new Date();
+  const viewY = useSignal(_init.getFullYear());
+  const viewM = useSignal(_init.getMonth() + 1);
   const today = useSignal<DayRef | null>(null);
   const viewMode = useSignal<"month" | "year">("month");
 
