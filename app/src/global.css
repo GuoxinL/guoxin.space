@@ -5124,6 +5124,15 @@ body[data-theme="light"] .md-pre {
 .td-status .dot.err {
   background: var(--td-red);
 }
+/* 未同步本地修改提示（L1）：细边框 + 弱化文字，不抢主状态；不用阴影与圆角（V2 去容器化）。 */
+.td-statusline {
+  margin-top: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--slate-5);
+  color: var(--slate-65);
+  font-size: 12px;
+  line-height: 1.6;
+}
 .td-actions {
   display: flex;
   gap: 8px;

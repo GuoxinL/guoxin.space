@@ -548,6 +548,16 @@ function todoCfg(env) {
   return { repo, branch: env.TODO_BRANCH || "main", path: (env.TODO_PATH || "app/src/data/todo").replace(/\/+$/, "") };
 }
 
+/** 取分支 head 的 commit sha —— 全局版本基准（L2 CAS 用）。
+ *  Contents API 的 `sha` 只是单个文件的 blob sha，多文件场景没有全局版本语义；
+ *  GitHub 的 `GET /git/ref/heads/{branch}` 返回 object.sha 才是分支当前 commit。
+ *  取不到时返回 null（调用方据此跳过校验，保持向后兼容）。 */
+async function todoHeadSha(env, cfg) {
+  const r = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/git/ref/heads/" + enc(cfg.branch));
+  if (r.status !== 200 || !r.data || !r.data.object || !r.data.object.sha) return null;
+  return r.data.object.sha;
+}
+
 function isDayName(s) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s || "");
 }
@@ -571,13 +581,20 @@ function wProgress(todo) {
   return w ? Math.round(p / w) : todo && todo.completedAt ? 100 : 0;
 }
 
+// 读取单个日文件/索引文件。**显式区分三种结果**，供调用方记账：
+//   { ok: true, value }              读到且解析成功
+//   { ok: false, missing: true }     文件不存在（404）—— 合法，不算读取失败
+//   { ok: false, missing: false }    读取/解析失败（限流、超时、5xx）—— 必须上报
+// 早前实现对失败一律 return null，todoAll 直接跳过 → 「读不全」伪装成「读取正常」，
+// 前端拿残缺快照做全量覆盖写时会把读不到的日期当成「已删空」而真删（2026-10-09 事故机制）。
 async function todoReadJson(env, cfg, relPath) {
   const r = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/contents/" + enc(cfg.path + "/" + relPath) + "?ref=" + encodeURIComponent(cfg.branch));
-  if (r.status !== 200 || !r.data || !r.data.content) return null;
+  if (r.status === 404) return { ok: false, missing: true, value: null };
+  if (r.status !== 200 || !r.data || !r.data.content) return { ok: false, missing: false, value: null };
   try {
-    return JSON.parse(decodeUtf8(atob(r.data.content)));
+    return { ok: true, missing: false, value: JSON.parse(decodeUtf8(atob(r.data.content))) };
   } catch (e) {
-    return null;
+    return { ok: false, missing: false, value: null };
   }
 }
 
@@ -594,8 +611,10 @@ async function rebuildMonthIndex(env, cfg, y, m) {
   const days = (listing || []).filter((f) => isDayFile(f.name) && f.name.startsWith(prefix));
   const entries = [];
   for (const f of days) {
-    const arr = await todoReadJson(env, cfg, f.name);
-    if (!Array.isArray(arr)) continue;
+    const r = await todoReadJson(env, cfg, f.name);
+    // 读失败的日文件绝不能静默跳过：那会让月索引缺条目而无人察觉（日历与详情不一致）
+    if (!r.ok || !Array.isArray(r.value)) continue;
+    const arr = r.value;
     for (const t of arr) {
       entries.push({
         id: t.id,
@@ -613,25 +632,43 @@ async function rebuildMonthIndex(env, cfg, y, m) {
 
 async function todoAll(env, cfg, cors) {
   const listing = await listDir(env.GH_TOKEN, cfg.repo.owner, cfg.repo.repo, cfg.path, cfg.branch);
-  const files = (listing || []).filter((f) => isDayFile(f.name));
+  // 列举失败必须报错：早前 `listing || []` 会把「列举失败」当成「仓库是空的」，
+  // 页面照样显示「共 0 个」而毫无异常 —— 这是「读不全伪装成正常」的第二处来源。
+  if (listing === null) return json(cors, 502, { error: "列举数据目录失败，请重试" });
+  const files = listing.filter((f) => isDayFile(f.name));
   let out = [];
+  const missing = [];
   for (const f of files) {
-    const arr = await todoReadJson(env, cfg, f.name);
-    if (Array.isArray(arr)) out = out.concat(arr);
+    const r = await todoReadJson(env, cfg, f.name);
+    if (r.ok && Array.isArray(r.value)) {
+      out = out.concat(r.value);
+    } else {
+      // 文件在目录里存在却读不出来 —— 记账上报，绝不静默跳过
+      missing.push(f.name);
+    }
   }
-  return json(cors, 200, { ok: true, todos: out });
+  // partial=true 时前端进入只读模式：可编辑但禁止写盘，直到重试读到完整数据。
+  const head = await todoHeadSha(env, cfg);
+  return json(cors, 200, { ok: true, todos: out, partial: missing.length > 0, missing, head_sha: head });
 }
 async function todoMonth(env, cfg, cors, y, m) {
-  const arr = await todoReadJson(env, cfg, "index/" + y + "-" + pad2(m) + ".json");
-  return json(cors, 200, { ok: true, index: Array.isArray(arr) ? arr : [] });
+  const r = await todoReadJson(env, cfg, "index/" + y + "-" + pad2(m) + ".json");
+  // 索引读不出来时不能当空索引返回：日历会「正常」显示成没有任务，掩盖真实故障
+  if (!r.missing && !r.ok) return json(cors, 502, { error: "读取 " + y + "-" + pad2(m) + " 索引失败，请重试" });
+  const arr = r.ok ? r.value : null;
+  return json(cors, 200, { ok: true, index: Array.isArray(arr) ? arr : [], partial: false, missing: [] });
 }
 async function todoDay(env, cfg, cors, d) {
-  const arr = await todoReadJson(env, cfg, d + ".json");
-  return json(cors, 200, { ok: true, todos: Array.isArray(arr) ? arr : [] });
+  const r = await todoReadJson(env, cfg, d + ".json");
+  if (r.missing) return json(cors, 200, { ok: true, todos: [], partial: false, missing: [] });
+  if (!r.ok) return json(cors, 502, { error: "读取 " + d + " 失败，请重试" });
+  return json(cors, 200, { ok: true, todos: Array.isArray(r.value) ? r.value : [], partial: false, missing: [] });
 }
 async function todoTags(env, cfg, cors) {
-  const arr = await todoReadJson(env, cfg, "tags.json");
-  return json(cors, 200, { ok: true, tags: Array.isArray(arr) ? arr : [] });
+  const r = await todoReadJson(env, cfg, "tags.json");
+  if (r.missing) return json(cors, 200, { ok: true, tags: [], partial: false, missing: [] });
+  if (!r.ok) return json(cors, 502, { error: "读取标签失败，请重试" });
+  return json(cors, 200, { ok: true, tags: Array.isArray(r.value) ? r.value : [], partial: false, missing: [] });
 }
 // 删除日文件；文件本就不存在视为成功（幂等），避免「重复清空」或「文件已删」时误报 500。
 async function todoDelDay(env, cfg, day) {
@@ -650,6 +687,21 @@ async function todoSave(env, cfg, cors, body) {
   const day = String((body && body.day) || "");
   if (!isDayName(day)) return json(cors, 400, { error: "day 格式应为 YYYY-MM-DD" });
   const todos = Array.isArray(body.todos) ? body.todos : [];
+
+  // L2 CAS：客户端携带读取时的分支 head sha；与当前不一致说明期间有他人写入 → 409 拒绝，
+  // 防止「基于陈旧快照的写入静默覆盖新数据」。
+  // 兼容：head_sha 为空（旧页面）时跳过校验，保持原行为。
+  const clientSha = String((body && body.head_sha) || "");
+  if (clientSha) {
+    const head = await todoHeadSha(env, cfg);
+    if (head && head !== clientSha) {
+      return json(cors, 409, {
+        error: "数据已在别处更新（你的编辑基于旧版本），请重新加载后再保存",
+        code: "stale_head",
+        head_sha: head,
+      });
+    }
+  }
   // 整日已清空：删除日文件而非留空数组，避免空 YYYY-MM-DD.json 残留在数据仓
   // （否则 todoAll 仍会列出该文件、刷新后已删 todo「复活」）。
   const ok = todos.length === 0

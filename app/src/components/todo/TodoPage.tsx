@@ -15,7 +15,9 @@ import type {
   Todo,
 } from "../../lib/todo/types";
 import { filterTodos, sortTodos } from "../../lib/todo/filter";
-import { groupByDay, genTodoId, dayFileOf } from "../../lib/todo/store";
+import { genTodoId, dayFileOf } from "../../lib/todo/store";
+import { nowIso, errText, EMPTY_TODO } from "../../lib/todo/consts";
+import { makeGuardAction } from "../../lib/todo/guard-hooks";
 import {
   closeTodo,
   localDay,
@@ -25,56 +27,41 @@ import {
   withSubtasks,
   type TodoPatch,
 } from "../../lib/todo/mutate";
-import { createWriteQueue, type WriteQueue } from "../../lib/todo/write-queue";
+import type { WriteQueue } from "../../lib/todo/write-queue";
+import { createSavePipeline } from "../../lib/todo/save-pipeline";
 import {
-  fetchAll,
-  fetchTags,
-  saveDay,
-  saveTags,
-  isTodoAuthed,
-} from "../../lib/todo/api";
+  writeDraft,
+  readDraft,
+  diffDraft,
+  isDiffEmpty,
+  describeDiff,
+  makeBase,
+  type DraftDiff,
+} from "../../lib/todo/draft";
+import { fetchAll, fetchTags, saveTags, isTodoAuthed } from "../../lib/todo/api";
 import { authLogin, authSubscribe } from "../../lib/auth";
 import { TodoRow } from "./TodoRow";
 import { TagManager } from "./TagManager";
 import { WeeklyReportModal } from "./WeeklyReportModal";
 
-/** 统一的 ISO 时间戳（与既有 createdAt/updatedAt 数据口径一致）。 */
-function nowIso(): string {
-  return new Date().toISOString();
-}
-
-function errText(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
-
-/** 草稿占位对象。
- *  ⚠️ 草稿行不能用「把 signal 置 null 来卸载」的写法：Qwik 的 props 是惰性求值，
- *  `{draft.value && <TodoRow todo={draft.value}/>}` 在置空与重渲染竞态时，
- *  `todo` props 会取到 null 并让 TodoRow 崩溃，进而中断整页渲染、DOM 冻在旧状态。
- *  因此 draft 永远持有对象，退场只翻 `hasDraft` 标志。 */
-const EMPTY_TODO: Todo = {
-  id: "",
-  title: "",
-  tags: [],
-  startDate: "",
-  endDate: null,
-  createdAt: "",
-  updatedAt: "",
-  lastOperatedAt: "",
-  completedAt: null,
-  subtasks: [],
-};
-
-
 export const TodoPage = component$(() => {
   const nav = useNavigate();
   const todos = useSignal<Todo[]>([]);
   const tags = useSignal<Tag[]>([]);
-  const status = useSignal<{ kind: "wait" | "ok" | "err"; msg: string }>({
-    kind: "wait",
-    msg: "加载中…",
-  });
+  const status = useSignal<{ kind: "wait" | "ok" | "err"; msg: string }>({ kind: "wait", msg: "加载中…" });
   const authed = useSignal(false);
+  /** L5 闸门：Worker 报 partial 时为真 → 可编辑但**禁止写盘**，直到读到完整数据。 */
+  const readOnly = useSignal(false);
+  /** L1：暂存与仓库的差异（非空 = 有未同步修改，需提示）。 */
+  const draftDiff = useSignal<DraftDiff>({
+    localOnly: [],
+    remoteOnly: [],
+    changed: [],
+  });
+  /** 仓库基准（id -> updatedAt），用于暂存区 diff。 */
+  const baseSig = useSignal<Record<string, string>>({});
+  /** L2 CAS 基准：读取时的 head sha（null = 跳过校验）。 */
+  const headSig = useSignal<string | null>(null);
 
   // 筛选 / 排序 / 搜索
   const query = useSignal("");
@@ -120,7 +107,6 @@ export const TodoPage = component$(() => {
     return sortTodos(list, sortBy.value);
   });
 
-
   const reload = $(async () => {
     authed.value = isTodoAuthed();
     if (!authed.value) {
@@ -131,16 +117,49 @@ export const TodoPage = component$(() => {
       todos.value = [];
       tags.value = [];
       knownDays.value = new Set();
+      readOnly.value = false;
+      draftDiff.value = { localOnly: [], remoteOnly: [], changed: [] };
       return;
     }
     status.value = { kind: "wait", msg: "正在读取 TODO 数据…" };
     try {
-      const [t, tg] = await Promise.all([fetchAll(), fetchTags()]);
+      const [r, tg] = await Promise.all([fetchAll(), fetchTags()]);
+      const t = r.todos;
       todos.value = t;
       tags.value = tg;
-      // 播种已知 day 文件：取每条 todo 的 createdAt 前 10 位（YYYY-MM-DD）。
-      knownDays.value = new Set(t.map((x) => dayFileOf(x)).filter(Boolean));
-      status.value = { kind: "ok", msg: `共 ${t.length} 个 TODO` };
+
+      // L5：读取残缺时置只读模式。**关键** —— 不播种 knownDays：
+      // 残缺快照里缺的日期若被播种进 knownDays，后续写盘的反推逻辑会把它当成
+      // 「用户已删空」而真删。宁可让删除反推失效，也不能误删数据。
+      readOnly.value = r.partial;
+      if (r.partial) {
+        knownDays.value = new Set();
+      } else {
+        // 播种已知 day 文件：取每条 todo 的 createdAt 前 10 位（YYYY-MM-DD）。
+        knownDays.value = new Set(t.map((x) => dayFileOf(x)).filter(Boolean));
+      }
+
+      // L1：与仓库基准一起存入，供后续 diff。
+      baseSig.value = makeBase(t);
+      // L2：记录读取时的 head sha，后续写盘原样回传做 CAS 校验。
+      headSig.value = r.headSha;
+
+      // L1：检测是否存在未同步的本地暂存，有差异则提示（不做自动合并，见 D4）。
+      const d = readDraft();
+      draftDiff.value = diffDraft(d, t);
+
+      if (r.partial) {
+        status.value = {
+          kind: "err",
+          msg:
+            "读取不完整（" +
+            r.missing.length +
+            " 个日期文件读取失败），已禁用写盘以防数据丢失；编辑仍会暂存本地，请稍后刷新重试",
+        };
+      } else {
+        status.value = { kind: "ok", msg: `共 ${t.length} 个 TODO` };
+      }
+
       // 深链 ?todo=<id> → 定位高亮 + 自动展开该行
       const id = new URLSearchParams(location.search).get("todo");
       if (id && t.some((x) => x.id === id)) highlightId.value = id;
@@ -149,9 +168,13 @@ export const TodoPage = component$(() => {
     }
   });
 
-  /** 内存态立即更新（乐观），写盘交给队列合并。 */
+  /** 内存态立即更新（乐观），写盘交给队列合并。
+   *
+   *  L1：先同步落本地暂存区 —— 这一步瞬时、不依赖网络，
+   *  保证刷新 / 关页 / 断网 / 写盘失败时编辑内容都不丢。 */
   const commit$ = $((next: Todo[]) => {
     todos.value = next;
+    writeDraft(next, baseSig.value);
     // 队列在客户端 visible task 里创建；用户交互必然晚于它执行
     queue.value?.push(next);
   });
@@ -277,6 +300,15 @@ export const TodoPage = component$(() => {
     draft.value = EMPTY_TODO;
   });
 
+  /** L3 意图守卫：新增 / 编辑 / 删除 共用（控制流见 lib/todo/guard-hooks.ts）。 */
+  const guardAction$ = $(async (run: () => void, label: string) => {
+    await makeGuardAction({
+      readOnly,
+      reload,
+      setStatus: (msg, kind) => (status.value = { kind, msg }),
+    })(run, label);
+  });
+
   // 草稿行不渲染这些动作，传空实现满足 props 契约
   const noop$ = $(() => {});
   const noopSubs$ = $(() => {});
@@ -293,31 +325,22 @@ export const TodoPage = component$(() => {
     history.replaceState(null, "", qs ? "/todo?" + qs : "/todo");
   });
 
-  // 写盘队列只在浏览器里存在：客户端挂载后创建，卸载时 flush 兜底
+  // 写盘队列只在浏览器里存在：客户端挂载后创建，卸载时 flush 兜底。
+  // 具体编排（只读闸门 / 删除反推 / 落盘后清暂存）在 lib/todo/save-pipeline.ts。
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
-    const q = createWriteQueue<Todo[]>(
-      async (next) => {
-        const groups = groupByDay(next);
-        // 反推被删空的日文件：已知 day 但本次分组里已不存在 → 显式写空数组，
-        // 让 Worker 清掉残留的 YYYY-MM-DD.json（否则刷新后 todoAll 仍读回）。
-        const removedDays = [...knownDays.value].filter((d) => !groups[d]);
-        await Promise.all([
-          ...Object.entries(groups).map(([day, arr]) => saveDay(day, arr)),
-          ...removedDays.map((d) => saveDay(d, [])),
-        ]);
-        // 写盘成功后，已知 day 集合收敛为当前仍含 todo 的分组。
-        knownDays.value = new Set(Object.keys(groups));
-      },
-      400,
-      (e: unknown) => {
-        status.value = { kind: "err", msg: "保存失败：" + errText(e) };
-      },
-    );
+    const q = createSavePipeline({
+      readOnly: () => readOnly.value,
+      knownDays: () => knownDays.value,
+      setKnownDays: (d) => (knownDays.value = d),
+      setBase: (b) => (baseSig.value = b),
+      setStatus: (msg, kind) => (status.value = { kind, msg }),
+      headSha: () => headSig.value,
+    });
     queue.value = q;
     cleanup(() => {
-      // 卸载：把还在 debounce 窗口里的变更尽快写出去。失败已由队列 onError 上报，
-      // 此处组件已不存在，不重复提示（显式忽略）。
+      // 卸载：把还在 debounce 窗口里的变更尽快写出去。失败已由 onError 上报，
+      // 此处组件已不存在，不重复提示（显式忽略）；本地暂存仍保留，刷新不丢编辑。
       void q.flush().catch(() => {});
     });
   });
@@ -405,6 +428,12 @@ export const TodoPage = component$(() => {
           </button>
         </div>
       </div>
+
+      {authed.value && !isDiffEmpty(draftDiff.value) && (
+        <div class="td-statusline">
+          检测到未同步的本地修改（{describeDiff(draftDiff.value)}）—— 为避免覆盖他人改动，暂不自动合并
+        </div>
+      )}
 
       {!authed.value ? (
         <div class="td-gate">
@@ -495,11 +524,15 @@ export const TodoPage = component$(() => {
                 tags={tags.value}
                 highlight={t.id === highlightId.value}
                 defaultOpen={t.id === highlightId.value}
-                onPatch$={(patch) => patchRow$(t.id, patch)}
+                onPatch$={(patch) =>
+                  guardAction$(() => patchRow$(t.id, patch), "编辑 TODO")
+                }
                 onSubtasks$={(next) => setSubtasks$(t.id, next)}
                 onProgress$={(target) => setProgress$(t.id, target)}
                 onToggleDone$={() => toggleDone$(t.id)}
-                onDelete$={() => deleteRow$(t.id)}
+                onDelete$={() =>
+                  guardAction$(() => deleteRow$(t.id), "删除 TODO")
+                }
                 onCreateTag$={createTag$}
               />
             ))}
@@ -522,7 +555,11 @@ export const TodoPage = component$(() => {
                 onDrop$={dropDraft$}
               />
             ) : (
-              <button type="button" class="td-r-add" onClick$={startDraft$}>
+              <button
+                type="button"
+                class="td-r-add"
+                onClick$={() => guardAction$(startDraft$, "新建 TODO")}
+              >
                 ＋ 添加 TODO
               </button>
             )}
