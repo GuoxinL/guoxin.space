@@ -25,11 +25,19 @@ function dcmp(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-/** Todo 是否与 [start, end] 有交叠。 */
+/** Todo 是否与 [start, end] 有交叠。
+ *  语义：
+ *  - startDate 与 endDate 均为空 → 长期任务，恒命中（否则新建任务永远进不了周报）；
+ *  - endDate 为空 → 任务仍在进行中，无上界，凡开始于区间结束前即命中；
+ *  - 两者齐全 → 常规区间交叠；
+ *  - 仅 endDate → 锚定结束日，结束于区间开始后即命中。 */
 export function inRange(todo: Todo, start: string, end: string): boolean {
   const s = todo.startDate || "";
-  const e = todo.endDate || s;
-  return dcmp(s, end) <= 0 && dcmp(e, start) >= 0;
+  const e = todo.endDate || "";
+  if (!s && !e) return true;
+  if (s && dcmp(s, end) > 0) return false; // 开始晚于区间结束
+  if (e && dcmp(e, start) < 0) return false; // 已结束且早于区间开始
+  return true;
 }
 
 function mdDate(d: string | null): string {

@@ -40,6 +40,19 @@ describe("inRange", () => {
     const t = todo({ id: "a", startDate: "2026-09-01", endDate: "2026-09-05" });
     expect(inRange(t, "2026-09-15", "2026-09-21")).toBe(false);
   });
+  it("无起止日期的任务视为长期任务恒命中", () => {
+    const t = todo({ id: "a", startDate: "", endDate: null });
+    expect(inRange(t, "2026-09-15", "2026-09-21")).toBe(true);
+    expect(inRange(t, "2020-01-01", "2020-01-07")).toBe(true);
+  });
+  it("进行中任务（无 endDate）开始于区间之前也命中", () => {
+    const t = todo({ id: "a", startDate: "2026-09-01", endDate: null });
+    expect(inRange(t, "2026-09-15", "2026-09-21")).toBe(true);
+  });
+  it("进行中任务开始于区间结束后不命中", () => {
+    const t = todo({ id: "a", startDate: "2026-09-25", endDate: null });
+    expect(inRange(t, "2026-09-15", "2026-09-21")).toBe(false);
+  });
 });
 
 describe("buildWeeklyReport", () => {
@@ -102,6 +115,23 @@ describe("buildWeeklyReport", () => {
   it("calcProgress 复核", () => {
     expect(calcProgress(todos[0])).toBe(60);
     expect(calcProgress(todos[1])).toBe(100);
+  });
+  it("既往周开始且未结束的任务进入本周周报（回归：预览不再为空）", () => {
+    const ongoing = todo({
+      id: "c",
+      title: "网信办智能体项目",
+      startDate: "2026-09-21",
+      endDate: null,
+      subtasks: [sub("c1", 1, 58)],
+    });
+    const rep2 = buildWeeklyReport({
+      tagName: undefined,
+      rangeStart: "2026-10-12",
+      rangeEnd: "2026-10-18",
+      todos: [ongoing],
+    });
+    expect(rep2.markdown).toContain("Todo 总数：1");
+    expect(rep2.markdown).toContain("网信办智能体项目");
   });
 });
 

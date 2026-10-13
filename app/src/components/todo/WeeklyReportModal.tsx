@@ -8,7 +8,7 @@ import {
 } from "@builder.io/qwik";
 
 import type { Tag, Todo } from "../../lib/todo/types";
-import { buildWeeklyReport, weekRangeOf } from "../../lib/todo/weekly";
+import { buildWeeklyReport, inRange, weekRangeOf } from "../../lib/todo/weekly";
 import { copyText, downloadFile } from "../../lib/clipboard";
 
 export interface WeeklyReportModalProps {
@@ -48,6 +48,12 @@ export const WeeklyReportModal = component$<WeeklyReportModalProps>(
         todos: scoped.value,
       });
     });
+
+    // 底部提示与预览同口径：按日期范围过滤后的命中数（此前仅按标签计数，
+    // 会出现「5 个 TODO 命中范围」而预览总数为 0 的矛盾）。
+    const hitCount = useComputed$(
+      () => scoped.value.filter((t) => inRange(t, sel.start, sel.end)).length,
+    );
 
     const copy = $(async () => {
       const ok = await copyText(report.value[sel.fmt]);
@@ -135,7 +141,7 @@ export const WeeklyReportModal = component$<WeeklyReportModalProps>(
           <pre class="td-weekly-out">{report.value[sel.fmt]}</pre>
 
           <div class="td-modal-foot">
-            <span class="td-hint">{scoped.value.length} 个 TODO 命中范围</span>
+            <span class="td-hint">{hitCount.value} 个 TODO 命中范围</span>
             <div style="display:flex;gap:8px">
               <button class="btn" onClick$={download}>
                 下载
