@@ -83,14 +83,14 @@ describe("buildWeeklyReport", () => {
     todos,
   });
 
-  it("统计正确", () => {
-    expect(rep.markdown).toContain("Todo 总数：2");
-    expect(rep.markdown).toContain("已完成：1 | 进行中：1 | 未开始：0");
-    expect(rep.markdown).toContain("平均进度：80%"); // (60+100)/2
+  it("统计只计未完成任务，本周完成数来自时间线", () => {
+    expect(rep.markdown).toContain("未完成任务：1");
+    expect(rep.markdown).toContain("本周完成：1 | 进行中：1 | 未开始：0");
+    expect(rep.markdown).toContain("平均进度：60%"); // 仅未完成任务参与均值
   });
-  it("明细含进度与子任务完成数", () => {
+  it("明细含进度与子任务完成数，已完成任务不进明细", () => {
     expect(rep.markdown).toContain("重构个人主页 | 60% | 1/3");
-    expect(rep.markdown).toContain("写技术博客 | 100% | 2/2");
+    expect(rep.markdown).not.toContain("写技术博客 | 100% | 2/2");
   });
   it("含子任务明细（标题/进度/勾选态）", () => {
     expect(rep.markdown).toContain("### 📝 任务与子任务明细");
@@ -130,8 +130,48 @@ describe("buildWeeklyReport", () => {
       rangeEnd: "2026-10-18",
       todos: [ongoing],
     });
-    expect(rep2.markdown).toContain("Todo 总数：1");
+    expect(rep2.markdown).toContain("未完成任务：1");
     expect(rep2.markdown).toContain("网信办智能体项目");
+  });
+  it("已完成但无 completedAt 的任务不进明细也不进时间线", () => {
+    const finished = todo({
+      id: "d",
+      title: "早已做完",
+      startDate: "2026-09-01",
+      endDate: null,
+      subtasks: [sub("d1", 1, 100)],
+      completedAt: null,
+    });
+    const rep2 = buildWeeklyReport({
+      tagName: undefined,
+      rangeStart: "2026-10-12",
+      rangeEnd: "2026-10-18",
+      todos: [finished],
+    });
+    expect(rep2.markdown).toContain("未完成任务：0");
+    expect(rep2.markdown).toContain("_本周（全部）暂无进行中任务_");
+    expect(rep2.markdown).not.toContain("| 早已做完 |");
+    expect(rep2.markdown).not.toContain("完成时间线");
+  });
+  it("本周完成的任务进时间线但不进明细", () => {
+    const done = todo({
+      id: "e",
+      title: "本周做完",
+      startDate: "2026-10-13",
+      endDate: null,
+      subtasks: [sub("e1", 1, 100)],
+      completedAt: "2026-10-13T09:00:00",
+    });
+    const rep2 = buildWeeklyReport({
+      tagName: undefined,
+      rangeStart: "2026-10-12",
+      rangeEnd: "2026-10-18",
+      todos: [done],
+    });
+    expect(rep2.markdown).toContain("未完成任务：0");
+    expect(rep2.markdown).toContain("本周完成：1");
+    expect(rep2.markdown).toContain("10-13 本周做完 → 100%");
+    expect(rep2.markdown).not.toContain("| 本周做完 |");
   });
 });
 

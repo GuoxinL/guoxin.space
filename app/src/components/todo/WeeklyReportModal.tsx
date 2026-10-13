@@ -9,6 +9,7 @@ import {
 
 import type { Tag, Todo } from "../../lib/todo/types";
 import { buildWeeklyReport, inRange, weekRangeOf } from "../../lib/todo/weekly";
+import { calcProgress } from "../../lib/todo/progress";
 import { copyText, downloadFile } from "../../lib/clipboard";
 
 export interface WeeklyReportModalProps {
@@ -49,10 +50,13 @@ export const WeeklyReportModal = component$<WeeklyReportModalProps>(
       });
     });
 
-    // 底部提示与预览同口径：按日期范围过滤后的命中数（此前仅按标签计数，
-    // 会出现「5 个 TODO 命中范围」而预览总数为 0 的矛盾）。
+    // 底部提示与预览明细同口径：日期范围内且未完成的任务数
+    // （周报只关注这一周的变化，已完成任务不进明细，故不计入）。
     const hitCount = useComputed$(
-      () => scoped.value.filter((t) => inRange(t, sel.start, sel.end)).length,
+      () =>
+        scoped.value.filter(
+          (t) => inRange(t, sel.start, sel.end) && calcProgress(t) < 100,
+        ).length,
     );
 
     const copy = $(async () => {
@@ -141,7 +145,9 @@ export const WeeklyReportModal = component$<WeeklyReportModalProps>(
           <pre class="td-weekly-out">{report.value[sel.fmt]}</pre>
 
           <div class="td-modal-foot">
-            <span class="td-hint">{hitCount.value} 个 TODO 命中范围</span>
+            <span class="td-hint">
+              {hitCount.value} 个 TODO 命中范围（不含已完成）
+            </span>
             <div style="display:flex;gap:8px">
               <button class="btn" onClick$={download}>
                 下载

@@ -1,5 +1,7 @@
 /** 周报生成（纯函数，便于单测）。
- *  入参 todos 已按标签预筛；本模块只负责「时间范围交集 + 统计 + 渲染」。 */
+ *  入参 todos 已按标签预筛；本模块只负责「时间范围交集 + 统计 + 渲染」。
+ *  口径：周报只关注这一周的变化——已完成（进度 100%）的任务是过去的变化，
+ *  不进任务明细；本周完成的通过「完成时间线」体现。 */
 import { calcProgress, countSubtasksDone, sanitizeProgress } from "./progress";
 import type { Todo } from "./types";
 
@@ -84,11 +86,13 @@ function completedTimeline(todos: Todo[], start: string, end: string) {
     }));
 }
 
-/** 构建周报（Markdown / 纯文本 / HTML 三态）。 */
+/** 构建周报（Markdown / 纯文本 / HTML 三态）。
+ *  明细与统计只含未完成任务（progress < 100）；完成时间线基于全量命中集合。 */
 export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
   const { tagName, rangeStart, rangeEnd, todos } = input;
   const scoped = todos.filter((t) => inRange(t, rangeStart, rangeEnd));
-  const st = stats(scoped);
+  const active = scoped.filter((t) => calcProgress(t) < 100);
+  const st = stats(active);
   const tl = completedTimeline(scoped, rangeStart, rangeEnd);
   const titleTag = tagName ? tagName : "全部";
   const period = `${rangeStart} ~ ${rangeEnd}`;
@@ -97,19 +101,19 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
   const lines: string[] = [];
   lines.push(`## 周报 — ${titleTag} (${period})`, "");
   lines.push(`### 📊 总体统计`);
-  lines.push(`- Todo 总数：${st.total}`);
+  lines.push(`- 未完成任务：${st.total}`);
   lines.push(
-    `- 已完成：${st.done} | 进行中：${st.doing} | 未开始：${st.notStarted}`,
+    `- 本周完成：${tl.length} | 进行中：${st.doing} | 未开始：${st.notStarted}`,
   );
   lines.push(`- 平均进度：${st.avg}%`);
   lines.push("");
   lines.push(`### 📋 任务明细`);
-  if (scoped.length === 0) {
-    lines.push(`_本周（${titleTag}）暂无任务_`);
+  if (active.length === 0) {
+    lines.push(`_本周（${titleTag}）暂无进行中任务_`);
   } else {
     lines.push(`| 任务 | 进度 | 子任务完成 | 起止日期 |`);
     lines.push(`|------|------|-----------|----------|`);
-    for (const t of scoped) {
+    for (const t of active) {
       const p = calcProgress(t);
       const done = countSubtasksDone(t.subtasks);
       lines.push(
@@ -117,10 +121,10 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
       );
     }
   }
-  if (scoped.length) {
+  if (active.length) {
     lines.push("");
     lines.push(`### 📝 任务与子任务明细`);
-    scoped.forEach((t, i) => {
+    active.forEach((t, i) => {
       const p = calcProgress(t);
       lines.push(`#### ${i + 1}. ${t.title}（进度 ${p}%）`);
       if (t.subtasks.length === 0) {
@@ -153,7 +157,7 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
   // ---------- HTML ----------
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const rows = scoped
+  const rows = active
     .map((t) => {
       const p = calcProgress(t);
       const done = countSubtasksDone(t.subtasks);
@@ -163,9 +167,9 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
   const tlHtml = tl.length
     ? `<h3>完成时间线</h3><ul>${tl.map((c) => `<li>${esc(c.date)} ${esc(c.title)} → 100%</li>`).join("")}</ul>`
     : "";
-  const detailHtml = scoped.length
+  const detailHtml = active.length
     ? `<h3>任务与子任务明细</h3>` +
-      scoped
+      active
         .map((t, i) => {
           const p = calcProgress(t);
           const items = t.subtasks.length
@@ -183,11 +187,11 @@ export function buildWeeklyReport(input: WeeklyReportInput): WeeklyReport {
   const html = [
     `<h2>周报 — ${esc(titleTag)} (${esc(period)})</h2>`,
     `<h3>总体统计</h3>`,
-    `<ul><li>Todo 总数：${st.total}</li><li>已完成：${st.done} | 进行中：${st.doing} | 未开始：${st.notStarted}</li><li>平均进度：${st.avg}%</li></ul>`,
+    `<ul><li>未完成任务：${st.total}</li><li>本周完成：${tl.length} | 进行中：${st.doing} | 未开始：${st.notStarted}</li><li>平均进度：${st.avg}%</li></ul>`,
     `<h3>任务明细</h3>`,
-    scoped.length
+    active.length
       ? `<table border="1" cellpadding="6" cellspacing="0"><thead><tr><th>任务</th><th>进度</th><th>子任务完成</th><th>起止日期</th></tr></thead><tbody>${rows}</tbody></table>`
-      : `<p>本周（${esc(titleTag)}）暂无任务</p>`,
+      : `<p>本周（${esc(titleTag)}）暂无进行中任务</p>`,
     detailHtml,
     tlHtml,
   ].join("\n");
