@@ -87,6 +87,16 @@ describe("lib/todo/api", () => {
     }
   });
 
+  it("saveDay 返回服务端新 head_sha（L2 基线推进）", async () => {
+    mockFetch({ ok: true, head_sha: "sha-9" });
+    await expect(saveDay("2026-09-17", [sampleTodo], undefined, "h1")).resolves.toBe("sha-9");
+  });
+
+  it("saveDay 旧 Worker 无 head_sha 时返回 null（基线不动，向后兼容）", async () => {
+    mockFetch({ ok: true });
+    await expect(saveDay("2026-09-17", [sampleTodo])).resolves.toBeNull();
+  });
+
   it("fetchAll / fetchTags 解析", async () => {
     mockFetch({ ok: true, todos: [sampleTodo] });
     mockFetch({ ok: true, tags: [{ id: "t", name: "N" }] });

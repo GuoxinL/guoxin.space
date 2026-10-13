@@ -30,6 +30,7 @@ import {
 import type { WriteQueue } from "../../lib/todo/write-queue";
 import { createSavePipeline } from "../../lib/todo/save-pipeline";
 import {
+  clearDraft,
   writeDraft,
   readDraft,
   diffDraft,
@@ -84,18 +85,13 @@ export const TodoPage = component$(() => {
   // highlightId，syncUrl 会把入站 ?todo=<id> 深链 query 用 replaceState('/todo') 剥掉。
   const urlSynced = useSignal(false);
 
-  /** 写盘合并队列：原地编辑提交频繁，Worker 每次 save 都会写一次数据仓，
-   *  必须 debounce 合并（见 app/src/lib/todo/write-queue.ts 顶部说明）。
-   *
-   *  ⚠️ 不能用 useConstant 持有：它的值会进入 Qwik 序列化图（组件 `$seq$` 写进 HTML），
-   *  而队列对象含 push/flush 等函数，序列化时抛 Qwik `Code(3)`，会让 `/todo/` 的
-   *  SSG 预渲染整体失败。改为在客户端 visible task 内创建、signal 仅承载引用
-   *  （客户端赋值不参与序列化；SSR 阶段保持 undefined，而事件回调在 SSR 下不会触发）。 */
+  /** 写盘合并队列：原地编辑提交频繁，必须 debounce（见 write-queue.ts）。
+   *  ⚠️ 不能用 useConstant 持有：队列含函数会进 Qwik 序列化图，SSG 预渲染抛
+   *  Code(3)；改在客户端 visible task 内创建，signal 仅承载引用（SSR 保持 undefined）。 */
   const queue = useSignal<WriteQueue<Todo[]>>();
 
-  /** 已落盘 day 文件集合（reload 时播种）：用于「删光某天最后一条」时
-   *  反推出被清空的日文件并显式写空数组，让 Worker 删掉残留的 YYYY-MM-DD.json，
-   *  否则刷新后 todoAll 仍会读回（deleteRow 删除后刷新复现 bug）。 */
+  /** 已落盘 day 文件集合（reload 时播种）：「删光某天最后一条」时反推出被清空的
+   *  日文件并显式写空数组让 Worker 删除，否则刷新后 todoAll 仍会读回。 */
   const knownDays = useSignal<Set<string>>(new Set());
 
   const filtered = useComputed$(() => {
@@ -128,9 +124,8 @@ export const TodoPage = component$(() => {
       todos.value = t;
       tags.value = tg;
 
-      // L5：读取残缺时置只读模式。**关键** —— 不播种 knownDays：
-      // 残缺快照里缺的日期若被播种进 knownDays，后续写盘的反推逻辑会把它当成
-      // 「用户已删空」而真删。宁可让删除反推失效，也不能误删数据。
+      // L5：残缺时置只读且**不播种 knownDays** —— 缺的日期若被播种，删除反推会
+      // 把它当成「已删空」而真删。宁可让删除反推失效，也不能误删。
       readOnly.value = r.partial;
       if (r.partial) {
         knownDays.value = new Set();
@@ -168,10 +163,8 @@ export const TodoPage = component$(() => {
     }
   });
 
-  /** 内存态立即更新（乐观），写盘交给队列合并。
-   *
-   *  L1：先同步落本地暂存区 —— 这一步瞬时、不依赖网络，
-   *  保证刷新 / 关页 / 断网 / 写盘失败时编辑内容都不丢。 */
+  /** 内存态立即更新（乐观），写盘交给队列合并；L1 先落本地暂存（瞬时、不依赖网络），
+   *  刷新 / 关页 / 断网 / 写盘失败均不丢编辑。 */
   const commit$ = $((next: Todo[]) => {
     todos.value = next;
     writeDraft(next, baseSig.value);
@@ -221,7 +214,7 @@ export const TodoPage = component$(() => {
 
   const onSaveTags$ = $(async (next: Tag[]) => {
     tags.value = next;
-    await saveTags(next);
+    const hs = await saveTags(next); if (hs) headSig.value = hs; // 标签保存也推进 head
     toast.value = "标签已保存";
   });
 
@@ -239,7 +232,8 @@ export const TodoPage = component$(() => {
         name,
       };
       try {
-        await saveTags([...tags.value, tag]);
+        const hs = await saveTags([...tags.value, tag]);
+        if (hs) headSig.value = hs;
       } catch (e) {
         toast.value = "标签创建失败：" + errText(e);
         return;
@@ -256,7 +250,18 @@ export const TodoPage = component$(() => {
     );
   });
 
-  // ---- 末尾草稿行 ----
+  // L1 兜底：未同步草稿由用户裁决（D4 不自动合并）。应用走正常写盘链路（基线新鲜）。
+  const applyDraft$ = $(() => {
+    const d = readDraft();
+    if (d) commit$(d.todos); // 基线新鲜，通常直接成功
+    draftDiff.value = { localOnly: [], remoteOnly: [], changed: [] };
+  });
+  const discardDraft$ = $(() => {
+    clearDraft();
+    draftDiff.value = { localOnly: [], remoteOnly: [], changed: [] };
+    status.value = { kind: "ok", msg: "已丢弃本地暂存" };
+  });
+
   const startDraft$ = $(() => {
     const now = new Date();
     const iso = nowIso();
@@ -336,6 +341,7 @@ export const TodoPage = component$(() => {
       setBase: (b) => (baseSig.value = b),
       setStatus: (msg, kind) => (status.value = { kind, msg }),
       headSha: () => headSig.value,
+      setHeadSha: (s) => (headSig.value = s),
     });
     queue.value = q;
     cleanup(() => {
@@ -431,7 +437,9 @@ export const TodoPage = component$(() => {
 
       {authed.value && !isDiffEmpty(draftDiff.value) && (
         <div class="td-statusline">
-          检测到未同步的本地修改（{describeDiff(draftDiff.value)}）—— 为避免覆盖他人改动，暂不自动合并
+          检测到未同步的本地修改（{describeDiff(draftDiff.value)}）
+          <button class="btn" onClick$={applyDraft$}>应用并保存</button>
+          <button class="btn" onClick$={discardDraft$}>丢弃暂存</button>
         </div>
       )}
 

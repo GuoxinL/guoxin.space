@@ -148,12 +148,16 @@ export async function saveDay(
   message?: string,
   /** L2 CAS 基准：读取时的分支 head sha。传 null/空则跳过校验（兼容旧 Worker）。 */
   headSha?: string | null,
-): Promise<void> {
+): Promise<string | null> {
   const body: Record<string, unknown> = { day, todos, message };
   if (headSha) body.head_sha = headSha;
-  await todoPost<{ ok: boolean }>("/api/todo/save", body);
+  const j = await todoPost<{ ok: boolean; head_sha?: string | null }>("/api/todo/save", body);
+  // 返回写入后的新 head：调用方必须推进 CAS 基线（否则下一次保存自撞 409）。
+  // 旧 Worker 无此字段 → null，基线保持不变（向后兼容）。
+  return j.head_sha || null;
 }
 
-export async function saveTags(tags: Tag[], message?: string): Promise<void> {
-  await todoPost<{ ok: boolean }>("/api/todo/tags", { tags, message });
+export async function saveTags(tags: Tag[], message?: string): Promise<string | null> {
+  const j = await todoPost<{ ok: boolean; head_sha?: string | null }>("/api/todo/tags", { tags, message });
+  return j.head_sha || null;
 }

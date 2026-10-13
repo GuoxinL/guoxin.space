@@ -14,7 +14,7 @@ import * as draftMod from "./draft";
 import type { Todo } from "./types";
 
 vi.mock("./api", () => ({
-  saveDay: vi.fn(async () => {}),
+  saveDay: vi.fn(async () => null),
   // isConflict 被 save-pipeline 的 onError 用到，必须一并 mock，
   // 否则它是undefined → 调用即抛 TypeError。
   isConflict: (e: unknown) => e instanceof SaveConflictErrorMock,
@@ -60,6 +60,7 @@ function makeDeps(over: Partial<SavePipelineDeps> = {}) {
   const setStatus = vi.fn();
   const setKnownDays = vi.fn();
   const setBase = vi.fn();
+  const setHeadSha = vi.fn();
   const deps: SavePipelineDeps = {
     readOnly: () => false,
     knownDays: () => known,
@@ -67,9 +68,10 @@ function makeDeps(over: Partial<SavePipelineDeps> = {}) {
     setBase,
     setStatus,
     headSha: () => null,
+    setHeadSha,
     ...over,
   };
-  return { deps, setStatus, setKnownDays, setBase };
+  return { deps, setStatus, setKnownDays, setBase, setHeadSha };
 }
 
 describe("lib/todo/save-pipeline", () => {
@@ -119,6 +121,34 @@ describe("lib/todo/save-pipeline", () => {
     q.push([todo("a", "2026-09-20T01:00:00.000Z")]);
     await q.flush();
     expect(draftMod.clearDraft).not.toHaveBeenCalled();
+  });
+
+  it("L2 基线推进：写盘成功后用服务端返回的新 head 更新基线", async () => {
+    vi.mocked(saveDay).mockResolvedValue("sha-2");
+    const { deps, setHeadSha } = makeDeps({ headSha: () => "head-0" });
+    const q = createSavePipeline(deps);
+    q.push([todo("a", "2026-09-20T01:00:00.000Z")]);
+    await q.flush();
+    expect(vi.mocked(saveDay).mock.calls[0][3]).toBe("head-0");
+    expect(setHeadSha).toHaveBeenCalledWith("sha-2");
+  });
+
+  it("L2 同批多日滚动推进：第二次写携带第一次返回的新 sha", async () => {
+    vi.mocked(saveDay)
+      .mockResolvedValueOnce("sha-2")
+      .mockResolvedValueOnce("sha-3");
+    const { deps, setHeadSha } = makeDeps({
+      headSha: () => "head-0",
+      knownDays: () => new Set(["2026-09-20", "2026-09-21"]),
+    });
+    const q = createSavePipeline(deps);
+    q.push([todo("a", "2026-09-20T01:00:00.000Z"), todo("b", "2026-09-21T01:00:00.000Z")]);
+    await q.flush();
+    const calls = vi.mocked(saveDay).mock.calls;
+    expect(calls.length).toBe(2);
+    expect(calls[0][3]).toBe("head-0");
+    expect(calls[1][3]).toBe("sha-2");
+    expect(setHeadSha).toHaveBeenLastCalledWith("sha-3");
   });
 
   it("knownDays 为空（读取不完整）时不会写任何空数组 —— 不误删", async () => {

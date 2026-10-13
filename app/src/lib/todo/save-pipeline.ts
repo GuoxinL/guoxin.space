@@ -26,6 +26,8 @@ export interface SavePipelineDeps {
   setStatus: (msg: string, kind: "ok" | "err") => void;
   /** L2 CAS 基准：读取时的分支 head sha（null = Worker 未提供，跳过校验） */
   headSha: () => string | null;
+  /** 写盘成功后推进基线：Worker 返回本次写入后的新 head。不推进则下一次写入自撞 409。 */
+  setHeadSha: (sha: string | null) => void;
 }
 
 export const MSGT_READONLY =
@@ -49,11 +51,27 @@ export function createSavePipeline(deps: SavePipelineDeps): WriteQueue<Todo[]> {
       }
       // 闸门 2：删除反推由 plan 统一计算；knownDays 为空集时 removed 必为空。
       const plan = planWrite(next, deps.knownDays());
-      const sha = deps.headSha();
-      await Promise.all([
-        ...plan.writes.map((w) => saveDay(w.day, w.todos, undefined, sha)),
-        ...plan.removed.map((d) => saveDay(d, [], undefined, sha)),
-      ]);
+      // 串行写并滚动推进 sha：同批多日时第二次写必须用第一次返回的新 head
+      //（并发同 sha 会互相把对方推进的 head 变成「别人的写入」而误判 409）。
+      let sha = deps.headSha();
+      let latest: string | null = null;
+      for (const w of plan.writes) {
+        const s = await saveDay(w.day, w.todos, undefined, sha);
+        if (s) {
+          latest = s;
+          sha = s;
+        }
+      }
+      for (const d of plan.removed) {
+        const s = await saveDay(d, [], undefined, sha);
+        if (s) {
+          latest = s;
+          sha = s;
+        }
+      }
+      // 不变量：自己写入推进的 head 必须回写基线 —— 否则下一次不经守卫的写入
+      //（进度 / 滑块 / 勾选 / 标签）会拿旧 sha 撞上自己刚推的提交 → 409（2026-10-13 实测）。
+      if (latest) deps.setHeadSha(latest);
       deps.setKnownDays(new Set(plan.writes.map((w) => w.day)));
       // 闸门 3：只有真正落盘成功才清暂存（失败时保留，刷新不丢编辑）。
       deps.setBase(makeBase(next));

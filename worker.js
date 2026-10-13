@@ -289,13 +289,23 @@ export async function probeIcon(token, owner, repo, branch, path, list) {
   return null;
 }
 
-export async function putFile(token, owner, repo, branch, path, base64, message) {
+// 写文件并返回 { ok, sha }：sha 是本次 PUT 新建提交 —— 即写入后的分支 head。
+// 客户端必须据此推进 L2 CAS 基线，否则下一次保存会拿旧 sha 撞上自己刚推的提交而误判
+// 409（2026-10-13 上午实测连续两次：09:53 保存成功 → 09:54 编辑必 409）。
+// 注意：内容未变化的 PUT 返回 200 但不产生新提交（r.data 无 commit）→ sha 为 null。
+export async function putFileSha(token, owner, repo, branch, path, base64, message) {
   const q = "?ref=" + encodeURIComponent(branch);
   const existing = await gh(token, "/repos/" + owner + "/" + repo + "/contents/" + enc(path) + q);
   const body = { message, content: base64, branch };
   if (existing.status === 200 && existing.data && existing.data.sha) body.sha = existing.data.sha;
   const r = await gh(token, "/repos/" + owner + "/" + repo + "/contents/" + enc(path), { method: "PUT", body: JSON.stringify(body) });
-  return r.status === 200 || r.status === 201;
+  const ok = r.status === 200 || r.status === 201;
+  const c = ok && r.data && r.data.commit ? r.data.commit : null;
+  return { ok, sha: c && c.sha ? c.sha : null };
+}
+
+export async function putFile(token, owner, repo, branch, path, base64, message) {
+  return (await putFileSha(token, owner, repo, branch, path, base64, message)).ok;
 }
 
 // 空仓库自动初始化：Git Data API 四步建初始提交（blob → tree → commit → ref）。
@@ -601,7 +611,7 @@ async function todoReadJson(env, cfg, relPath) {
 async function todoWriteJson(env, cfg, relPath, obj, message) {
   const full = cfg.path + "/" + relPath;
   const base64 = b64enc(JSON.stringify(obj, null, 2));
-  return putFile(env.GH_TOKEN, cfg.repo.owner, cfg.repo.repo, cfg.branch, full, base64, message);
+  return putFileSha(env.GH_TOKEN, cfg.repo.owner, cfg.repo.repo, cfg.branch, full, base64, message);
 }
 
 // 重建某月索引：列举该月所有日文件 → 取摘要 → 写 index/YYYY-MM.json
@@ -627,7 +637,7 @@ async function rebuildMonthIndex(env, cfg, y, m) {
       });
     }
   }
-  await todoWriteJson(env, cfg, "index/" + y + "-" + pad2(m) + ".json", entries, "todo: rebuild index " + y + "-" + pad2(m));
+  return todoWriteJson(env, cfg, "index/" + y + "-" + pad2(m) + ".json", entries, "todo: rebuild index " + y + "-" + pad2(m));
 }
 
 async function todoAll(env, cfg, cors) {
@@ -675,12 +685,14 @@ async function todoDelDay(env, cfg, day) {
   const path = cfg.path + "/" + day + ".json";
   const q = "?ref=" + encodeURIComponent(cfg.branch);
   const existing = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/contents/" + enc(path) + q);
-  if (existing.status !== 200 || !existing.data || !existing.data.sha) return true; // 已不存在
+  if (existing.status !== 200 || !existing.data || !existing.data.sha) return { ok: true, sha: null }; // 已不存在
   const r = await gh(env.GH_TOKEN, "/repos/" + cfg.repo.owner + "/" + cfg.repo.repo + "/contents/" + enc(path), {
     method: "DELETE",
     body: JSON.stringify({ message: "todo: 删除空日 " + day, sha: existing.data.sha, branch: cfg.branch }),
   });
-  return r.status === 200 || r.status === 204;
+  const ok = r.status === 200 || r.status === 204;
+  const c = ok && r.data && r.data.commit ? r.data.commit : null;
+  return { ok, sha: c && c.sha ? c.sha : null };
 }
 
 async function todoSave(env, cfg, cors, body) {
@@ -704,19 +716,25 @@ async function todoSave(env, cfg, cors, body) {
   }
   // 整日已清空：删除日文件而非留空数组，避免空 YYYY-MM-DD.json 残留在数据仓
   // （否则 todoAll 仍会列出该文件、刷新后已删 todo「复活」）。
-  const ok = todos.length === 0
+  const w = todos.length === 0
     ? await todoDelDay(env, cfg, day)
     : await todoWriteJson(env, cfg, day + ".json", todos, body.message || "todo: 更新 " + day);
-  if (!ok) return json(cors, 500, { error: "写入日文件失败（token 是否授权了 " + cfg.repo.owner + "/" + cfg.repo.repo + "？）" });
+  if (!w.ok) return json(cors, 500, { error: "写入日文件失败（token 是否授权了 " + cfg.repo.owner + "/" + cfg.repo.repo + "？）" });
+  // 本次写入后的最终 head：索引重建在日文件提交之上又推一个提交，以重建返回的为准
+  let head = w.sha;
   const ym = /^(\d{4})-(\d{2})/.exec(day);
-  if (ym) await rebuildMonthIndex(env, cfg, Number(ym[1]), Number(ym[2]));
-  return json(cors, 200, { ok: true, day, count: todos.length });
+  if (ym) {
+    const idx = await rebuildMonthIndex(env, cfg, Number(ym[1]), Number(ym[2]));
+    if (idx && idx.ok && idx.sha) head = idx.sha;
+  }
+  // 回传新 head：客户端推进 CAS 基线，下一次写入不再自撞（2026-10-13 事故根因）
+  return json(cors, 200, { ok: true, day, count: todos.length, head_sha: head });
 }
 async function todoSaveTags(env, cfg, cors, body) {
   const tags = Array.isArray(body.tags) ? body.tags : [];
-  const ok = await todoWriteJson(env, cfg, "tags.json", tags, body.message || "todo: 更新标签");
-  if (!ok) return json(cors, 500, { error: "写入标签失败" });
-  return json(cors, 200, { ok: true, count: tags.length });
+  const w = await todoWriteJson(env, cfg, "tags.json", tags, body.message || "todo: 更新标签");
+  if (!w.ok) return json(cors, 500, { error: "写入标签失败" });
+  return json(cors, 200, { ok: true, count: tags.length, head_sha: w.sha });
 }
 
 // ---------- 鉴权：GitHub OAuth + 无状态 HMAC 签名 token ----------

@@ -376,6 +376,98 @@ test.describe('TODO 写入安全（mock 先于导航）', () => {
     await page.reload();
     await expect(page.locator('.td-statusline')).toHaveCount(0);
   });
+  test('L2 自愈：保存成功后基线推进 —— 下一次写盘携带服务端新 head_sha', async ({ page }) => {
+    await mockWorker(page);
+    let n = 0;
+    await page.route(MOCK_WORKER + "api/todo/all", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, todos: SAMPLE_TODOS, head_sha: 'srv-0' }),
+      }),
+    );
+    await page.route(MOCK_WORKER + "api/todo/save", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true, head_sha: 'srv-' + ++n }),
+      }),
+    );
+    await page.goto('/todo');
+    await expect(page.locator('.td-r').first()).toBeVisible(); // 等水合+取数完成（SSR 首帧是登录门禁）
+    const r = row(page, 'todo-1');
+    // 第一次写：编辑提交（走守卫，重拉后基线 = /all 的 srv-0）
+    await r.locator('.td-r-title').click();
+    const input = r.locator('.td-r-title-input');
+    await input.fill('自愈第一次');
+    await input.press('Enter');
+    const req1 = await page.waitForRequest((q) => q.url().includes('/api/todo/save') && q.method() === 'POST');
+    expect(JSON.parse(req1.postData() ?? '{}').head_sha).toBe('srv-0');
+    // 第二次写：完成勾选（**不经守卫**）——必须携带上一次保存返回的 srv-1。
+    // 修复前这里仍是 srv-0 → Worker head 校验失配 → 每次保存后的下一次编辑必 409。
+    const req2 = page.waitForRequest((q) => q.url().includes('/api/todo/save') && q.method() === 'POST');
+    await r.locator('.td-r-check').click();
+    expect(JSON.parse((await req2).postData() ?? '{}').head_sha).toBe('srv-1');
+  });
+
+  test('L1 草稿裁决：未同步暂存 → 「丢弃」清暂存且横幅消失', async ({ page }) => {
+    await mockWorker(page);
+    let saveCount = 0;
+    await page.route(MOCK_WORKER + "api/todo/save", (route) => {
+      saveCount++;
+      return route.fulfill({
+        status: saveCount === 1 ? 500 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: saveCount > 1 }),
+      });
+    });
+    await page.goto('/todo');
+    await expect(page.locator('.td-r').first()).toBeVisible(); // 等水合+取数完成（SSR 首帧是登录门禁）
+    const r = row(page, 'todo-2');
+    await r.locator('.td-r-title').click();
+    const input = r.locator('.td-r-title-input');
+    await input.fill('裁决用例编辑');
+    await input.press('Enter');
+    await expect(page.locator('.td-status', { hasText: '保存失败' })).toBeVisible();
+    await page.reload();
+    const banner = page.locator('.td-statusline', { hasText: '未同步的本地修改' });
+    await expect(banner).toBeVisible();
+    await banner.locator('button', { hasText: '丢弃暂存' }).click();
+    await expect(banner).not.toBeVisible();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('todo:draft'))).toBeNull();
+  });
+
+  test('L1 草稿裁决：「应用并保存」→ 走正常写盘且暂存清空', async ({ page }) => {
+    await mockWorker(page);
+    let saveCount = 0;
+    await page.route(MOCK_WORKER + "api/todo/save", (route) => {
+      saveCount++;
+      return route.fulfill({
+        status: saveCount === 1 ? 500 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: saveCount > 1, head_sha: 'srv-' + saveCount }),
+      });
+    });
+    await page.goto('/todo');
+    await expect(page.locator('.td-r').first()).toBeVisible(); // 等水合+取数完成（SSR 首帧是登录门禁）
+    const r = row(page, 'todo-2');
+    await r.locator('.td-r-title').click();
+    const input = r.locator('.td-r-title-input');
+    await input.fill('应用并保存我');
+    await input.press('Enter');
+    await expect(page.locator('.td-status', { hasText: '保存失败' })).toBeVisible();
+    await page.reload();
+    const banner = page.locator('.td-statusline', { hasText: '未同步的本地修改' });
+    await expect(banner).toBeVisible();
+    // 应用会按天串行写多个日文件（内容未变的天不产生新提交），须按内容过滤目标请求
+    const reqPromise = waitSaveWith(page, 'todo-2');
+    await banner.locator('button', { hasText: '应用并保存' }).click();
+    const req = await reqPromise;
+    expect(JSON.parse(req.postData() ?? '{}').todos.some((x) => x.title === '应用并保存我')).toBe(true);
+    await expect(banner).not.toBeVisible();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('todo:draft'))).toBeNull();
+  });
+
 });
 
 test.describe('TODO 已登录（mock Worker）', () => {
